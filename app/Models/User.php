@@ -7,7 +7,7 @@ use App\Models\Clas;
 use App\Models\Country;
 use App\Models\Traits\Pointable;
 use App\Traits\EncryptationId;
-use Laravel\Passport\HasApiTokens;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
