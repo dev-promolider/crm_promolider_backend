@@ -1,0 +1,45 @@
+/*================================================================================
+	Item Name: Vuexy - Vuejs, HTML & Laravel Admin Dashboard Template
+	Version: 2.0
+	Author: PIXINVENT
+	Author URL: http://www.themeforest.net/user/pixinvent
+================================================================================
+
+NOTE:
+------
+PLACE HERE YOUR OWN SCSS CODES AND IF NEEDED, OVERRIDE THE STYLES FROM THE OTHER STYLESHEETS.
+WE WILL RELEASE FUTURE UPDATES SO IN ORDER TO NOT OVERWRITE YOUR STYLES IT'S BETTER LIKE THIS.  */
+/* Mover submenú hacia la derecha */
+.menu-content {
+    margin-left: 20px !important;
+    position: relative;
+}
+
+/* Línea visual opcional para mejor jerarquía */
+.menu-content::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: rgba(115, 103, 240, 0.3);
+}
+
+/* Ajuste para tema oscuro */
+.dark-layout .menu-content::before {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Espaciado mejorado para iconos */
+.menu-content li a i[data-feather],
+.menu-content li a svg {
+    margin-right: 8px;
+    opacity: 0.8;
+}
+
+/* Efecto hover suave */
+.menu-content li a:hover {
+    padding-left: 15px;
+    transition: padding-left 0.2s ease;
+}

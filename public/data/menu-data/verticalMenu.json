@@ -1,0 +1,250 @@
+{
+    "menu": [
+        {
+            "url": "/",
+            "name": "Dashboards",
+            "icon": "grid",
+            "slug": "menu-dashboard"
+        },
+        {
+            "url": "system/preregistro",
+            "name": "preregistro",
+            "icon": "user-plus",
+            "slug": "preregistro"
+        },
+        {
+            "url": "system/binary-branch",
+            "name": "registro",
+            "icon": "database",
+            "slug": "binary-branch"
+        },
+        {
+            "url": "/",
+            "name": "virtual_classroom",
+            "icon": "monitor",
+            "slug": "courses.index",
+            "submenu": [
+                {
+                    "url": "course",
+                    "name": "infoproducts",
+                    "icon": "book",
+                    "slug": "courses.index"
+                },
+                {
+                    "url": "marketplace",
+                    "name": "marketplace",
+                    "icon": "marketplace",
+                    "slug": "marketplace.toggle"
+                },
+                {
+                    "url": "course/subscriber",
+                    "name": "subscribers",
+                    "icon": "users",
+                    "slug": "courses.subs"
+                },
+                {
+                    "url": "chatgpt",
+                    "name": "chatgpt",
+                    "icon": "users",
+                    "slug": "chatgpt.index"
+                }
+            ]
+        },
+        {
+          "url": "/",
+          "name": "Marketing",
+          "icon": "star",
+          "slug": "marketing",
+          "submenu": [
+            {
+              "url": "marketing/tools",
+              "name": "tools",
+              "icon": "star",
+              "slug": "marketing.tools",
+              "permission": "marketing.tools"
+            },
+            {
+              "url": "marketing/calendar",
+              "name": "calendar",
+              "icon": "star",
+              "slug": "marketing.calendar",
+              "permission": "marketing.calendar"
+            },
+            {
+              "url": "marketing/marketplace",
+              "name": "marketplace",
+              "icon": "marketplace",
+              "slug": "marketing.marketplace",
+              "permission": "marketing.marketplace.marketplaceIndex"
+            },
+            {
+              "url": "marketing/pages",
+              "name": "pages",
+              "icon": "star",
+              "slug": "marketing.pages",
+              "permission": "marketing.pages"
+            },
+            {
+              "url": "marketing/report",
+              "name": "report",
+              "icon": "file-text",
+              "slug": "marketing.report"
+            },
+            {
+                "url": "marketing/payments_link",
+                "name": "payments_link",
+                "icon": "dollar-sign",
+                "slug": "marketing.payments_link"
+            }
+          ]
+        },
+        {
+            "url": "/",
+            "name": "requests",
+            "icon": "navigation",
+            "slug": "requests",
+            "submenu": [
+                {
+                    "url": "requests/listMyPayments",
+                    "name": "withdrawal_funds",
+                    "icon": "tag",
+                    "slug": "withdrawal_funds"
+                },
+                {
+                    "url": "config/user-request",
+                    "name": "new-users",
+                    "icon": "user",
+                    "slug": "new-users"
+                },
+                {
+                    "url": "course/verification",
+                    "name": "infoproduct_verification",
+                    "icon": "check",
+                    "slug": "courses.verification"
+                },
+                {
+                    "url": "config/role-request",
+                    "name": "courses_creation",
+                    "icon": "check",
+                    "slug": "courses.creation"
+                },
+                {
+                    "url": "config/role-request-tools",
+                    "name": "marketing_creation",
+                    "icon": "check",
+                    "slug": "marketing.create"
+                },
+                {
+                    "url": "course/exam/rate",
+                    "name": "rate-exams",
+                    "icon": "check",
+                    "slug": "exams.rate"
+                }
+            ]
+        },
+        {
+            "url": "/",
+            "name": "reports",
+            "icon": "pie-chart",
+            "slug": "reports",
+            "submenu": [
+                {
+                    "url": "users/list",
+                    "name": "user_list",
+                    "icon": "users",
+                    "slug": "users-list"
+                },
+                {
+                    "url": "payment",
+                    "name": "payments",
+                    "icon": "dollar-sign",
+                    "slug": "payment"
+                },
+                {
+                    "url": "/",
+                    "name": "my_wallet_m",
+                    "icon": "credit-card",
+                    "slug": "reports",
+                    "submenu": [
+                        {
+                            "url": "reports/mywallet",
+                            "name": "my_wallet",
+                            "icon": "credit-card",
+                            "slug": "report-nmywallet"
+                        },
+                        {
+                            "url": "reports/mypurchase",
+                            "name": "my_purchase",
+                            "icon": "credit-card",
+                            "slug": "report-purchase"
+                        },
+                        {
+                            "url": "reports/mysales",
+                            "name": "my_sales",
+                            "icon": "credit-card",
+                            "slug": "report-sales"
+                        }
+                    ]
+                },
+                {
+                    "url": "/",
+                    "name": "bono_rango",
+                    "icon": "trending-up",
+                    "slug": "reports",
+                    "submenu": [
+                        {
+                            "url": "reports/historial",
+                            "name": "my_historial",
+                            "icon": "archive",
+                            "slug": "report-historial"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "url": "/",
+            "name": "configuration",
+            "icon": "settings",
+            "slug": "config",
+            "submenu": [
+                {
+                    "url": "config/binarycut",
+                    "name": "binary_cut",
+                    "icon": "scissors",
+                    "slug": "binarycut.index"
+                },
+                {
+                    "url": "config/advertisements",
+                    "name": "advertisements",
+                    "icon": "alert-circle",
+                    "slug": "advertisements"
+                },
+                {
+                    "url": "account-type",
+                    "name": "account_type",
+                    "icon": "user-check",
+                    "slug": "account-type"
+                },
+                {
+                    "url": "starting-bonus",
+                    "name": "starting_bonus",
+                    "icon": "circle",
+                    "slug": "config.share-link"
+                },
+                {
+                    "url": "config/option/list",
+                    "name": "option",
+                    "icon": "aperture",
+                    "slug": "option"
+                },
+                {
+                    "url": "config/points",
+                    "name": "points",
+                    "icon": "circle",
+                    "slug": "config.points"
+                }
+            ]
+        }
+    ]
+}

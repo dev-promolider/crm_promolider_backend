@@ -1,0 +1,64 @@
+name: Deploy Promolider via SSH
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  DEPLOY_BRANCH: ${{ github.ref_name }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy en servidor
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+
+            cd ${{ secrets.PROJECT_PATH }}
+
+            echo "==> Rama de despliegue: ${{ env.DEPLOY_BRANCH }}"
+            echo "==> Modo mantenimiento"
+            php artisan down || true
+
+            echo "==> Actualizando codigo"
+            git fetch origin ${{ env.DEPLOY_BRANCH }}
+            git checkout ${{ env.DEPLOY_BRANCH }} || git checkout -b ${{ env.DEPLOY_BRANCH }} origin/${{ env.DEPLOY_BRANCH }}
+            git reset --hard origin/${{ env.DEPLOY_BRANCH }}
+
+            echo "==> Instalando dependencias PHP"
+            composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+
+            echo "==> Instalando dependencias Node"
+            npm ci --legacy-peer-deps
+
+            echo "==> Compilando assets"
+            CI=true DISABLE_NOTIFIER=true npm run production -- --no-progress
+
+            echo "==> Limpiando caches"
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan view:clear
+
+            echo "==> Regenerando caches"
+            php artisan config:cache
+
+            echo "==> Reiniciando colas y websockets"
+            php artisan queue:restart
+
+            echo "==> Levantando app"
+            php artisan up
