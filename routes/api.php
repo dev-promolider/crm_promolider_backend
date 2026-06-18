@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Exam;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\AuxController;
 use App\Http\Controllers\DailyQuestion;
 use App\Http\Controllers\PayController;
@@ -97,6 +98,13 @@ Route::group(['prefix' => '/v1'], function () {
 
         Route::middleware(['auth:api', 'checkAuth'])->group(function () {
 
+            Route::group(['prefix' => 'dashboard'], function () {
+                Route::get('/topbar-stats', [\App\Http\Controllers\Api\DashboardController::class, 'topbarStats']);
+                Route::get('/widgets', [\App\Http\Controllers\Api\DashboardController::class, 'dashboardWidgets']);
+                Route::get('/binary-tree', [\App\Http\Controllers\RamaBinariaController::class, 'listbinary']);
+                Route::get('/unilevel-tree', [\App\Http\Controllers\Api\DashboardController::class, 'unilevelTree']);
+            });
+
             Route::group(['prefix' => 'notifications'], function () {
                 Route::get('/list', [NotificationController::class, 'myNotifications'])->name('notifications-list');
             });
@@ -162,19 +170,19 @@ Route::group(['prefix' => '/v1'], function () {
                     Route::patch('/user/{user_id}/participant', [MinicourseRegisterController::class, 'updateParticipantStatus']);
                     Route::patch('/user/{user_id}/observation', [MinicourseRegisterController::class, 'updateObservation']);
                     Route::post('/purchase/{id}', function ($id) {
-                        \Log::info("馃殌 Ingres贸 a la ruta: /invitation/purchase/{$id}");
+                        Log::info("馃殌 Ingres贸 a la ruta: /invitation/purchase/{$id}");
                         return app(\App\Http\Controllers\MiniCourseDistributorController::class)->purchase($id);
                     })->name('marketing.mini-course.purchase');                
                     Route::get('/check-purchase/{id}', function ($id) {
-                        \Log::info("馃殌 Ingres贸 a la ruta: /invitation/check-purchase/{$id}");
+                        Log::info("馃殌 Ingres贸 a la ruta: /invitation/check-purchase/{$id}");
                         return app(\App\Http\Controllers\MiniCourseDistributorController::class)->checkPurchase($id);
                     })->name('marketing.mini-course.check-purchase');                
                     Route::post('/invitation-link/{id}', function ($id) {
-                        \Log::info("馃殌 Ingres贸 a la ruta: /invitation/invitation-link/{$id}");
+                        Log::info("馃殌 Ingres贸 a la ruta: /invitation/invitation-link/{$id}");
                         return app(\App\Http\Controllers\MiniCourseDistributorController::class)->createInvitationLink($id);
                     })->name('marketing.mini-course.create-invitation-link');                
                     Route::get('/check-invitation/{id}', function ($id) {
-                        \Log::info("馃殌 Ingres贸 a la ruta: /invitation/check-invitation/{$id}");
+                        Log::info("馃殌 Ingres贸 a la ruta: /invitation/check-invitation/{$id}");
                         return app(\App\Http\Controllers\MiniCourseDistributorController::class)->checkInvitation($id);
                     })->name('marketing.mini-course.check-invitation');
                 });
@@ -239,6 +247,7 @@ Route::group(['prefix' => '/v1'], function () {
                 Route::post('/update', [UserController::class, 'update']);
                 Route::post('/update-user', [UserController::class, 'updateUser']);
                 Route::get('/show', [UserController::class, 'show']);
+                Route::get('/{id}/detail', [UserController::class, 'getDataUserId']);
                 Route::post('/verify-duplicate', [UserController::class, 'verifyDuplicate']);
                 Route::get('/get-rolename', [UserController::class, 'getRolename']);
                 Route::post('/verify-unique-email', [UserController::class, 'verifyUniqueEmail']);

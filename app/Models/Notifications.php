@@ -16,4 +16,25 @@ class Notifications extends Model
         'body',
         'type',
     ];
+
+    public function generator()
+    {
+        return $this->belongsTo(User::class, 'id_generator');
+    }
+
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'id_receiver');
+    }
+
+    protected static function booted()
+    {
+        static::created(function ($notification) {
+            try {
+                broadcast(new \App\Events\NotificationSentEvent($notification))->toOthers();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Error broadcasting notification event: " . $e->getMessage());
+            }
+        });
+    }
 }

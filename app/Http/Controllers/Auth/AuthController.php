@@ -119,7 +119,7 @@ class AuthController extends Controller
             ]);
 
             //Generar Token
-            $access_token = $user->createToken('authToken')->accessToken;
+            $access_token = $user->createToken('authToken')->plainTextToken;
 
             DB::commit();
             return response([
@@ -150,13 +150,10 @@ class AuthController extends Controller
                     $user_role = $user->getRoleNames();
 
                     $tokenResult = $user->createToken('authToken');
-                    $token = $tokenResult->token;
-                    $token->expires_at = Carbon::now()->addHours(1);
-                    $token->save();
                     DB::commit();
 
                     return $this->responseOk(__('auth.correct_login'), [
-                        'access_token' => $tokenResult->accessToken,
+                        'access_token' => $tokenResult->plainTextToken,
                         'token_type' => 'Bearer',
                         'user' => $user->toArray(),
                         'role' => $user_role,
@@ -190,13 +187,10 @@ class AuthController extends Controller
                 $user_role = $user->getRoleNames();
 
                 $tokenResult = $user->createToken('authToken');
-                $token = $tokenResult->token;
-                $token->expires_at = Carbon::now()->addHours(1);
-                $token->save();
                 DB::commit();
 
                 return $this->responseOk(__('auth.correct_login'), [
-                    'access_token' => $tokenResult->accessToken,
+                    'access_token' => $tokenResult->plainTextToken,
                     'token_type' => 'Bearer',
                     'user' => $user->toArray(),
                     'role' => $user_role,

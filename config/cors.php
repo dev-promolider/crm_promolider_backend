@@ -8,10 +8,11 @@ return [
 
     'allowed_origins' => [
         'https://vcr.promolider.info',
-        'http://localhost:8081',      
-         'https://crm.promolider.info',
-         'https://agente.picklechatbot.promolider.org'
-
+        'http://localhost:8081',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'https://crm.promolider.info',
+        'https://agente.picklechatbot.promolider.org'
     ],
 
     'allowed_origins_patterns' => [],
