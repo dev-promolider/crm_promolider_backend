@@ -175,6 +175,11 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\NotificationServiceProvider::class,
+        
+        // Hexagonal Architecture Providers
+        \Promolider\Infrastructure\Auth\Providers\AuthServiceProvider::class,
+        \Promolider\Infrastructure\Dashboard\Providers\DashboardServiceProvider::class,
+
         // custom theme menu provider
         App\Providers\MenuServiceProvider::class,
 

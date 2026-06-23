@@ -82,11 +82,13 @@ Route::group(['prefix' => '/v1'], function () {
         // Rutas API para tipos de documentos
         Route::get('/listDocumentType', [ApiUserController::class, 'listDocumentType'])->name('document.list');
 
-        Route::group(['prefix' => 'auth', 'namespace' => 'Auth'], function () {
-            // Rutas de autenticaci贸n
-            Route::post('login', [AuthController::class, 'login'])->name('auth.login');
-            Route::post('redirect', [AuthController::class, 'loginApiForRedirect'])->name('auth.loginRedirect');
-            Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:api');
+        Route::group(['prefix' => 'auth'], function () {
+            // Rutas de autenticaci贸n (Hexagonal)
+            Route::post('login', [\Promolider\Infrastructure\Auth\In\Http\Controllers\AuthController::class, 'login'])->name('auth.login');
+            
+            // Antiguas que aún no migramos
+            Route::post('redirect', [\App\Http\Controllers\Auth\AuthController::class, 'loginApiForRedirect'])->name('auth.loginRedirect');
+            Route::post('logout', [\App\Http\Controllers\Auth\AuthController::class, 'logout'])->name('auth.logout')->middleware('auth:api');
         });
 
         // =================== Rutas para proyecto Juegos ===================
@@ -99,10 +101,10 @@ Route::group(['prefix' => '/v1'], function () {
         Route::middleware(['auth:api', 'checkAuth'])->group(function () {
 
             Route::group(['prefix' => 'dashboard'], function () {
-                Route::get('/topbar-stats', [\App\Http\Controllers\Api\DashboardController::class, 'topbarStats']);
-                Route::get('/widgets', [\App\Http\Controllers\Api\DashboardController::class, 'dashboardWidgets']);
+                Route::get('/topbar-stats', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'topbarStats']);
+                Route::get('/widgets', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'dashboardWidgets']);
                 Route::get('/binary-tree', [\App\Http\Controllers\RamaBinariaController::class, 'listbinary']);
-                Route::get('/unilevel-tree', [\App\Http\Controllers\Api\DashboardController::class, 'unilevelTree']);
+                Route::get('/unilevel-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'unilevelTree']);
             });
 
             Route::group(['prefix' => 'notifications'], function () {

@@ -74,6 +74,9 @@
     ],
     "psr-4": {
       "App\\": "app/",
+      "Promolider\\Domain\\": "1-Domain/",
+      "Promolider\\Application\\": "2-Application/",
+      "Promolider\\Infrastructure\\": "3-Infrastructure/",
       "Database\\Factories\\": "database/factories/",
       "Database\\Seeders\\": "database/seeders/"
     },
