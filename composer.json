@@ -11,8 +11,6 @@
     "php": "^7.3|^8.0",
     "aws/aws-sdk-php": "^3.295",
     "barryvdh/laravel-dompdf": "^1.0",
-    "beyondcode/laravel-websockets": "^1.14",
-    "biscolab/laravel-recaptcha": "^5.4",
     "doctrine/dbal": "^3.1",
     "fideloper/proxy": "^4.4",
     "fruitcake/laravel-cors": "^2.0",
@@ -24,12 +22,10 @@
     "laravel/sanctum": "^2.15",
     "laravel/tinker": "^2.8",
     "laravel/ui": "^3.3",
-    "laravelcollective/html": "^6.2",
     "league/flysystem-aws-s3-v3": "~1.0",
     "mercadopago/dx-php": "2.4.7",
     "nesbot/carbon": "^2.55",
     "openpay/sdk": "^3.0",
-    "paypal/rest-api-sdk-php": "^1.14",
     "pbmedia/laravel-ffmpeg": "*",
     "php-ffmpeg/php-ffmpeg": "^1.1",
     "phpmailer/phpmailer": "^6.10",
@@ -74,15 +70,12 @@
     ],
     "psr-4": {
       "App\\": "app/",
-      "Promolider\\Domain\\": "1-Domain/",
-      "Promolider\\Application\\": "2-Application/",
-      "Promolider\\Infrastructure\\": "3-Infrastructure/",
+      "Promolider\\Domain\\": "app/1-Domain/",
+      "Promolider\\Application\\": "app/2-Application/",
+      "Promolider\\Infrastructure\\": "app/3-Infrastructure/",
       "Database\\Factories\\": "database/factories/",
       "Database\\Seeders\\": "database/seeders/"
-    },
-    "files": [
-      "app/Helpers/helpers.php"
-    ]
+    }
   },
   "autoload-dev": {
     "psr-4": {
