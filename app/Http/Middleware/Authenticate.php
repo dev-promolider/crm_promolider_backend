@@ -14,33 +14,8 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        if (!$request->expectsJson()) {
-            return route('main-login');
+        if (! $request->expectsJson()) {
+            return route('login');
         }
-    }
-
-    /**
-     * Handle an unauthenticated user. This is a copy of the original method by Diego
-     */
-
-    protected function authenticate($request, array $guards)
-    {
-        if (empty($guards)) {
-            $guards = [null];
-        }
-
-        foreach ($guards as $guard) {
-            if ($this->auth->guard($guard)->check()) {
-                return $this->auth->shouldUse($guard);
-            }
-        }
-        // Exclude specific route from authentication
-
-        $exclude = ['mc.filter', 'mc.upcoming'];
-
-        if (in_array($request->route()->getName(), $exclude)) {
-            return $this->auth->shouldUse($guard);
-        }
-        $this->unauthenticated($request, $guards);
     }
 }

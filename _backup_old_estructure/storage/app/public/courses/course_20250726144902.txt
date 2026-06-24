@@ -1,0 +1,12 @@
+POST /account/signup/ HTTP/2
+Host: replikers.com
+Accept-Encoding: gzip, deflate, br
+Accept: */*
+Accept-Language: en-US;q=0.9,en;q=0.8
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36
+Cache-Control: max-age=0
+Referer: https://replikers.com/account/signup/
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 71
+
+nombre=NN&apellido=NN&telefono=HERE&pais=NN&ciudad=NN&email=NN&password1=NN&password2=NN
