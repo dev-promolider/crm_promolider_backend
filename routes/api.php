@@ -22,5 +22,20 @@ Route::group(['prefix' => 'auth'], function () {
 // Rutas Protegidas (Requieren Token)
 // ==========================================
 Route::middleware('auth:sanctum')->group(function () {
-    // Aquí irán las rutas que requieran autenticación en el futuro
+    // ==========================================
+    // Módulo: Dashboard
+    // ==========================================
+    Route::group(['prefix' => 'dashboard'], function () {
+        Route::get('topbar-stats', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'topbarStats'])->name('dashboard.stats');
+        Route::get('widgets', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'dashboardWidgets'])->name('dashboard.widgets');
+        Route::get('unilevel-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'unilevelTree'])->name('dashboard.unilevel_tree');
+        Route::get('binary-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'binaryTree'])->name('dashboard.binary_tree');
+    });
+
+    // ==========================================
+    // Módulo: Perfil
+    // ==========================================
+    Route::get('profile/info', function (\Illuminate\Http\Request $request) {
+        return response()->json(['user' => $request->user()]);
+    });
 });

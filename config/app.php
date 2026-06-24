@@ -178,8 +178,8 @@ return [
         /*
          * Hexagonal Architecture Service Providers...
          */
-        \Promolider\Infrastructure\Auth\In\Providers\AuthServiceProvider::class,
-        \Promolider\Infrastructure\Dashboard\In\Providers\DashboardServiceProvider::class,
+        \Promolider\Infrastructure\Auth\Providers\AuthServiceProvider::class,
+        \Promolider\Infrastructure\Dashboard\Providers\DashboardServiceProvider::class,
 
     ],
 
