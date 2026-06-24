@@ -1,64 +1,28 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+# Promolíder - Backend API (Arquitectura Hexagonal)
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Este repositorio contiene la API REST del sistema Promolíder, migrada desde un antiguo monolito Laravel hacia una **Arquitectura Hexagonal (Puertos y Adaptadores)**. Este enfoque permite que el código sea altamente mantenible, testable e independiente de frameworks o bases de datos específicas en la capa de negocio.
 
-## About Laravel
+## Estructura del Proyecto
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+El código de negocio y la infraestructura están separados en la carpeta `app/`:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+*   **`1-Domain/` (Dominio):** Contiene las interfaces (Puertos), entidades de negocio y lógica pura. No debe tener dependencias de infraestructura ni de Laravel.
+    *   Ejemplo: `DashboardRepositoryInterface.php` (Puerto de Salida).
+*   **`2-Application/` (Aplicación):** Contiene los Casos de Uso (Use Cases) que orquestan el flujo de información entre el exterior y el dominio.
+    *   Ejemplo: `GetBinaryTreeUseCase.php`
+*   **`3-Infrastructure/` (Infraestructura):** Implementa los adaptadores concretos. Aquí vive Laravel, Eloquent, Controladores HTTP, etc.
+    *   **`In/` (Entrada):** Controladores (`DashboardController.php`), rutas, peticiones entrantes.
+    *   **`Out/` (Salida):** Repositorios concretos (`EloquentDashboardRepository.php`), llamadas a APIs externas.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Reglas y Directrices para el Equipo
 
-## Learning Laravel
+1.  **Cero Acoplamiento en Casos de Uso:** Un Caso de Uso jamás debe llamar a un modelo de Eloquent (`User::find()`) directamente. Siempre debe inyectarse un Puerto (Interfaz) a través del constructor.
+2.  **Controladores Limpios:** Los controladores en la capa de Infraestructura (`In\Http\Controllers`) solo deben encargarse de recibir la Request, llamar a un Caso de Uso, y devolver una Response JSON. Toda la lógica pesada de bases de datos va en los Repositorios de Infraestructura de Salida.
+3.  **Seguridad CORS:** El backend está configurado para aceptar peticiones del frontend en `http://localhost:5173`. Si se sube a producción, actualiza los dominios permitidos en `config/cors.php`.
+4.  **Autenticación:** Todo endpoint protegido debe usar middleware `auth:sanctum`. El frontend enviará automáticamente el token Bearer en las cabeceras.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Ejecución Local
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1.  Copia `.env.example` a `.env` y ajusta las credenciales de la base de datos local.
+2.  Ejecuta `composer install`.
+3.  Sirve la API con `php artisan serve`.
