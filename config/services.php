@@ -30,4 +30,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'n8n' => [
+        'preregistro_webhook' => env('N8N_URL', 'https://ia.promolider.org/webhook-test/registro-promolider'),
+        'radar_webhook'       => env('N8N_RADAR_URL', 'https://ia.promolider.org/webhook-test/pre_pago'),
+    ],
+
+    'openpay' => [
+        'id'              => env('OPENPAY_ID'),
+        'sk'              => env('OPENPAY_SK_DECODED'),
+        'sk_encoded'      => env('OPENPAY_SK_ENCODED'),
+        'production_mode' => env('OPENPAY_PRODUCTION_MODE', false),
+    ],
+
 ];

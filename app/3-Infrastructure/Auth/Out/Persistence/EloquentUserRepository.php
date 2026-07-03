@@ -21,7 +21,10 @@ class EloquentUserRepository implements UserRepositoryInterface
             $user->username,
             $user->password,
             $user->request ?? 0,
-            $user->getRoleNames()->toArray()
+            $user->getRoleNames()->toArray(),
+            $user->nombre ?? '',
+            $user->apellido ?? '',
+            $user->photo ?? null
         );
     }
 }

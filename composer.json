@@ -8,9 +8,11 @@
         "php": "^7.3|^8.0",
         "fruitcake/laravel-cors": "^2.0",
         "guzzlehttp/guzzle": "^7.0.1",
+        "ifsnop/mysqldump-php": "^2.12",
         "laravel/framework": "^8.75",
         "laravel/sanctum": "^2.11",
         "laravel/tinker": "^2.5",
+        "openpay/sdk": "^3.1",
         "spatie/laravel-permission": "^6.25"
     },
     "require-dev": {

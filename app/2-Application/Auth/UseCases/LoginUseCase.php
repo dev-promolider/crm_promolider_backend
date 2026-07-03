@@ -39,6 +39,9 @@ class LoginUseCase
             'user'         => [
                 'id' => $user->id,
                 'username' => $user->username,
+                'name' => $user->name,
+                'last_name' => $user->last_name,
+                'photo' => $user->photo,
             ],
             'role' => $user->roles,
         ];

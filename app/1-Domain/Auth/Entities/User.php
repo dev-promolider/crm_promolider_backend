@@ -8,7 +8,10 @@ class User
         public string $username,
         public string $password,
         public int $requestStatus,
-        public array $roles = []
+        public array $roles = [],
+        public string $name = '',
+        public string $last_name = '',
+        public ?string $photo = null
     ) {}
 
     /**
