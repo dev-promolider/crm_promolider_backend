@@ -37,5 +37,23 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        // ==========================================
+        // Module: Infoproducts
+        // ==========================================
+
+        $this->renderable(function (\Promolider\Application\Infoproducts\Exceptions\InfoproductNotOwnedException $e, $request) {
+            return response()->json([
+                'error'   => 'Forbidden',
+                'message' => $e->getMessage()
+            ], 403);
+        });
+
+        $this->renderable(function (\Promolider\Application\Infoproducts\Exceptions\InfoproductNotFoundException $e, $request) {
+            return response()->json([
+                'error'   => 'Not Found',
+                'message' => $e->getMessage()
+            ], 404);
+        });
     }
 }
