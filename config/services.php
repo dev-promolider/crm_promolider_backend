@@ -42,4 +42,8 @@ return [
         'production_mode' => env('OPENPAY_PRODUCTION_MODE', false),
     ],
 
+    'ruleta' => [
+        'turn_duration' => env('RULETA_TURN_DURATION', 300),
+    ],
+
 ];

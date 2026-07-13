@@ -171,7 +171,7 @@ return [
          */
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
-        // App\Providers\BroadcastServiceProvider::class,
+        App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
@@ -181,6 +181,7 @@ return [
         \Promolider\Infrastructure\Auth\Providers\AuthServiceProvider::class,
         \Promolider\Infrastructure\Dashboard\Providers\DashboardServiceProvider::class,
         \Promolider\Infrastructure\Registration\Providers\RegistrationServiceProvider::class,
+        \Promolider\Infrastructure\Marketing\Providers\MarketingServiceProvider::class,
 
     ],
 
