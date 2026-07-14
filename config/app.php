@@ -181,6 +181,7 @@ return [
         \Promolider\Infrastructure\Auth\Providers\AuthServiceProvider::class,
         \Promolider\Infrastructure\Dashboard\Providers\DashboardServiceProvider::class,
         \Promolider\Infrastructure\Registration\Providers\RegistrationServiceProvider::class,
+        \Promolider\Infrastructure\Infoproducts\Providers\InfoproductServiceProvider::class,
 
     ],
 
