@@ -15,11 +15,11 @@ use Promolider\Application\Marketing\UseCases\Pages\GetPublicEditablePageUseCase
 class EditablePagesController extends Controller
 {
     public function __construct(
-        private readonly ListEditablePagesUseCase $listEditablePagesUseCase,
-        private readonly CreateEditablePageUseCase $createEditablePageUseCase,
-        private readonly UpdateEditablePageUseCase $updateEditablePageUseCase,
-        private readonly DeleteEditablePageUseCase $deleteEditablePageUseCase,
-        private readonly GetPublicEditablePageUseCase $getPublicEditablePageUseCase,
+        private ListEditablePagesUseCase $listEditablePagesUseCase,
+        private CreateEditablePageUseCase $createEditablePageUseCase,
+        private UpdateEditablePageUseCase $updateEditablePageUseCase,
+        private DeleteEditablePageUseCase $deleteEditablePageUseCase,
+        private GetPublicEditablePageUseCase $getPublicEditablePageUseCase,
     ) {}
 
     public function index(): JsonResponse

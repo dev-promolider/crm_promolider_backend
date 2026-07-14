@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CalendarRepositoryInterface;
 class SyncNotesUseCase
 {
     public function __construct(
-        private readonly CalendarRepositoryInterface $calendarRepository
+        private CalendarRepositoryInterface $calendarRepository
     ) {}
 
     public function execute(int $userId, array $notes): array

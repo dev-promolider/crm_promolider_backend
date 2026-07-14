@@ -5,10 +5,10 @@ namespace Promolider\Domain\Marketing\Entities;
 class UserLevel
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly string $description,
-        private readonly int $experienceRequired,
-        private readonly ?string $urlIcon,
+        private ?int $id,
+        private string $description,
+        private int $experienceRequired,
+        private ?string $urlIcon,
     ) {}
 
     public function getId(): ?int { return $this->id; }

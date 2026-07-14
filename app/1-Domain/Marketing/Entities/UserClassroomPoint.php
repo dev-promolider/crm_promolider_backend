@@ -5,11 +5,11 @@ namespace Promolider\Domain\Marketing\Entities;
 class UserClassroomPoint
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly int $userId,
-        private readonly int $totalPoints,
-        private readonly ?string $userName,
-        private readonly ?string $userPhoto,
+        private ?int $id,
+        private int $userId,
+        private int $totalPoints,
+        private ?string $userName,
+        private ?string $userPhoto,
     ) {}
 
     public function getId(): ?int { return $this->id; }

@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\GamificationRepositoryInterface;
 class GetUserGamificationInfoUseCase
 {
     public function __construct(
-        private readonly GamificationRepositoryInterface $repository,
+        private GamificationRepositoryInterface $repository,
     ) {}
 
     public function execute(int $userId): array

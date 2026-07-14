@@ -5,17 +5,17 @@ namespace Promolider\Domain\Marketing\Entities;
 class PaymentLink
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly string $name,
-        private readonly ?string $slug,
-        private readonly ?string $productType,
-        private readonly ?int $productId,
-        private readonly float $amount,
-        private readonly ?string $description,
-        private readonly bool $active,
-        private readonly int $usageCount,
-        private readonly ?string $createdAt,
-        private readonly ?string $updatedAt,
+        private ?int $id,
+        private string $name,
+        private ?string $slug,
+        private ?string $productType,
+        private ?int $productId,
+        private float $amount,
+        private ?string $description,
+        private bool $active,
+        private int $usageCount,
+        private ?string $createdAt,
+        private ?string $updatedAt,
     ) {}
 
     public function getId(): ?int { return $this->id; }

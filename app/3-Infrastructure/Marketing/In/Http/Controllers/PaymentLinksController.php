@@ -17,13 +17,13 @@ use Promolider\Application\Marketing\UseCases\PaymentLinks\DeletePaymentLinkUseC
 class PaymentLinksController extends Controller
 {
     public function __construct(
-        private readonly ListPaymentLinksUseCase $listUseCase,
-        private readonly GetPaymentLinkUseCase $getUseCase,
-        private readonly GetPublicPaymentLinkUseCase $getPublicUseCase,
-        private readonly CreatePaymentLinkUseCase $createUseCase,
-        private readonly UpdatePaymentLinkUseCase $updateUseCase,
-        private readonly TogglePaymentLinkUseCase $toggleUseCase,
-        private readonly DeletePaymentLinkUseCase $deleteUseCase,
+        private ListPaymentLinksUseCase $listUseCase,
+        private GetPaymentLinkUseCase $getUseCase,
+        private GetPublicPaymentLinkUseCase $getPublicUseCase,
+        private CreatePaymentLinkUseCase $createUseCase,
+        private UpdatePaymentLinkUseCase $updateUseCase,
+        private TogglePaymentLinkUseCase $toggleUseCase,
+        private DeletePaymentLinkUseCase $deleteUseCase,
     ) {}
 
     // ─── Admin CRUD ────────────────────────────────────────────────────────

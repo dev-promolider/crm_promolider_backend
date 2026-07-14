@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\ReportRepositoryInterface;
 class GetPrivateContentReportUseCase
 {
     public function __construct(
-        private readonly ReportRepositoryInterface $reportRepository
+        private ReportRepositoryInterface $reportRepository
     ) {}
 
     public function getAll(): array

@@ -13,9 +13,9 @@ use Promolider\Application\Marketing\UseCases\FreeCourses\DeleteFreeCourseUseCas
 class FreeCoursesController extends Controller
 {
     public function __construct(
-        private readonly ListFreeCoursesUseCase $listUseCase,
-        private readonly CreateFreeCourseUseCase $createUseCase,
-        private readonly DeleteFreeCourseUseCase $deleteUseCase,
+        private ListFreeCoursesUseCase $listUseCase,
+        private CreateFreeCourseUseCase $createUseCase,
+        private DeleteFreeCourseUseCase $deleteUseCase,
     ) {}
 
     public function index(Request $request): JsonResponse

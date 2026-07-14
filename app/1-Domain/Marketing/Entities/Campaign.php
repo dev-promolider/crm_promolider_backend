@@ -5,16 +5,16 @@ namespace Promolider\Domain\Marketing\Entities;
 class Campaign
 {
     public function __construct(
-        public readonly ?int $id,
-        public readonly string $name,
-        public readonly string $type,
-        public readonly ?string $description,
-        public readonly int $status,
-        public readonly ?int $producerId,
-        public readonly ?string $image,
-        public readonly ?\DateTime $startDate,
-        public readonly ?\DateTime $endDate,
-        public readonly ?\DateTime $createdAt,
+        public ?int $id,
+        public string $name,
+        public string $type,
+        public ?string $description,
+        public int $status,
+        public ?int $producerId,
+        public ?string $image,
+        public ?\DateTime $startDate,
+        public ?\DateTime $endDate,
+        public ?\DateTime $createdAt,
     ) {}
 
     public function isActive(): bool

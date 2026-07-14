@@ -12,9 +12,9 @@ use Promolider\Domain\Marketing\Ports\Out\MarketplaceRepositoryInterface;
 class MarketplaceController extends Controller
 {
     public function __construct(
-        private readonly GetMarketplaceItemsUseCase $getMarketplaceItemsUseCase,
-        private readonly ToggleMarketplaceVisibilityUseCase $toggleMarketplaceVisibilityUseCase,
-        private readonly MarketplaceRepositoryInterface $marketplaceRepository,
+        private GetMarketplaceItemsUseCase $getMarketplaceItemsUseCase,
+        private ToggleMarketplaceVisibilityUseCase $toggleMarketplaceVisibilityUseCase,
+        private MarketplaceRepositoryInterface $marketplaceRepository,
     ) {}
 
     public function getMasterclasses(Request $request): \Illuminate\Http\JsonResponse

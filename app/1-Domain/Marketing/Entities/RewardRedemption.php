@@ -5,16 +5,16 @@ namespace Promolider\Domain\Marketing\Entities;
 class RewardRedemption
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly int $userId,
-        private readonly int $rewardId,
-        private readonly float $cost,
-        private readonly string $status,
-        private readonly ?string $notes,
-        private readonly ?string $processedAt,
-        private readonly ?int $processedBy,
-        private readonly ?string $userName = null,
-        private readonly ?string $rewardName = null,
+        private ?int $id,
+        private int $userId,
+        private int $rewardId,
+        private float $cost,
+        private string $status,
+        private ?string $notes,
+        private ?string $processedAt,
+        private ?int $processedBy,
+        private ?string $userName = null,
+        private ?string $rewardName = null,
     ) {}
 
     public function getId(): ?int { return $this->id; }

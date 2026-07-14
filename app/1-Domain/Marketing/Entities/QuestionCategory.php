@@ -5,17 +5,17 @@ namespace Promolider\Domain\Marketing\Entities;
 class QuestionCategory
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly string $name,
-        private readonly ?string $slug,
-        private readonly ?string $description,
-        private readonly bool $isActive,
-        private readonly int $questionsCount,
-        private readonly ?int $createdBy,
-        private readonly ?int $updatedBy,
-        private readonly ?string $createdAt,
-        private readonly ?string $updatedAt,
-        private readonly array $questions = [],
+        private ?int $id,
+        private string $name,
+        private ?string $slug,
+        private ?string $description,
+        private bool $isActive,
+        private int $questionsCount,
+        private ?int $createdBy,
+        private ?int $updatedBy,
+        private ?string $createdAt,
+        private ?string $updatedAt,
+        private array $questions = [],
     ) {}
 
     public function getId(): ?int

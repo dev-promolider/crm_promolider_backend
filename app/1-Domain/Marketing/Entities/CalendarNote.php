@@ -5,13 +5,13 @@ namespace Promolider\Domain\Marketing\Entities;
 class CalendarNote
 {
     public function __construct(
-        public readonly ?int $id,
-        public readonly int $userId,
-        public readonly ?string $date,
-        public readonly ?string $time,
-        public readonly ?string $content,
-        public readonly ?string $createdAt,
-        public readonly ?string $updatedAt,
+        public ?int $id,
+        public int $userId,
+        public ?string $date,
+        public ?string $time,
+        public ?string $content,
+        public ?string $createdAt,
+        public ?string $updatedAt,
     ) {}
 
     public function hasTime(): bool

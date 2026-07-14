@@ -5,16 +5,16 @@ namespace Promolider\Domain\Marketing\Entities;
 class Exam
 {
     public function __construct(
-        public readonly ?int $id,
-        public readonly ?int $courseId,
-        public readonly ?int $productorId,
-        public readonly ?int $moduleId,
-        public readonly ?int $lessonId,
-        public readonly string $title,
-        public readonly ?int $time,
-        public readonly int $maxScore,
-        public readonly int $minPassingScore,
-        public readonly bool $status,
+        public ?int $id,
+        public ?int $courseId,
+        public ?int $productorId,
+        public ?int $moduleId,
+        public ?int $lessonId,
+        public string $title,
+        public ?int $time,
+        public int $maxScore,
+        public int $minPassingScore,
+        public bool $status,
     ) {}
 
     public static function fromArray(array $data): self

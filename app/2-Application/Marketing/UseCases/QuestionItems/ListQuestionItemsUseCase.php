@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\QuestionCategoryRepositoryInterface;
 class ListQuestionItemsUseCase
 {
     public function __construct(
-        private readonly QuestionCategoryRepositoryInterface $repository,
+        private QuestionCategoryRepositoryInterface $repository,
     ) {}
 
     public function execute(int $categoryId, array $filters = []): array

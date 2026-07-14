@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\EditablePageRepositoryInterface;
 class GetPublicEditablePageUseCase
 {
     public function __construct(
-        private readonly EditablePageRepositoryInterface $repository,
+        private EditablePageRepositoryInterface $repository,
     ) {}
 
     public function execute(string $slug): ?\Promolider\Domain\Marketing\Entities\EditablePage

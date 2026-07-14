@@ -5,12 +5,12 @@ namespace Promolider\Domain\Marketing\Entities;
 class QuestionItemOption
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly int $questionItemId,
-        private readonly ?string $label,
-        private readonly string $text,
-        private readonly bool $isCorrect,
-        private readonly int $position,
+        private ?int $id,
+        private int $questionItemId,
+        private ?string $label,
+        private string $text,
+        private bool $isCorrect,
+        private int $position,
     ) {}
 
     public function getId(): ?int

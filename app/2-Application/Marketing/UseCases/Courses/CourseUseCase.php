@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CourseRepositoryInterface;
 class CourseUseCase
 {
     public function __construct(
-        private readonly CourseRepositoryInterface $repository,
+        private CourseRepositoryInterface $repository,
     ) {}
 
     // ==================== COURSES ====================

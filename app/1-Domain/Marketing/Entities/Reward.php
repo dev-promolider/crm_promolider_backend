@@ -5,14 +5,14 @@ namespace Promolider\Domain\Marketing\Entities;
 class Reward
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly string $name,
-        private readonly string $description,
-        private readonly float $cost,
-        private readonly ?int $stock,
-        private readonly string $image,
-        private readonly bool $active,
-        private readonly ?int $redemptionCount = null,
+        private ?int $id,
+        private string $name,
+        private string $description,
+        private float $cost,
+        private ?int $stock,
+        private string $image,
+        private bool $active,
+        private ?int $redemptionCount = null,
     ) {}
 
     public function getId(): ?int { return $this->id; }

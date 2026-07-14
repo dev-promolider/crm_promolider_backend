@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CourseRepositoryInterface;
 class GetCourseExpirationUseCase
 {
     public function __construct(
-        private readonly CourseRepositoryInterface $repository,
+        private CourseRepositoryInterface $repository,
     ) {}
 
     public function execute(int $courseId, int $userId): ?array

@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\ToolRepositoryInterface;
 class GetToolsUseCase
 {
     public function __construct(
-        private readonly ToolRepositoryInterface $toolRepository
+        private ToolRepositoryInterface $toolRepository
     ) {}
 
     public function execute(int $userId): array

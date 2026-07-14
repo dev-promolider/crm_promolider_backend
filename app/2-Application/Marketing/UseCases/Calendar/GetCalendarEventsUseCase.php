@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CalendarRepositoryInterface;
 class GetCalendarEventsUseCase
 {
     public function __construct(
-        private readonly CalendarRepositoryInterface $calendarRepository
+        private CalendarRepositoryInterface $calendarRepository
     ) {}
 
     public function getAdmin(): array

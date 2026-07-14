@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\QuestionCategoryRepositoryInterface;
 class UpdateQuestionItemUseCase
 {
     public function __construct(
-        private readonly QuestionCategoryRepositoryInterface $repository,
+        private QuestionCategoryRepositoryInterface $repository,
     ) {}
 
     /**

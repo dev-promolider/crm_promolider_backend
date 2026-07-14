@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\MarketplaceRepositoryInterface;
 class GetMarketplaceItemsUseCase
 {
     public function __construct(
-        private readonly MarketplaceRepositoryInterface $marketplaceRepository
+        private MarketplaceRepositoryInterface $marketplaceRepository
     ) {}
 
     public function getMasterclasses(array $filters = []): array

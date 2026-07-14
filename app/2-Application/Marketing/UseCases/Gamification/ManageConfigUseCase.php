@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\GamificationRepositoryInterface;
 class ManageConfigUseCase
 {
     public function __construct(
-        private readonly GamificationRepositoryInterface $repository,
+        private GamificationRepositoryInterface $repository,
     ) {}
 
     public function getConfigs(): array

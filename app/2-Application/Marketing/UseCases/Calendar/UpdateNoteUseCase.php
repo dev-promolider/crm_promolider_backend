@@ -8,7 +8,7 @@ use Promolider\Domain\Marketing\Entities\CalendarNote;
 class UpdateNoteUseCase
 {
     public function __construct(
-        private readonly CalendarRepositoryInterface $calendarRepository
+        private CalendarRepositoryInterface $calendarRepository
     ) {}
 
     public function execute(int $userId, int $noteId, array $data): ?CalendarNote

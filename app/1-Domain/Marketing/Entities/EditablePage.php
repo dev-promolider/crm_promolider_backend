@@ -5,17 +5,17 @@ namespace Promolider\Domain\Marketing\Entities;
 class EditablePage
 {
     public function __construct(
-        public readonly ?int $id,
-        public readonly int $userId,
-        public readonly int $templateId,
-        public readonly string $title,
-        public readonly string $contentHtml,
-        public readonly ?string $editedFields,
-        public readonly string $status,
-        public readonly ?string $slug,
-        public readonly ?string $publicUrl,
-        public readonly ?\DateTime $createdAt,
-        public readonly ?\DateTime $updatedAt,
+        public ?int $id,
+        public int $userId,
+        public int $templateId,
+        public string $title,
+        public string $contentHtml,
+        public ?string $editedFields,
+        public string $status,
+        public ?string $slug,
+        public ?string $publicUrl,
+        public ?\DateTime $createdAt,
+        public ?\DateTime $updatedAt,
     ) {}
 
     public function isPublished(): bool

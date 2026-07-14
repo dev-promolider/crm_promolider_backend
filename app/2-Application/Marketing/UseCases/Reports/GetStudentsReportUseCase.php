@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\ReportRepositoryInterface;
 class GetStudentsReportUseCase
 {
     public function __construct(
-        private readonly ReportRepositoryInterface $reportRepository
+        private ReportRepositoryInterface $reportRepository
     ) {}
 
     public function getDistributors(string $type, int $contentId): array

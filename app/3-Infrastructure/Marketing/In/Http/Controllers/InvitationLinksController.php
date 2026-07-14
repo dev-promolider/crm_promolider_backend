@@ -12,8 +12,8 @@ use Promolider\Application\Marketing\UseCases\InvitationLinks\CheckInvitationUse
 class InvitationLinksController extends Controller
 {
     public function __construct(
-        private readonly CreateInvitationLinkUseCase $createUseCase,
-        private readonly CheckInvitationUseCase $checkUseCase,
+        private CreateInvitationLinkUseCase $createUseCase,
+        private CheckInvitationUseCase $checkUseCase,
     ) {}
 
     public function create(Request $request, string $productType, int $productId): JsonResponse

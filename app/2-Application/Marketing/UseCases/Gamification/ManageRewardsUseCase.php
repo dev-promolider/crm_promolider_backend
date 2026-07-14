@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\GamificationRepositoryInterface;
 class ManageRewardsUseCase
 {
     public function __construct(
-        private readonly GamificationRepositoryInterface $repository,
+        private GamificationRepositoryInterface $repository,
     ) {}
 
     public function listAll(): array

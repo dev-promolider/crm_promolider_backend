@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\GameCommentRepositoryInterface;
 class CreateGameCommentUseCase
 {
     public function __construct(
-        private readonly GameCommentRepositoryInterface $repository,
+        private GameCommentRepositoryInterface $repository,
     ) {}
 
     public function execute(int $userId, int $courseGameId, string $content): array

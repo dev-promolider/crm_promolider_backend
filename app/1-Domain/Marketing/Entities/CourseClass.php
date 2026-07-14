@@ -5,17 +5,17 @@ namespace Promolider\Domain\Marketing\Entities;
 class CourseClass
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly int $courseId,
-        private readonly int $moduleId,
-        private readonly string $name,
-        private readonly ?string $description,
-        private readonly ?string $video,
-        private readonly ?string $pathUrl,
-        private readonly ?int $time,
-        private readonly int $order,
-        private readonly int $status,
-        private readonly ?string $resource,
+        private ?int $id,
+        private int $courseId,
+        private int $moduleId,
+        private string $name,
+        private ?string $description,
+        private ?string $video,
+        private ?string $pathUrl,
+        private ?int $time,
+        private int $order,
+        private int $status,
+        private ?string $resource,
     ) {}
 
     public function getId(): ?int { return $this->id; }

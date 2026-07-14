@@ -17,14 +17,14 @@ use Promolider\Application\Marketing\UseCases\Calendar\DeleteNoteUseCase;
 class CalendarController extends Controller
 {
     public function __construct(
-        private readonly GetCalendarEventsUseCase $getCalendarEventsUseCase,
-        private readonly GetActivitiesUseCase $getActivitiesUseCase,
-        private readonly CreateMeetingUseCase $createMeetingUseCase,
-        private readonly GetNotesUseCase $getNotesUseCase,
-        private readonly SyncNotesUseCase $syncNotesUseCase,
-        private readonly CreateNoteUseCase $createNoteUseCase,
-        private readonly UpdateNoteUseCase $updateNoteUseCase,
-        private readonly DeleteNoteUseCase $deleteNoteUseCase,
+        private GetCalendarEventsUseCase $getCalendarEventsUseCase,
+        private GetActivitiesUseCase $getActivitiesUseCase,
+        private CreateMeetingUseCase $createMeetingUseCase,
+        private GetNotesUseCase $getNotesUseCase,
+        private SyncNotesUseCase $syncNotesUseCase,
+        private CreateNoteUseCase $createNoteUseCase,
+        private UpdateNoteUseCase $updateNoteUseCase,
+        private DeleteNoteUseCase $deleteNoteUseCase,
     ) {}
 
     public function getEventsAdmin(): \Illuminate\Http\JsonResponse

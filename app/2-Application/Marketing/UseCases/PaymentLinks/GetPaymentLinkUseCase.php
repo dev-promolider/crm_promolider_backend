@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\PaymentLinkRepositoryInterface;
 class GetPaymentLinkUseCase
 {
     public function __construct(
-        private readonly PaymentLinkRepositoryInterface $repository,
+        private PaymentLinkRepositoryInterface $repository,
     ) {}
 
     public function execute(int $id): ?array

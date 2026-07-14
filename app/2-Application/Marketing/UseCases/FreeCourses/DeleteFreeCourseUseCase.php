@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\FreeCourseRepositoryInterface;
 class DeleteFreeCourseUseCase
 {
     public function __construct(
-        private readonly FreeCourseRepositoryInterface $repository,
+        private FreeCourseRepositoryInterface $repository,
     ) {}
 
     public function execute(int $id): bool

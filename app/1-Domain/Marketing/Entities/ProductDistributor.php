@@ -5,14 +5,14 @@ namespace Promolider\Domain\Marketing\Entities;
 class ProductDistributor
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly int $userId,
-        private readonly int $productId,
-        private readonly string $productType,
-        private readonly string $code,
-        private readonly ?string $expiresAt,
-        private readonly ?string $invitationLink,
-        private readonly bool $exists,
+        private ?int $id,
+        private int $userId,
+        private int $productId,
+        private string $productType,
+        private string $code,
+        private ?string $expiresAt,
+        private ?string $invitationLink,
+        private bool $exists,
     ) {}
 
     public function getId(): ?int { return $this->id; }

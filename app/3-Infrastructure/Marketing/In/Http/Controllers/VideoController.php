@@ -12,7 +12,7 @@ use Promolider\Infrastructure\Marketing\Out\Services\VideoService;
 class VideoController extends Controller
 {
     public function __construct(
-        private readonly VideoService $videoService
+        private VideoService $videoService
     ) {}
 
     /**

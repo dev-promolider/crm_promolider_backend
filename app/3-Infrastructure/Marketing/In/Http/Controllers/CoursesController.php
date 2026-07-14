@@ -31,15 +31,15 @@ use Promolider\Application\Marketing\UseCases\Courses\GetGamesTopUseCase;
 class CoursesController extends Controller
 {
     public function __construct(
-        private readonly CourseUseCase $courseUseCase,
-        private readonly SearchCoursesUseCase $searchCoursesUseCase,
-        private readonly GetRelatedCoursesUseCase $getRelatedCoursesUseCase,
-        private readonly ListGameCommentsUseCase $listGameCommentsUseCase,
-        private readonly CreateGameCommentUseCase $createGameCommentUseCase,
-        private readonly GetCourseExpirationUseCase $getCourseExpirationUseCase,
-        private readonly GetReleasedCoursesUseCase $getReleasedCoursesUseCase,
-        private readonly GetLastPlayedCoursesUseCase $getLastPlayedCoursesUseCase,
-        private readonly GetGamesTopUseCase $getGamesTopUseCase,
+        private CourseUseCase $courseUseCase,
+        private SearchCoursesUseCase $searchCoursesUseCase,
+        private GetRelatedCoursesUseCase $getRelatedCoursesUseCase,
+        private ListGameCommentsUseCase $listGameCommentsUseCase,
+        private CreateGameCommentUseCase $createGameCommentUseCase,
+        private GetCourseExpirationUseCase $getCourseExpirationUseCase,
+        private GetReleasedCoursesUseCase $getReleasedCoursesUseCase,
+        private GetLastPlayedCoursesUseCase $getLastPlayedCoursesUseCase,
+        private GetGamesTopUseCase $getGamesTopUseCase,
     ) {}
 
     // ==================== COURSES ====================

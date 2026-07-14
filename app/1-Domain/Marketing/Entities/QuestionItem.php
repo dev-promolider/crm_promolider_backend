@@ -5,20 +5,20 @@ namespace Promolider\Domain\Marketing\Entities;
 class QuestionItem
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly int $questionCategoryId,
-        private readonly string $title,
-        private readonly ?string $body,
-        private readonly string $status,
-        private readonly string $difficulty,
-        private readonly ?int $timeLimit,
-        private readonly bool $isActive,
-        private readonly ?array $meta,
-        private readonly ?int $createdBy,
-        private readonly ?int $updatedBy,
-        private readonly ?string $createdAt,
-        private readonly ?string $updatedAt,
-        private readonly array $options = [],
+        private ?int $id,
+        private int $questionCategoryId,
+        private string $title,
+        private ?string $body,
+        private string $status,
+        private string $difficulty,
+        private ?int $timeLimit,
+        private bool $isActive,
+        private ?array $meta,
+        private ?int $createdBy,
+        private ?int $updatedBy,
+        private ?string $createdAt,
+        private ?string $updatedAt,
+        private array $options = [],
     ) {}
 
     public function getId(): ?int

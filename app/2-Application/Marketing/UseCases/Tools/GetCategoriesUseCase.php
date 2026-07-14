@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\ToolRepositoryInterface;
 class GetCategoriesUseCase
 {
     public function __construct(
-        private readonly ToolRepositoryInterface $toolRepository
+        private ToolRepositoryInterface $toolRepository
     ) {}
 
     public function execute(?string $type = null): array

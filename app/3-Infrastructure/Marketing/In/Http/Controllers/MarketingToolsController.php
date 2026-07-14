@@ -19,15 +19,15 @@ use Promolider\Domain\Marketing\Ports\Out\ToolRepositoryInterface;
 class MarketingToolsController extends Controller
 {
     public function __construct(
-        private readonly GetToolsUseCase $getToolsUseCase,
-        private readonly GetToolUseCase $getToolUseCase,
-        private readonly GetCampaignsUseCase $getCampaignsUseCase,
-        private readonly GetCategoriesUseCase $getCategoriesUseCase,
-        private readonly UpdateToolStatusUseCase $updateToolStatusUseCase,
-        private readonly UpdateToolUseCase $updateToolUseCase,
-        private readonly DeleteToolUseCase $deleteToolUseCase,
-        private readonly StoreToolUseCase $storeToolUseCase,
-        private readonly ToolRepositoryInterface $toolRepository,
+        private GetToolsUseCase $getToolsUseCase,
+        private GetToolUseCase $getToolUseCase,
+        private GetCampaignsUseCase $getCampaignsUseCase,
+        private GetCategoriesUseCase $getCategoriesUseCase,
+        private UpdateToolStatusUseCase $updateToolStatusUseCase,
+        private UpdateToolUseCase $updateToolUseCase,
+        private DeleteToolUseCase $deleteToolUseCase,
+        private StoreToolUseCase $storeToolUseCase,
+        private ToolRepositoryInterface $toolRepository,
     ) {}
 
     public function tools(Request $request): JsonResponse

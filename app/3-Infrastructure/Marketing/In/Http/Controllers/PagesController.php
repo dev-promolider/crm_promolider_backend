@@ -15,12 +15,12 @@ use Promolider\Application\Marketing\UseCases\Pages\GetPublicPageUseCase;
 class PagesController extends Controller
 {
     public function __construct(
-        private readonly GetTemplatesUseCase $getTemplatesUseCase,
-        private readonly CreatePageUseCase $createPageUseCase,
-        private readonly UpdatePageUseCase $updatePageUseCase,
-        private readonly DeletePageUseCase $deletePageUseCase,
-        private readonly PublishPageUseCase $publishPageUseCase,
-        private readonly GetPublicPageUseCase $getPublicPageUseCase,
+        private GetTemplatesUseCase $getTemplatesUseCase,
+        private CreatePageUseCase $createPageUseCase,
+        private UpdatePageUseCase $updatePageUseCase,
+        private DeletePageUseCase $deletePageUseCase,
+        private PublishPageUseCase $publishPageUseCase,
+        private GetPublicPageUseCase $getPublicPageUseCase,
     ) {}
 
     /**

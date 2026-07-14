@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\PageRepositoryInterface;
 class DeletePageUseCase
 {
     public function __construct(
-        private readonly PageRepositoryInterface $pageRepository
+        private PageRepositoryInterface $pageRepository
     ) {}
 
     public function execute(int $pageId): bool

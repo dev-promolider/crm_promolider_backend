@@ -13,10 +13,10 @@ use Promolider\Application\Marketing\UseCases\Reports\GetGeneralReportsUseCase;
 class ReportsController extends Controller
 {
     public function __construct(
-        private readonly GetContentReportUseCase $getContentReportUseCase,
-        private readonly GetPrivateContentReportUseCase $getPrivateContentReportUseCase,
-        private readonly GetStudentsReportUseCase $getStudentsReportUseCase,
-        private readonly GetGeneralReportsUseCase $getGeneralReportsUseCase,
+        private GetContentReportUseCase $getContentReportUseCase,
+        private GetPrivateContentReportUseCase $getPrivateContentReportUseCase,
+        private GetStudentsReportUseCase $getStudentsReportUseCase,
+        private GetGeneralReportsUseCase $getGeneralReportsUseCase,
     ) {}
 
     public function getMasterclassReport(Request $request, string $view): \Illuminate\Http\JsonResponse

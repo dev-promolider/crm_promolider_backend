@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CalendarRepositoryInterface;
 class GetNotesUseCase
 {
     public function __construct(
-        private readonly CalendarRepositoryInterface $calendarRepository
+        private CalendarRepositoryInterface $calendarRepository
     ) {}
 
     public function execute(int $userId, ?string $startDate = null, ?string $endDate = null): array

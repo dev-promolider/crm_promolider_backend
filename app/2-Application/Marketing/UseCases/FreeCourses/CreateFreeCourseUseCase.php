@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\FreeCourseRepositoryInterface;
 class CreateFreeCourseUseCase
 {
     public function __construct(
-        private readonly FreeCourseRepositoryInterface $repository,
+        private FreeCourseRepositoryInterface $repository,
     ) {}
 
     public function execute(array $data): array

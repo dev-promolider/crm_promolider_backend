@@ -5,13 +5,13 @@ namespace Promolider\Domain\Marketing\Entities;
 class Badge
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly string $name,
-        private readonly string $description,
-        private readonly int $level,
-        private readonly int $condition,
-        private readonly string $icon,
-        private readonly bool $obtained = false,
+        private ?int $id,
+        private string $name,
+        private string $description,
+        private int $level,
+        private int $condition,
+        private string $icon,
+        private bool $obtained = false,
     ) {}
 
     public function getId(): ?int { return $this->id; }

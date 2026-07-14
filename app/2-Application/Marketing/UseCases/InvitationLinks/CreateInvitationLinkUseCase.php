@@ -8,7 +8,7 @@ use Carbon\Carbon;
 class CreateInvitationLinkUseCase
 {
     public function __construct(
-        private readonly ProductDistributorRepositoryInterface $repository,
+        private ProductDistributorRepositoryInterface $repository,
     ) {}
 
     public function execute(string $productType, int $productId, int $userId): array

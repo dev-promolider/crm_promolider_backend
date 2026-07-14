@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\EditablePageRepositoryInterface;
 class ListEditablePagesUseCase
 {
     public function __construct(
-        private readonly EditablePageRepositoryInterface $repository,
+        private EditablePageRepositoryInterface $repository,
     ) {}
 
     public function execute(): array

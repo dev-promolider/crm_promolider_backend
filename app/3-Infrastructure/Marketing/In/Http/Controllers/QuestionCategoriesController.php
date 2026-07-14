@@ -20,16 +20,16 @@ use Promolider\Application\Marketing\UseCases\QuestionItems\DeleteQuestionItemUs
 class QuestionCategoriesController extends Controller
 {
     public function __construct(
-        private readonly ListQuestionCategoriesUseCase $listCategoriesUseCase,
-        private readonly GetQuestionCategoryUseCase $getCategoryUseCase,
-        private readonly CreateQuestionCategoryUseCase $createCategoryUseCase,
-        private readonly UpdateQuestionCategoryUseCase $updateCategoryUseCase,
-        private readonly ToggleQuestionCategoryStatusUseCase $toggleCategoryUseCase,
-        private readonly DeleteQuestionCategoryUseCase $deleteCategoryUseCase,
-        private readonly ListQuestionItemsUseCase $listItemsUseCase,
-        private readonly CreateQuestionItemUseCase $createItemUseCase,
-        private readonly UpdateQuestionItemUseCase $updateItemUseCase,
-        private readonly DeleteQuestionItemUseCase $deleteItemUseCase,
+        private ListQuestionCategoriesUseCase $listCategoriesUseCase,
+        private GetQuestionCategoryUseCase $getCategoryUseCase,
+        private CreateQuestionCategoryUseCase $createCategoryUseCase,
+        private UpdateQuestionCategoryUseCase $updateCategoryUseCase,
+        private ToggleQuestionCategoryStatusUseCase $toggleCategoryUseCase,
+        private DeleteQuestionCategoryUseCase $deleteCategoryUseCase,
+        private ListQuestionItemsUseCase $listItemsUseCase,
+        private CreateQuestionItemUseCase $createItemUseCase,
+        private UpdateQuestionItemUseCase $updateItemUseCase,
+        private DeleteQuestionItemUseCase $deleteItemUseCase,
     ) {}
 
     // ─── Question Categories ───────────────────────────────────────────────

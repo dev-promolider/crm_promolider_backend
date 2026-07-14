@@ -5,10 +5,10 @@ namespace Promolider\Domain\Marketing\Entities;
 class ClassroomPointConfig
 {
     public function __construct(
-        private readonly ?int $id,
-        private readonly float $passedCourse,
-        private readonly float $dailyQuestion,
-        private readonly float $achievement,
+        private ?int $id,
+        private float $passedCourse,
+        private float $dailyQuestion,
+        private float $achievement,
     ) {}
 
     public function getId(): ?int { return $this->id; }

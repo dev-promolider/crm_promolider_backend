@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CalendarRepositoryInterface;
 class CreateMeetingUseCase
 {
     public function __construct(
-        private readonly CalendarRepositoryInterface $calendarRepository
+        private CalendarRepositoryInterface $calendarRepository
     ) {}
 
     public function execute(array $data): \Promolider\Domain\Marketing\Entities\Meeting

@@ -5,16 +5,16 @@ namespace Promolider\Domain\Marketing\Entities;
 class DinamicaRegistro
 {
     public function __construct(
-        public readonly ?int $id,
-        public readonly int $dinamicaId,
-        public readonly string $nombre,
-        public readonly ?string $apellido,
-        public readonly string $email,
-        public readonly ?int $turno = null,
-        public readonly bool $haJugado = false,
-        public readonly bool $haGanado = false,
-        public readonly ?\DateTime $turnoInicio = null,
-        public readonly ?string $premioGanado = null,
+        public ?int $id,
+        public int $dinamicaId,
+        public string $nombre,
+        public ?string $apellido,
+        public string $email,
+        public ?int $turno = null,
+        public bool $haJugado = false,
+        public bool $haGanado = false,
+        public ?\DateTime $turnoInicio = null,
+        public ?string $premioGanado = null,
     ) {}
 
     public function hasPlayed(): bool

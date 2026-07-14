@@ -8,7 +8,7 @@ use Promolider\Domain\Marketing\Entities\Page;
 class UpdatePageUseCase
 {
     public function __construct(
-        private readonly PageRepositoryInterface $pageRepository
+        private PageRepositoryInterface $pageRepository
     ) {}
 
     public function execute(int $pageId, array $data): ?Page

@@ -18,14 +18,14 @@ use Promolider\Application\Marketing\UseCases\Gamification\InsertPointsUseCase;
 class GamificationController extends Controller
 {
     public function __construct(
-        private readonly GetRankingUseCase $getRankingUseCase,
-        private readonly GetUserGamificationInfoUseCase $getUserGamificationInfoUseCase,
-        private readonly ManageConfigUseCase $manageConfigUseCase,
-        private readonly ManageLevelsUseCase $manageLevelsUseCase,
-        private readonly ManageBadgesUseCase $manageBadgesUseCase,
-        private readonly ManageRewardsUseCase $manageRewardsUseCase,
-        private readonly UserRewardsUseCase $userRewardsUseCase,
-        private readonly InsertPointsUseCase $insertPointsUseCase,
+        private GetRankingUseCase $getRankingUseCase,
+        private GetUserGamificationInfoUseCase $getUserGamificationInfoUseCase,
+        private ManageConfigUseCase $manageConfigUseCase,
+        private ManageLevelsUseCase $manageLevelsUseCase,
+        private ManageBadgesUseCase $manageBadgesUseCase,
+        private ManageRewardsUseCase $manageRewardsUseCase,
+        private UserRewardsUseCase $userRewardsUseCase,
+        private InsertPointsUseCase $insertPointsUseCase,
     ) {}
 
     // ==================== RANKING ====================

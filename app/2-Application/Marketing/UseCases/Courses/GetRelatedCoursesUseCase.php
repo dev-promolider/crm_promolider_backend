@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CourseRepositoryInterface;
 class GetRelatedCoursesUseCase
 {
     public function __construct(
-        private readonly CourseRepositoryInterface $repository,
+        private CourseRepositoryInterface $repository,
     ) {}
 
     public function execute(int $courseId, int $limit = 5, ?int $excludeUserId = null): array

@@ -7,7 +7,7 @@ use Promolider\Domain\Marketing\Ports\Out\CourseRepositoryInterface;
 class GetGamesTopUseCase
 {
     public function __construct(
-        private readonly CourseRepositoryInterface $courseRepository,
+        private CourseRepositoryInterface $courseRepository,
     ) {}
 
     public function execute(int $courseId, int $userId): array
