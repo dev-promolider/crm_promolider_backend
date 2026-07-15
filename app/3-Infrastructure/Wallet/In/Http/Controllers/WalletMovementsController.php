@@ -17,6 +17,7 @@ use Promolider\Application\Wallet\UseCases\ApproveRequestUseCase;
 use Promolider\Application\Wallet\UseCases\GetBinaryHistoryUseCase;
 use Promolider\Application\Wallet\UseCases\GetSalesUseCase;
 use Promolider\Application\Wallet\UseCases\GetMyDirectsUseCase;
+use Promolider\Application\Wallet\UseCases\GetMyPurchasesUseCase;
 
 class WalletMovementsController extends Controller
 {
@@ -31,10 +32,11 @@ class WalletMovementsController extends Controller
         private ApproveRequestUseCase $approveRequestUseCase,
         private GetBinaryHistoryUseCase $getBinaryHistoryUseCase,
         private GetSalesUseCase $getSalesUseCase,
-        private GetMyDirectsUseCase $getMyDirectsUseCase
+        private GetMyDirectsUseCase $getMyDirectsUseCase,
+        private GetMyPurchasesUseCase $getMyPurchasesUseCase
     ) {}
 
-    public function getAllMovementsWallet(int $user_id)
+    public function getAllMovementsWallet(Request $request, int $user_id)
     {
         try {
             $authUserId = Auth::id();
@@ -42,17 +44,42 @@ class WalletMovementsController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            $movements = $this->getAllMovementsWalletUseCase->execute($authUserId, $user_id);
+            $dateFrom = $request->input('date_from');
+            $dateTo   = $request->input('date_to');
+            $status   = $request->input('status');
+            $search   = $request->input('search');
+            $perPage  = (int) $request->input('per_page', 15);
+            $page     = (int) $request->input('page', 1);
+
+            $perPage = max(5, min(100, $perPage)); // clamp 5–100
+
+            $paginator = $this->getAllMovementsWalletUseCase->execute(
+                $authUserId,
+                $user_id,
+                $dateFrom,
+                $dateTo,
+                $status,
+                $search,
+                $perPage,
+                $page
+            );
+
             return response()->json([
-                'success' => true,
-                'data' => $movements
+                'success'      => true,
+                'data'         => $paginator->items(),
+                'total'        => $paginator->total(),
+                'per_page'     => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'from'         => $paginator->firstItem(),
+                'to'           => $paginator->lastItem(),
             ], 200);
         } catch (\Exception $e) {
             $code = $e->getCode();
             $statusCode = ($code >= 400 && $code <= 500) ? $code : 500;
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], $statusCode);
         }
     }
@@ -287,6 +314,30 @@ class WalletMovementsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Error al obtener referidos directos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getMyPurchases(int $userId)
+    {
+        try {
+            $authUserId = Auth::id();
+            if (!$authUserId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            if ($authUserId !== $userId && !$user->can('withdrawal_funds')) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+
+            $payments = $this->getMyPurchasesUseCase->execute($userId);
+            return response()->json($payments, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al obtener compras: ' . $e->getMessage()
             ], 500);
         }
     }

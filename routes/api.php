@@ -163,6 +163,7 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('binary-history', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getBinaryHistory'])->name('marketing.reports.binary_history')->middleware('auth:sanctum');
         Route::get('getsales/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getSales'])->name('marketing.reports.get_sales')->middleware('auth:sanctum');
         Route::get('movements/my-directs', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyDirects'])->name('marketing.reports.movements.my_directs')->middleware('auth:sanctum');
+        Route::get('mypurchases/{userId}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyPurchases'])->name('marketing.reports.mypurchases')->middleware('auth:sanctum');
     });
 
     // Question Categories & Items
@@ -395,6 +396,21 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('my-credits', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'myCredits'])->name('marketing.gamification.my_credits')->middleware('auth:sanctum');
         Route::post('redeem', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'redeemReward'])->name('marketing.gamification.redeem')->middleware('auth:sanctum');
         Route::get('my-redemptions', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'myRedemptions'])->name('marketing.gamification.my_redemptions')->middleware('auth:sanctum');
+    });
+
+    // Payment Accounts (PayPal & Binance accounts configuration)
+    Route::group(['prefix' => 'payment', 'middleware' => 'auth:sanctum'], function () {
+        Route::get('paypal-accounts', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\PaypalAccountController::class, 'index']);
+        Route::post('paypal-accounts', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\PaypalAccountController::class, 'store']);
+        Route::get('paypal-accounts/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\PaypalAccountController::class, 'show']);
+        Route::put('paypal-accounts/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\PaypalAccountController::class, 'update']);
+        Route::delete('paypal-accounts/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\PaypalAccountController::class, 'destroy']);
+
+        Route::get('binance-accounts', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinanceAccountController::class, 'index']);
+        Route::post('binance-accounts', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinanceAccountController::class, 'store']);
+        Route::get('binance-accounts/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinanceAccountController::class, 'show']);
+        Route::put('binance-accounts/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinanceAccountController::class, 'update']);
+        Route::delete('binance-accounts/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinanceAccountController::class, 'destroy']);
     });
 
     // Payment Links (Enlaces de Pago)

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\BinaryCutHistory;
 use App\Models\Option;
 use App\Models\AccountType;
+use App\Models\Payment;
 use App\Helpers\Helper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -71,11 +72,29 @@ class EloquentWalletRepository implements WalletRepositoryInterface
         return (float) $result;
     }
 
-    public function getAllMovementsWallet(int $walletId, int $userId)
+    public function getAllMovementsWallet(int $walletId, int $userId, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $search, int $perPage, int $page)
     {
-        return WalletMovements::where('wallet_id', $walletId)
-            ->orWhere('id_receiver', $userId)
-            ->get();
+        $statusMap = ['approved' => 1, 'pending' => 0, 'rejected' => 2];
+
+        $query = WalletMovements::where(function ($q) use ($walletId, $userId) {
+            $q->where('wallet_id', $walletId)
+              ->orWhere('id_receiver', $userId);
+        });
+
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        if ($status && array_key_exists($status, $statusMap)) {
+            $query->where('status', $statusMap[$status]);
+        }
+        if ($search) {
+            $query->where('reason', 'like', '%' . $search . '%');
+        }
+
+        return $query->latest()->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function getAllMovementsHistory()
@@ -245,5 +264,13 @@ class EloquentWalletRepository implements WalletRepositoryInterface
     public function getMyDirects(int $userId)
     {
         return User::where('id_referrer_sponsor', $userId)->get();
+    }
+
+    public function getMyPurchases(int $userId)
+    {
+        return Payment::query()
+            ->where('user_id', $userId)
+            ->with(['paymentMethod', 'user'])
+            ->get();
     }
 }
