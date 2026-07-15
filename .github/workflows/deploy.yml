@@ -1,0 +1,55 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --prefer-dist
+
+      - name: Deploy via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete
+          # Excluye lo que NUNCA debe tocarse en el servidor
+          exclude: |
+            .env
+            .env.backup
+            .git/
+            .github/
+            storage/app/public/
+            storage/logs/
+          path: ./
+          remote_path: ${{ secrets.SSH_REMOTE_PATH_BACKEND }}
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          remote_port: ${{ secrets.SSH_PORT }}
+
+      - name: Post-deploy commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ${{ secrets.SSH_REMOTE_PATH_BACKEND }}
+            chmod -R 775 storage bootstrap/cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan config:clear
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan config:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan route:cache
+            /opt/cpanel/ea-php82/root/usr/bin/php artisan migrate --force
