@@ -10,8 +10,8 @@ class GetMyPurchasesUseCase
         private WalletRepositoryInterface $walletRepository
     ) {}
 
-    public function execute(int $userId)
+    public function execute(int $userId, ?string $search, int $perPage, int $page)
     {
-        return $this->walletRepository->getMyPurchases($userId);
+        return $this->walletRepository->getMyPurchases($userId, $search, $perPage, $page);
     }
 }

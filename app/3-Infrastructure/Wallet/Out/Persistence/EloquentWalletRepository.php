@@ -215,8 +215,10 @@ class EloquentWalletRepository implements WalletRepositoryInterface
                 'ContentDisposition' => 'attachment; filename="' . $formattedFilename . '"',
             ];
 
-            Storage::disk('s3')->put($path, file_get_contents($imageFile), $options);
-            $wallet_movement->support_image = Storage::disk('s3')->url($path);
+            /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+            $disk = Storage::disk('s3');
+            $disk->put($path, file_get_contents($imageFile), $options);
+            $wallet_movement->support_image = $disk->url($path);
         }
 
         $wallet_movement->message = $message;
@@ -266,11 +268,30 @@ class EloquentWalletRepository implements WalletRepositoryInterface
         return User::where('id_referrer_sponsor', $userId)->get();
     }
 
-    public function getMyPurchases(int $userId)
+    public function getMyPurchases(int $userId, ?string $search, int $perPage, int $page)
     {
-        return Payment::query()
+        $query = Payment::query()
             ->where('user_id', $userId)
-            ->with(['paymentMethod', 'user'])
-            ->get();
+            ->with(['paymentMethod', 'user']);
+            
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('operation_number', 'like', '%' . $search . '%')
+                  ->orWhere('details', 'like', '%' . $search . '%')
+                  ->orWhereHas('paymentMethod', function($qMethod) use ($search) {
+                      $qMethod->where('name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+        $stats = [
+            'total_invested' => Payment::where('user_id', $userId)->sum('amount'),
+            'total_transactions' => Payment::where('user_id', $userId)->count(),
+            'last_purchase_date' => Payment::where('user_id', $userId)->latest()->value('created_at')
+        ];
+
+        return [
+            'stats' => $stats,
+            'paginator' => $query->latest()->paginate($perPage, ['*'], 'page', $page)
+        ];
     }
 }

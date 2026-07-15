@@ -318,7 +318,7 @@ class WalletMovementsController extends Controller
         }
     }
 
-    public function getMyPurchases(int $userId)
+    public function getMyPurchases(Request $request, int $userId)
     {
         try {
             $authUserId = Auth::id();
@@ -333,7 +333,13 @@ class WalletMovementsController extends Controller
                 return response()->json(['error' => 'Forbidden'], 403);
             }
 
-            $payments = $this->getMyPurchasesUseCase->execute($userId);
+            $search  = $request->input('search');
+            $perPage = (int) $request->input('per_page', 15);
+            $page    = (int) $request->input('page', 1);
+
+            $perPage = max(5, min(100, $perPage));
+
+            $payments = $this->getMyPurchasesUseCase->execute($userId, $search, $perPage, $page);
             return response()->json($payments, 200);
         } catch (\Exception $e) {
             return response()->json([

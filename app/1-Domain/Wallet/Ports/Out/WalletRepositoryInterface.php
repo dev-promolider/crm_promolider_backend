@@ -18,5 +18,5 @@ interface WalletRepositoryInterface
     public function getBinaryHistory(int $userId, ?string $search, string $sortKey, string $sortOrder, int $perPage);
     public function getSales(int $walletId, int $batch);
     public function getMyDirects(int $userId);
-    public function getMyPurchases(int $userId);
+    public function getMyPurchases(int $userId, ?string $search, int $perPage, int $page);
 }
