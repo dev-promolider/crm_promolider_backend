@@ -150,6 +150,19 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('students-list', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ReportsController::class, 'getStudentsList'])->name('marketing.reports.students_list')->middleware('auth:sanctum');
         Route::get('participants/all/{isParticipant?}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ReportsController::class, 'getAllPendingParticipantsByUser'])->name('marketing.reports.all_participants')->middleware('auth:sanctum');
         Route::get('last-sells', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ReportsController::class, 'getLastSells'])->name('marketing.reports.last_sells')->middleware('auth:sanctum');
+
+        // Wallet & Movements routes (Hexagonal Migration)
+        Route::get('mymovements/{userId}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getAllMovementsWallet'])->name('marketing.reports.mymovements')->middleware('auth:sanctum');
+        Route::get('wallet/balance', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getWalletBalance'])->name('marketing.reports.wallet.balance')->middleware('auth:sanctum');
+        Route::get('mymovements-history', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getAllMovementsHistoryWallet'])->name('marketing.reports.mymovements_history')->middleware('auth:sanctum');
+        Route::post('movements/transfer-founds', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'transferFounds'])->name('marketing.reports.movements.transfer_founds')->middleware('auth:sanctum');
+        Route::post('movements/request-founds', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'requestFounds'])->name('marketing.reports.movements.request_founds')->middleware('auth:sanctum');
+        Route::get('movements/request-founds/list', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'requestFoundsList'])->name('marketing.reports.movements.request_founds_list')->middleware('auth:sanctum');
+        Route::post('movements/request-founds/reject', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'rejectRequest'])->name('marketing.reports.movements.request_founds_reject')->middleware('auth:sanctum');
+        Route::post('movements/request-founds/approve', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'approveRequest'])->name('marketing.reports.movements.request_founds_approve')->middleware('auth:sanctum');
+        Route::get('binary-history', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getBinaryHistory'])->name('marketing.reports.binary_history')->middleware('auth:sanctum');
+        Route::get('getsales/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getSales'])->name('marketing.reports.get_sales')->middleware('auth:sanctum');
+        Route::get('movements/my-directs', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyDirects'])->name('marketing.reports.movements.my_directs')->middleware('auth:sanctum');
     });
 
     // Question Categories & Items

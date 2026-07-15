@@ -183,6 +183,7 @@ return [
         \Promolider\Infrastructure\Registration\Providers\RegistrationServiceProvider::class,
         \Promolider\Infrastructure\Infoproducts\Providers\InfoproductServiceProvider::class,
         \Promolider\Infrastructure\Marketing\Providers\MarketingServiceProvider::class,
+        \Promolider\Infrastructure\Wallet\Providers\WalletServiceProvider::class,
 
     ],
 
