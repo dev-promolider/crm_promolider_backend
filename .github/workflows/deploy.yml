@@ -23,15 +23,7 @@ jobs:
       - name: Deploy via rsync
         uses: burnett01/rsync-deployments@7.0.1
         with:
-          switches: -avzr --delete
-          # Excluye lo que NUNCA debe tocarse en el servidor
-          exclude: |
-            .env
-            .env.backup
-            .git/
-            .github/
-            storage/app/public/
-            storage/logs/
+          switches: -avzr --delete --exclude=".env" --exclude=".env.backup" --exclude=".git/" --exclude=".github/" --exclude="storage/app/public/" --exclude="storage/logs/"
           path: ./
           remote_path: ${{ secrets.SSH_REMOTE_PATH_BACKEND }}
           remote_host: ${{ secrets.SSH_HOST }}
