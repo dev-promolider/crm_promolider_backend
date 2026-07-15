@@ -267,9 +267,14 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
     /**
      * Normaliza rutas de medios almacenadas en BD a URLs públicas accesibles.
      *
-     * La BD guarda rutas como "storage/masterclasses/X/Y/images/file.jpg"
-     * (con prefijo "storage/"). Usamos asset() en lugar de Storage::url()
-     * porque Storage::url() agregaría otro "/storage" duplicándolo.
+     * La BD guarda rutas como "storage/masterclasses/X/Y/images/file.png"
+     * (ya incluye el prefijo "storage/").
+     *
+     * En local:  STORAGE_DOMAIN=https://crm.promolider.info
+     *            → https://crm.promolider.info/storage/masterclasses/X/Y/images/file.png
+     *
+     * En S3:     STORAGE_DOMAIN=https://bucket.s3-accelerate.amazonaws.com
+     *            → Subir archivos manteniendo la misma estructura de carpetas.
      *
      * @param string|null $path Ruta almacenada en BD
      * @return string|null URL pública completa
@@ -280,18 +285,23 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
             return null;
         }
 
-        // Si ya es una URL completa (S3, etc.), devolver tal cual
+        // Si ya es una URL completa, devolver tal cual
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
 
-        // Normalizar dobles slashes (pero mantener // de protocolo)
+        // Normalizar dobles slashes (mantener protocolo intacto)
         $path = preg_replace('#(?<!:)//+#', '/', $path);
+        $path = ltrim($path, '/');
 
-        // Quitar el prefijo 'storage/' si existe (la BD ya lo incluye)
-        $path = ltrim(preg_replace('#^/?storage/#', '', $path), '/');
+        // Construir URL usando STORAGE_DOMAIN (preserva el prefijo storage/ del path)
+        $storageDomain = rtrim(config('app.storage_domain', env('STORAGE_DOMAIN', '')), '/');
 
-        // Usar asset() para generar la URL pública correcta
-        return asset('storage/' . $path);
+        if ($storageDomain) {
+            return $storageDomain . '/' . $path;
+        }
+
+        // Fallback: asset() con el path tal cual viene de la BD
+        return asset($path);
     }
 }

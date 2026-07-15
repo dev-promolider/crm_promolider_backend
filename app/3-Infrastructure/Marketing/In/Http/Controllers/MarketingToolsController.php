@@ -277,7 +277,7 @@ class MarketingToolsController extends Controller
         $toolId = $this->storeToolUseCase->execute('masterclass', $data);
 
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('masterclass_images', 'public');
+            $imagePath = $request->file('image')->store('masterclass_images', 's3');
             \App\Models\MasterclassImage::create([
                 'masterclass_id' => $toolId,
                 'image' => $imagePath,
@@ -286,7 +286,7 @@ class MarketingToolsController extends Controller
 
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $doc) {
-                $docPath = $doc->store('masterclass_documents', 'public');
+                $docPath = $doc->store('masterclass_documents', 's3');
                 \App\Models\MasterclassDocument::create([
                     'masterclass_id' => $toolId,
                     'document' => $docPath,
@@ -326,7 +326,7 @@ class MarketingToolsController extends Controller
         $toolId = $this->storeToolUseCase->execute('ebook', $data);
 
         if ($request->hasFile('cover')) {
-            $imagePath = $request->file('cover')->store("ebooks/{$userId}/{$toolId}/images", 'public');
+            $imagePath = $request->file('cover')->store("ebooks/{$userId}/{$toolId}/images", 's3');
             \App\Models\EbookImage::create([
                 'ebook_id' => $toolId,
                 'image' => $imagePath,
@@ -334,7 +334,7 @@ class MarketingToolsController extends Controller
         }
 
         if ($request->hasFile('pdf')) {
-            $docPath = $request->file('pdf')->store("ebooks/{$userId}/{$toolId}/documents", 'public');
+            $docPath = $request->file('pdf')->store("ebooks/{$userId}/{$toolId}/documents", 's3');
             \App\Models\EbookDocument::create([
                 'ebook_id' => $toolId,
                 'document' => $docPath,
@@ -379,7 +379,7 @@ class MarketingToolsController extends Controller
         $toolId = $this->storeToolUseCase->execute('minicourse', $data);
 
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store("mini_courses/{$userId}/{$toolId}/images", 'public');
+            $imagePath = $request->file('image')->store("mini_courses/{$userId}/{$toolId}/images", 's3');
             \App\Models\MiniCourseImage::create([
                 'mini_course_id' => $toolId,
                 'image' => $imagePath,

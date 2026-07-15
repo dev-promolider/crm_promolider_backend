@@ -29,6 +29,12 @@ use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentFreeCourseReposi
 use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentProductDistributorRepository;
 use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentGamificationRepository;
 use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentCourseRepository;
+use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentGameCommentRepository;
+use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentEditablePageRepository;
+use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentExamRepository;
+use Promolider\Infrastructure\Marketing\Out\Persistence\EloquentPurchasedCourseRepository;
+use Promolider\Domain\Marketing\Ports\Out\ExamRepositoryInterface;
+use Promolider\Domain\Marketing\Ports\Out\PurchasedCourseRepositoryInterface;
 
 class MarketingServiceProvider extends ServiceProvider
 {
@@ -48,6 +54,8 @@ class MarketingServiceProvider extends ServiceProvider
         $this->app->bind(CourseRepositoryInterface::class, EloquentCourseRepository::class);
         $this->app->bind(GameCommentRepositoryInterface::class, EloquentGameCommentRepository::class);
         $this->app->bind(EditablePageRepositoryInterface::class, EloquentEditablePageRepository::class);
+        $this->app->bind(ExamRepositoryInterface::class, EloquentExamRepository::class);
+        $this->app->bind(PurchasedCourseRepositoryInterface::class, EloquentPurchasedCourseRepository::class);
     }
 
     public function boot(): void

@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('v1')->group(function () {
     // ==========================================
     // Módulo: Autenticación
     // ==========================================
@@ -59,7 +58,7 @@ Route::prefix('v1')->group(function () {
     // ==========================================
     // Modulo: Preregistro (Gestion Patrocinador)
     // ==========================================
-    Route::group(['prefix' => 'registration/preregistro'], function () {
+    Route::group(['prefix' => 'registration/preregistro', 'middleware' => ['auth:sanctum']], function () {
         Route::post('config', [\Promolider\Infrastructure\Registration\In\Http\Controllers\PreregistroController::class, 'saveConfig'])->name('registration.preregistro.save_config');
         Route::get('referrals', [\Promolider\Infrastructure\Registration\In\Http\Controllers\PreregistroController::class, 'referrals'])->name('registration.preregistro.referrals');
     });
@@ -67,13 +66,12 @@ Route::prefix('v1')->group(function () {
     // ==========================================
     // Modulo: Registro (Dashboard Patrocinador)
     // ==========================================
-    Route::group(['prefix' => 'dashboard/registro'], function () {
+    Route::group(['prefix' => 'dashboard/registro', 'middleware' => ['auth:sanctum']], function () {
         Route::get('link', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistroDashboardController::class, 'getActiveLink'])->name('dashboard.registro.get_link');
         Route::post('link', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistroDashboardController::class, 'generateLink'])->name('dashboard.registro.generate_link');
         Route::delete('link/{id}', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistroDashboardController::class, 'suspendLink'])->name('dashboard.registro.suspend_link');
         Route::get('directs', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistroDashboardController::class, 'getDirects'])->name('dashboard.registro.get_directs');
     });
-});
 
 // ==========================================
 // Modulo: Marketing
@@ -241,9 +239,9 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('congratulations', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ExamsController::class, 'getCongratulations'])->name('marketing.courses.congratulations')->middleware('auth:sanctum');
         Route::get('{courseId}/related', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'relatedCourses'])->name('marketing.courses.related');
         Route::get('{courseId}/expiration', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'expiration'])->name('marketing.courses.expiration')->middleware('auth:sanctum');
-        Route::get('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'show'])->name('marketing.courses.show');
-        Route::put('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'update'])->name('marketing.courses.update')->middleware('auth:sanctum');
-        Route::delete('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'destroy'])->name('marketing.courses.destroy')->middleware('auth:sanctum');
+        Route::get('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'show'])->name('marketing.courses.show')->whereNumber('id');
+        Route::put('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'update'])->name('marketing.courses.update')->middleware('auth:sanctum')->whereNumber('id');
+        Route::delete('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'destroy'])->name('marketing.courses.destroy')->middleware('auth:sanctum')->whereNumber('id');
 
         // Modulos
         Route::get('{courseId}/modules', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'modulesIndex'])->name('marketing.courses.modules');
