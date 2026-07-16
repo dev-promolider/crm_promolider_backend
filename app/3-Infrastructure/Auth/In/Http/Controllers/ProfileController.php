@@ -61,4 +61,19 @@ class ProfileController extends Controller
             'message' => 'Contraseña actualizada exitosamente'
         ]);
     }
+
+    public function getMembershipHistory(Request $request)
+    {
+        $user = $request->user();
+
+        $history = \Illuminate\Support\Facades\DB::table('account_type_details')
+            ->where('user_id', $user->id)
+            ->join('account_type_detail_histories', 'account_type_details.id', '=', 'account_type_detail_histories.account_type_detail_id')
+            ->join('account_type', 'account_type_detail_histories.account_type_id', '=', 'account_type.id')
+            ->select('account_type_detail_histories.*', 'account_type.account as account_type_name')
+            ->orderBy('account_type_detail_histories.created_at', 'desc')
+            ->get();
+
+        return response()->json($history);
+    }
 }

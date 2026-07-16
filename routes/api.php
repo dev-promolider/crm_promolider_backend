@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Route;
         
         Route::put('profile/update', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updateProfile']);
         Route::put('profile/password', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updatePassword']);
+        Route::get('profile/membership-history', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'getMembershipHistory']);
         
         Route::get('countries', function () {
             return response()->json(\App\Models\Country::select('id', 'name')->orderBy('name')->get());
@@ -77,6 +78,7 @@ use Illuminate\Support\Facades\Route;
     Route::group(['prefix' => 'opc', 'middleware' => ['auth:sanctum']], function () {
         Route::post('init-payment', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'initPayment']);
         Route::post('confirm-payment', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'confirmPayment']);
+        Route::post('purchase-wallet', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'purchaseWithWallet']);
     });
 
     // ==========================================
@@ -116,6 +118,8 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('ebook/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getEbookDetail'])->name('marketing.marketplace.ebook.detail');
         Route::get('mini-course/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getMiniCourseDetail'])->name('marketing.marketplace.minicourse.detail');
     });
+
+    Route::post('membership/purchase-wallet', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MembershipPaymentController::class, 'purchaseWithWallet'])->name('marketing.membership.purchase_wallet')->middleware('auth:sanctum');
 
     // Calendar - ALL under /marketing/calendar/ prefix (frontend expects this)
     Route::group(['prefix' => 'calendar'], function () {

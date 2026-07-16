@@ -7,13 +7,15 @@ use Illuminate\Http\Request;
 use Exception;
 use Promolider\Application\Wallet\UseCases\OPC\InitOpcOpenpayPaymentUseCase;
 use Promolider\Application\Wallet\UseCases\OPC\ConfirmOpcOpenpayPaymentUseCase;
+use Promolider\Application\Wallet\UseCases\OPC\PurchaseOpcWithWalletUseCase;
 use Illuminate\Support\Facades\Log;
 
 class OpcController extends Controller
 {
     public function __construct(
         private InitOpcOpenpayPaymentUseCase $initOpcUseCase,
-        private ConfirmOpcOpenpayPaymentUseCase $confirmOpcUseCase
+        private ConfirmOpcOpenpayPaymentUseCase $confirmOpcUseCase,
+        private PurchaseOpcWithWalletUseCase $purchaseOpcWithWalletUseCase
     ) {}
 
     /**
@@ -38,7 +40,7 @@ class OpcController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
-            ], $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
         }
     }
 
@@ -63,7 +65,34 @@ class OpcController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
-            ], $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
+        }
+    }
+
+    /**
+     * Procesa el pago de OPC con saldo de Billetera.
+     */
+    public function purchaseWithWallet(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'cuotas' => 'required|integer|min:1'
+            ]);
+
+            $userId = auth()->id();
+            
+            $result = $this->purchaseOpcWithWalletUseCase->execute($userId, $validated['cuotas']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (Exception $e) {
+            Log::error("Error en pago OPC con billetera: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
         }
     }
 }
