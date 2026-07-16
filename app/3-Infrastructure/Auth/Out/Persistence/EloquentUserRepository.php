@@ -9,7 +9,9 @@ class EloquentUserRepository implements UserRepositoryInterface
 {
     public function findByUsername(string $username): ?UserEntity
     {
-        $user = EloquentUser::where('username', $username)->first();
+        $user = EloquentUser::where('username', $username)
+                            ->orWhere('email', $username)
+                            ->first();
         
         if (!$user) {
             return null;

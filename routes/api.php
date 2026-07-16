@@ -38,6 +38,22 @@ use Illuminate\Support\Facades\Route;
         Route::get('profile/info', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);
         });
+        
+        Route::put('profile/update', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updateProfile']);
+        Route::put('profile/password', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updatePassword']);
+        
+        Route::get('countries', function () {
+            return response()->json(\App\Models\Country::select('id', 'name')->orderBy('name')->get());
+        });
+
+        Route::get('memberships', function () {
+            return response()->json(
+                \App\Models\AccountType::where('status', 1)
+                    ->whereNotIn('account', ['Productor Invitado', 'Consumidor Invitado', 'Pre registro', 'Admin'])
+                    ->orderBy('price')
+                    ->get()
+            );
+        });
 
         Route::prefix('me')->group(function () {
             Route::get('infoproducts', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\GetMyProductsController::class)->name('profile.infoproducts');
@@ -53,6 +69,14 @@ use Illuminate\Support\Facades\Route;
                 });
             });
         });
+    });
+
+    // ==========================================
+    // Módulo: Billetera y Pagos (Wallet)
+    // ==========================================
+    Route::group(['prefix' => 'opc', 'middleware' => ['auth:sanctum']], function () {
+        Route::post('init-payment', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'initPayment']);
+        Route::post('confirm-payment', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'confirmPayment']);
     });
 
     // ==========================================

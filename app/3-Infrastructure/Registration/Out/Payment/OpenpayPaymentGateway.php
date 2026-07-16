@@ -58,4 +58,26 @@ class OpenpayPaymentGateway implements PaymentGatewayInterface
             Log::info("Limpiados {$deleted} registros UnverifiedUser previos para {$email}");
         }
     }
+
+    public function getCharge(string $chargeId): array
+    {
+        $openpayId     = config('services.openpay.id');
+        $openpaySecret = config('services.openpay.sk');
+
+        if (empty($openpayId) || empty($openpaySecret)) {
+            throw new \Exception('Credenciales de Openpay no configuradas.', 500);
+        }
+
+        $openpay = \Openpay\Data\Openpay::getInstance($openpayId, $openpaySecret, 'PE', request()->ip());
+        \Openpay\Data\Openpay::setProductionMode(config('services.openpay.production_mode', false));
+
+        $charge = $openpay->charges->get($chargeId);
+
+        return [
+            'id' => $charge->id,
+            'status' => $charge->status,
+            'amount' => $charge->amount,
+            'authorization' => $charge->authorization,
+        ];
+    }
 }

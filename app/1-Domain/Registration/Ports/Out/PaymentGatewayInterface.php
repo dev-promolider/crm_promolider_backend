@@ -18,4 +18,9 @@ interface PaymentGatewayInterface
      * Limpia registros previos de usuarios no verificados para el mismo email.
      */
     public function cleanPreviousUnverified(string $email): void;
+
+    /**
+     * Obtiene la información de un cargo existente en Openpay.
+     */
+    public function getCharge(string $chargeId): array;
 }
