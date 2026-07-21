@@ -53,13 +53,13 @@ class InitOpcOpenpayPaymentUseCase
         $orderId = substr('opc-' . $userId . '-' . $orderNumber, 0, 100);
         $redirectUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/dashboard/mis-compras'; // O la URL correcta
 
-        // 5. Configurar Cargo en Openpay
-        $chargeData = [
-            'order_id'    => $orderId,
-            'method'      => 'card',
-            'currency'    => 'USD',
-            'amount'      => $totalAmountFormatted,
+        // 5. Configurar Link de Checkout en Openpay
+        $checkoutData = [
+            'amount'      => (float) $totalAmountFormatted,
             'description' => "Recompra OPC - {$cuotasRequested} cuota(s)",
+            'order_id'    => $orderId,
+            'currency'    => 'USD', // Openpay PE requiere PEN o USD según configuración
+            'redirect_url' => $redirectUrl,
             'customer'    => [
                 'name'         => $user->name,
                 'last_name'    => $user->last_name,
@@ -67,11 +67,9 @@ class InitOpcOpenpayPaymentUseCase
                 'email'        => $user->email,
             ],
             'send_email'   => false,
-            'confirm'      => false,
-            'redirect_url' => $redirectUrl,
         ];
 
-        $chargeResult = $this->paymentGateway->createCharge($chargeData);
+        $chargeResult = $this->paymentGateway->createCheckoutLink($checkoutData);
 
         // 6. Guardar la Intención de Pago (Seguridad Hexagonal contra manipulación)
         // Guardamos en caché o BD temporal para validarlo en el Webhook/Confirmación

@@ -8,6 +8,11 @@ interface PaymentGatewayInterface
      * Retorna los datos de la redirección 3D Secure.
      */
     public function createCharge(array $chargeData): array;
+    
+    /**
+     * Crea un link de pago Checkout en Openpay.
+     */
+    public function createCheckoutLink(array $checkoutData): array;
 
     /**
      * Guarda un usuario no verificado (pendiente de confirmación de pago).
