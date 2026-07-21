@@ -43,8 +43,8 @@ class InitOpcOpenpayPaymentUseCase
             throw new Exception("No existe un producto OPC asociado a tu membresía.", 404);
         }
 
-        // 3. Calcular monto y topes (Opcional: Si deben 5 meses pero pagan 6, rechazar o limitar)
-        $amountPerQuota = $product->price;
+        // 3. Calcular monto fijo de $30.00 por cuota (regla de negocio solicitada)
+        $amountPerQuota = 30.00;
         $totalAmount = $amountPerQuota * $cuotasRequested;
         $totalAmountFormatted = number_format($totalAmount, 2, '.', '');
 
