@@ -45,7 +45,8 @@ class OpenpayPaymentGateway implements PaymentGatewayInterface
             ? "https://api.openpay.pe/v1/{$openpayId}/checkouts"
             : "https://sandbox-api.openpay.pe/v1/{$openpayId}/checkouts";
             
-        $response = \Illuminate\Support\Facades\Http::withBasicAuth($openpaySecret, '')
+        $response = \Illuminate\Support\Facades\Http::asJson()->acceptJson()
+            ->withBasicAuth($openpaySecret, '')
             ->post($baseUrl, $checkoutData);
             
         if ($response->failed()) {

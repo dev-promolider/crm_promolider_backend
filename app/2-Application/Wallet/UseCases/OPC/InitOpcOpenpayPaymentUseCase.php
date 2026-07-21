@@ -56,7 +56,7 @@ class InitOpcOpenpayPaymentUseCase
         // 5. Configurar Link de Checkout en Openpay
         $checkoutData = [
             'amount'      => (float) $totalAmountFormatted,
-            'description' => "Recompra OPC - {$cuotasRequested} cuota(s)",
+            'description' => "Recompra OPC - {$cuotasRequested} cuotas",
             'order_id'    => $orderId,
             'currency'    => 'USD', // Openpay PE requiere PEN o USD según configuración
             'redirect_url' => $redirectUrl,
