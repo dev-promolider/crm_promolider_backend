@@ -127,7 +127,27 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
             )
             ->get();
 
-        $formattedDirects = $directs->map(function ($direct) {
+        $classifications = \Illuminate\Support\Facades\DB::table('classified')->get()->keyBy('user_id')->toArray();
+
+        $formattedDirects = $directs->map(function ($direct) use ($classifications, $userId) {
+            // Buscar en qué pierna está posicionado relativo a su patrocinador
+            $leg = 'none';
+            $currentId = $direct->id;
+            
+            while (isset($classifications[$currentId]) && $classifications[$currentId]->user_above !== 'top') {
+                $parentId = (int) $classifications[$currentId]->user_above;
+                $position = (int) $classifications[$currentId]->position;
+                
+                if ($parentId === $userId) {
+                    $leg = ($position === 0) ? 'Izquierda' : 'Derecha';
+                    break;
+                }
+                $currentId = $parentId;
+                
+                // Evitar bucle infinito por consistencia de datos mala
+                if ($currentId === $direct->id) break;
+            }
+
             return [
                 'id' => $direct->id,
                 'username' => $direct->username,
@@ -142,6 +162,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 'photoUrl' => !empty($direct->photo) ? \App\Helpers\ParseUrl::contacAtrrS3($direct->photo) : null,
                 'active' => $direct->membershipActive ?? 0,
                 'membershipActive' => $direct->membershipActive ?? 0,
+                'leg' => $leg,
                 'account_type' => ['id' => $direct->id_account_type, 'account' => 'Socio'] // Hardcoded temporalmente por tabla faltante
             ];
         });
