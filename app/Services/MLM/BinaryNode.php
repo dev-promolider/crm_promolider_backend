@@ -54,9 +54,14 @@ class BinaryNode
         
         $qualified = $this->rawUserData['qualified'] ?? false;
 
+        $photoUrl = !empty($this->rawUserData['photo']) 
+            ? \App\Helpers\ParseUrl::contacAtrrS3($this->rawUserData['photo']) 
+            : null;
+
         return array_merge($this->rawUserData, [
             'id' => $this->userId,
             'name' => $this->name,
+            'photoUrl' => $photoUrl,
             'left_points' => $this->leftPoints,
             'right_points' => $this->rightPoints,
             'rank' => $this->rank,

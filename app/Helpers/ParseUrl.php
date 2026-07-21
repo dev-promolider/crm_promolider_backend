@@ -13,15 +13,15 @@ class ParseUrl
 
     public static function contacAtrrS3($atrr)
     {
-        $storage_domain = config('global_variables.storage_domain');
-        $url = $storage_domain . '/' . $atrr;
+        $storage_domain = config('global_variables.storage_domain') ?: env('STORAGE_DOMAIN');
+        $url = rtrim($storage_domain, '/') . '/' . ltrim($atrr, '/');
         return $url;
     }
 
     public static function contacAtrrS3badges($atrr)
     {
-        $storage_domain = config('global_variables.storage_domain');
-        $url = $storage_domain . '/images/badges/' . $atrr;
+        $storage_domain = config('global_variables.storage_domain') ?: env('STORAGE_DOMAIN');
+        $url = rtrim($storage_domain, '/') . '/images/badges/' . ltrim($atrr, '/');
         return $url;
     }
 }

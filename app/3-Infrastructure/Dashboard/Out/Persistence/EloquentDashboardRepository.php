@@ -139,6 +139,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 'date_birth' => $direct->date_birth,
                 'created_at' => $direct->created_at,
                 'photo' => $direct->photo,
+                'photoUrl' => !empty($direct->photo) ? \App\Helpers\ParseUrl::contacAtrrS3($direct->photo) : null,
                 'active' => $direct->membershipActive ?? 0,
                 'membershipActive' => $direct->membershipActive ?? 0,
                 'account_type' => ['id' => $direct->id_account_type, 'account' => 'Socio'] // Hardcoded temporalmente por tabla faltante

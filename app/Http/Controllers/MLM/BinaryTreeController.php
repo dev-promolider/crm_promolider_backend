@@ -18,8 +18,12 @@ class BinaryTreeController extends Controller
     /**
      * Obtiene el árbol binario completo desde la caché de Redis.
      */
-    public function getFullTree()
+    public function getFullTree(Request $request)
     {
+        if (!$request->user()->hasRole('Admin')) {
+            return response()->json(['message' => 'No autorizado. Solo los administradores pueden ver el árbol completo.'], 403);
+        }
+
         $tree = $this->binaryTreeService->getGlobalTree();
 
         if (!$tree) {
@@ -35,8 +39,13 @@ class BinaryTreeController extends Controller
      */
     public function getUserTree(Request $request, $userId = null)
     {
-        // Si no se envía un ID, usamos el del usuario autenticado
-        $targetUserId = $userId ?? $request->user()->id;
+        // Forzamos a que el usuario SIEMPRE sea la raíz de su propia vista (Privacidad Top-Down)
+        // Solo un Admin podría consultar el árbol de otro usuario pasando el $userId
+        if ($userId && $request->user()->hasRole('Admin')) {
+            $targetUserId = $userId;
+        } else {
+            $targetUserId = $request->user()->id;
+        }
 
         $tree = $this->binaryTreeService->getSubTreeForUser($targetUserId);
 
@@ -51,8 +60,12 @@ class BinaryTreeController extends Controller
      * Refresca la caché del árbol binario manualmente.
      * Útil cuando se inscribe alguien nuevo.
      */
-    public function refreshTree()
+    public function refreshTree(Request $request)
     {
+        if (!$request->user()->hasRole('Admin')) {
+            return response()->json(['message' => 'No autorizado. Solo los administradores pueden refrescar la caché manualmente.'], 403);
+        }
+
         $tree = $this->binaryTreeService->buildTreeAndCache();
 
         return response()->json([

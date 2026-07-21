@@ -26,46 +26,17 @@ class BinaryTreeService
         
         // Fase 1: Instanciar todos los nodos puros en memoria (O(n))
         foreach ($users as $id => $userData) {
+            $sponsorId = $userData['id_referrer_sponsor'] ?? null;
+            if ($sponsorId && isset($users[$sponsorId])) {
+                $sponsor = $users[$sponsorId];
+                $userData['sponsor_name'] = trim(($sponsor['name'] ?? '') . ' ' . ($sponsor['last_name'] ?? ''));
+            } else {
+                $userData['sponsor_name'] = 'Ninguno';
+            }
             $nodes[$id] = new BinaryNode($userData);
         }
         
-        // Fase 1.5: Calcular el estado "Qualified" basándose en las dos patas inmediatas
-        $sponsoredBy = []; // user_above => list of immediate children
-        foreach ($classifications as $userId => $classification) {
-            $userAbove = $classification->user_above;
-            if ($userAbove && $userAbove !== 'top') {
-                $sponsoredBy[(int)$userAbove][] = $classification;
-            }
-        }
-        
-        $now = now();
-        foreach ($users as $id => $userData) {
-            $leftActive = false;
-            $rightActive = false;
-            
-            if (isset($sponsoredBy[$id])) {
-                foreach ($sponsoredBy[$id] as $sponsoredClassification) {
-                    $sponsoredId = (int) $sponsoredClassification->user_id;
-                    $sponsoredUser = $users[$sponsoredId] ?? null;
-                    
-                    if ($sponsoredUser) {
-                        $isRequestApproved = isset($sponsoredUser['request']) && $sponsoredUser['request'] == 2;
-                        $isActive = $isRequestApproved && (empty($sponsoredUser['expiration_date']) || \Carbon\Carbon::parse($sponsoredUser['expiration_date']) > $now);
-                        $isMembershipActive = $isRequestApproved && (!empty($sponsoredUser['expiration_membership_date']) && \Carbon\Carbon::parse($sponsoredUser['expiration_membership_date']) > $now);
-                        $idAccountType = $sponsoredUser['id_account_type'] ?? null;
-                        
-                        if ($isActive && $isMembershipActive && $idAccountType != 5 && $idAccountType != 6) {
-                            if ($sponsoredClassification->position == 0) $leftActive = true;
-                            if ($sponsoredClassification->position == 1) $rightActive = true;
-                        }
-                    }
-                    if ($leftActive && $rightActive) break;
-                }
-            }
-            
-            // Inyectamos la variable calificado en el rawUserData para que BinaryNode la lea
-            $nodes[$id]->rawUserData['qualified'] = ($leftActive && $rightActive);
-        }
+        // Fase 1.5 ELIMINADA. La calificación se hará en la Fase 3 con DFS Post-Order para revisar toda la profundidad.
         
         // Fase 2: Enlazar los punteros padre-hijo (O(n)) usando 'classified'
         foreach ($users as $id => $userData) {
@@ -94,7 +65,10 @@ class BinaryTreeService
             }
         }
         
+        // Fase 3: Calcular Calificación Automática Real (Profundidad infinita)
         if ($rootId && isset($nodes[$rootId])) {
+            $this->calculateQualifications($nodes[$rootId], $users);
+            
             $treeData = $nodes[$rootId]->toArray();
             
             // Guardar en caché serializado como JSON (Sin expiración)
@@ -104,6 +78,44 @@ class BinaryTreeService
         }
 
         return null;
+    }
+
+    /**
+     * Búsqueda Post-Order (DFS) para encontrar qué patrocinadores tienen directos activos
+     * en el subárbol izquierdo y derecho, habilitando la calificación sin importar la profundidad.
+     */
+    private function calculateQualifications($node, &$users)
+    {
+        if (!$node) return [];
+
+        $leftActiveSponsors = $this->calculateQualifications($node->left, $users);
+        $rightActiveSponsors = $this->calculateQualifications($node->right, $users);
+
+        // ¿El usuario actual está calificado? (Tiene al menos 1 directo activo a la izq y 1 a la der)
+        $isQualified = isset($leftActiveSponsors[$node->userId]) && isset($rightActiveSponsors[$node->userId]);
+        $node->rawUserData['qualified'] = $isQualified;
+
+        // Combinar los conjuntos para retornar al padre
+        $activeSponsors = $leftActiveSponsors + $rightActiveSponsors;
+
+        // Si este nodo (usuario) es un socio activo, agregamos a SU patrocinador al conjunto
+        $userData = $users[$node->userId] ?? null;
+        if ($userData) {
+            $now = now();
+            $isRequestApproved = isset($userData['request']) && $userData['request'] == 2;
+            $isActive = $isRequestApproved && (empty($userData['expiration_date']) || \Carbon\Carbon::parse($userData['expiration_date']) > $now);
+            $isMembershipActive = $isRequestApproved && (!empty($userData['expiration_membership_date']) && \Carbon\Carbon::parse($userData['expiration_membership_date']) > $now);
+            $idAccountType = $userData['id_account_type'] ?? null;
+
+            if ($isActive && $isMembershipActive && $idAccountType != 5 && $idAccountType != 6) {
+                $sponsorId = $userData['id_referrer_sponsor'] ?? null;
+                if ($sponsorId) {
+                    $activeSponsors[(int)$sponsorId] = true;
+                }
+            }
+        }
+
+        return $activeSponsors;
     }
 
     /**

@@ -12,7 +12,6 @@ use App\Models\Option;
 use App\Models\SharedLink;
 use App\Models\UserDailyQuizz;
 use App\Models\UserClassroomPoint;
-use App\Models\UserMembershipExpiration;
 use App\Models\AccountType;
 use App\Models\Country;
 use App\Models\DocumentType;
@@ -104,24 +103,23 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
     public function getLastUserBeforeEmpty(int $referrerId, string $position): ?int
     {
         // Busca recursivamente hacia abajo en el árbol binario
-        // hasta encontrar la posición vacía donde colocar al nuevo usuario
+        // hasta encontrar la posición vacía por la EXTREMA elegida
         $current = $referrerId;
+        $targetPosition = $position === 'user_position_left' ? 0 : 1;
 
         while (true) {
-            $classified = Classified::where('id_user_sponsor', $current)->first();
+            // Buscamos quién ocupa la posición $targetPosition debajo de $current
+            $childClassified = Classified::where('user_above', (string)$current)
+                ->where('position', $targetPosition)
+                ->first();
 
-            if (!$classified) {
+            if (!$childClassified) {
+                // Posición vacía encontrada
                 return $current;
             }
 
-            $field = $position === 'user_position_left' ? 'user_position_left' : 'user_position_right';
-            $nextUser = User::find($classified->$field ?? null);
-
-            if (!$nextUser) {
-                return $current;
-            }
-
-            $current = $nextUser->id;
+            // Continuamos bajando por esa extrema
+            $current = $childClassified->user_id;
         }
     }
 
@@ -163,10 +161,10 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
     public function saveMembershipExpiration(int $userId, int $accountTypeId): void
     {
         // Si existe el modelo, crear registro de expiración
-        if (class_exists(UserMembershipExpiration::class)) {
+        if (class_exists('App\Models\UserMembershipExpiration')) {
             $accountType = AccountType::find($accountTypeId);
             if ($accountType) {
-                UserMembershipExpiration::create([
+                \App\Models\UserMembershipExpiration::create([
                     'user_id'         => $userId,
                     'id_account_type' => $accountTypeId,
                     'expiration_date' => strtotime('+365 days'),
@@ -284,7 +282,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 
     public function registerMinicourseParticipant(int $userId): void
     {
-        if (class_exists(\App\Models\MinicourseParticipant::class)) {
+        if (class_exists('App\Models\MinicourseParticipant')) {
             \App\Models\MinicourseParticipant::firstOrCreate([
                 'user_id' => $userId,
             ]);
@@ -293,7 +291,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 
     public function registerEbookParticipant(int $userId, int $ebookId = null): void
     {
-        if (class_exists(\App\Models\EbookParticipant::class) && $ebookId) {
+        if (class_exists('App\Models\EbookParticipant') && $ebookId) {
             \App\Models\EbookParticipant::firstOrCreate([
                 'user_id' => $userId,
                 'ebook_id' => $ebookId,
@@ -303,7 +301,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 
     public function registerMasterclassParticipant(int $userId): void
     {
-        if (class_exists(\App\Models\MasterclassParticipant::class)) {
+        if (class_exists('App\Models\MasterclassParticipant')) {
         }
     }
 
