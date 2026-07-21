@@ -33,6 +33,15 @@ use Illuminate\Support\Facades\Route;
         });
 
         // ==========================================
+        // ==========================================
+        // Módulo: MLM Árbol Binario
+        // ==========================================
+        Route::group(['prefix' => 'mlm'], function () {
+            Route::get('tree', [\App\Http\Controllers\MLM\BinaryTreeController::class, 'getUserTree']);
+            Route::get('tree/full', [\App\Http\Controllers\MLM\BinaryTreeController::class, 'getFullTree']);
+            Route::post('tree/refresh', [\App\Http\Controllers\MLM\BinaryTreeController::class, 'refreshTree']);
+        });
+
         // Módulo: Perfil
         // ==========================================
         Route::get('profile/info', function (\Illuminate\Http\Request $request) {

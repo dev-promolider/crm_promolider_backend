@@ -73,10 +73,10 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
         $isMembershipActive = ($user->expiration_membership_date > now()) && ($user->request == 2);
         $isActive = (is_null($user->expiration_date) || $user->expiration_date > now()) && ($user->request == 2);
         
-        // Obtener los directos en el árbol binario
+        // Obtener los hijos inmediatos en el árbol binario (las dos patas)
         $sponsored = \Illuminate\Support\Facades\DB::table('classified')
             ->join('users', 'classified.user_id', '=', 'users.id')
-            ->where('classified.id_user_sponsor', $userId)
+            ->where('classified.user_above', (string) $userId)
             ->select('classified.position', 'users.expiration_date', 'users.expiration_membership_date', 'users.request', 'users.id_account_type')
             ->get();
 
