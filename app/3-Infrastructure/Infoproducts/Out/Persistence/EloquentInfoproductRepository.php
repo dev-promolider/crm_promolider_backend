@@ -10,6 +10,46 @@ use Illuminate\Support\Facades\Log;
 
 class EloquentInfoproductRepository implements InfoproductRepositoryInterface
 {
+    public function findPurchasedByUserId(string $userId): array
+    {
+        $infoproducts = EloquentInfoproduct::join('purchased_courses', 'courses.id', '=', 'purchased_courses.course_id')
+            ->where('purchased_courses.user_id', $userId)
+            ->select('courses.*')
+            ->get();
+
+        return $infoproducts->map(function ($infoproduct) {
+            return new InfoproductEntity(
+                $infoproduct->id,
+                $infoproduct->product_type_id,
+                $infoproduct->instructor_signature_path,
+                $infoproduct->user_id,
+                $infoproduct->id_categories,
+                $infoproduct->title,
+                $infoproduct->slug,
+                $infoproduct->area,
+                $infoproduct->description,
+                $infoproduct->currency,
+                $infoproduct->price,
+                $infoproduct->ranking_by_user,
+                $infoproduct->status,
+                $infoproduct->portada,
+                $infoproduct->url_portada,
+                $infoproduct->course_about,
+                $infoproduct->will_learn,
+                $infoproduct->prev_knowledge,
+                $infoproduct->course_for,
+                $infoproduct->course_time,
+                $infoproduct->course_level_id,
+                $infoproduct->months,
+                $infoproduct->path_url,
+                $infoproduct->price_base,
+                $infoproduct->certificate,
+                $infoproduct->certificate_template_id,
+                $infoproduct->marketplace_listed
+            );
+        })->toArray();
+    }
+
     public function findCreatedByUserIdPaginated(
         int $userId,
         int $page,
