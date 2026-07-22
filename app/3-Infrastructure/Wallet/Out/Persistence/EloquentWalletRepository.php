@@ -294,4 +294,128 @@ class EloquentWalletRepository implements WalletRepositoryInterface
             'paginator' => $query->latest()->paginate($perPage, ['*'], 'page', $page)
         ];
     }
+
+    public function getBinaryCutSchedule(): ?string
+    {
+        $option = Option::where('description', 'binary_cut_scheduled_at')->first();
+        return $option ? $option->value : null;
+    }
+
+    public function setBinaryCutSchedule(string $datetime): void
+    {
+        Option::updateOrCreate(
+            ['description' => 'binary_cut_scheduled_at'],
+            ['value' => $datetime]
+        );
+    }
+
+    public function cancelBinaryCutSchedule(): void
+    {
+        Option::where('description', 'binary_cut_scheduled_at')->delete();
+    }
+
+    public function executeBinaryCut(): void
+    {
+        DB::beginTransaction();
+        try {
+            $users = User::all();
+            
+            $ranks = \App\Models\RankBonus::select('id', 'vol_min', 'pack_max', 'active_direct', 'max_pay', 'monthly_bonus', 'limit_generation')->get();
+            $batchOption = Option::firstOrCreate(['description' => 'batch'], ['value' => '1']);
+            $lastBatch = (int) $batchOption->value;
+            
+            $calculator = new \App\Services\MLM\BinaryCutCalculatorService();
+            $userPointsCache = $calculator->calculateBinaryPointsLocally($users);
+            
+            foreach ($users as $user) {
+                $userLeftPoints = $userPointsCache[$user->id]['left'] ?? 0;
+                $userRightPoints = $userPointsCache[$user->id]['right'] ?? 0;
+                
+                if ($userLeftPoints == 0 && $userRightPoints == 0) continue;
+                
+                $maxPoints = max($userLeftPoints, $userRightPoints);
+                $minPoints = min($userLeftPoints, $userRightPoints);
+                $sideMax = $userLeftPoints > $userRightPoints ? 0 : 1;
+                
+                $myRank = $this->setRanks($user->id, $minPoints, $ranks, $lastBatch);
+                
+                $myWallet = Wallet::where('user_id', $user->id)->first();
+                if (!$myWallet) continue;
+                
+                $maxTransfer = $myRank->max_pay;
+                
+                // percentage based on account type
+                $accountType = AccountType::find($user->id_account_type);
+                $payInBinary = $accountType ? (float) $accountType->pay_in_binary : 0;
+                
+                $amountToTransfer = ($minPoints * 1) * ($payInBinary / 100);
+                
+                if ($amountToTransfer > $maxTransfer) {
+                    $amountToTransfer = $maxTransfer;
+                }
+                
+                // Update active points status to inactive using index
+                \App\Models\Point::where('user_id', $user->id)->where('status', 1)->update(['status' => 0]);
+                
+                // Create remnant points
+                \App\Models\Point::create([
+                    'user_id' => $user->id,
+                    'points' => $maxPoints - $minPoints,
+                    'side' => $sideMax,
+                    'reason' => "Binary cut"
+                ]);
+                
+                if ($amountToTransfer > 0) {
+                    $movement = new WalletMovements();
+                    $movement->wallet_id = $myWallet->id;
+                    $movement->amount = $amountToTransfer;
+                    $movement->type = 1;
+                    $movement->reason = 'Bono binario';
+                    $movement->batch = $lastBatch;
+                    $movement->bonus_type_id = 4;
+                    $movement->save();
+                }
+                
+                BinaryCutHistory::create([
+                    'user_id' => $user->id,
+                    'rank_id' => $myRank->id,
+                    'left_points' => $userLeftPoints,
+                    'right_points' => $userRightPoints,
+                    'transferred_amount' => $amountToTransfer,
+                    'batch' => $lastBatch
+                ]);
+            }
+            
+            // Advance batch
+            $batchOption->value = (string)($lastBatch + 1);
+            $batchOption->save();
+            
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error executing binary cut: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    private function setRanks($user_id, $min_points, $ranks, $batch)
+    {
+        $my_rank = $ranks->filter(function ($value) use ($min_points) {
+            return $min_points >= $value->vol_min;
+        })->last();
+        
+        if (!$my_rank) {
+            $my_rank = $ranks->first();
+        }
+        
+        DB::table('rank_binary')->insert([
+            'user_id' => $user_id,
+            'rank_id' => $my_rank->id,
+            'batch' => $batch,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        return $my_rank;
+    }
 }

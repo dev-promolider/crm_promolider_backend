@@ -347,4 +347,102 @@ class WalletMovementsController extends Controller
             ], 500);
         }
     }
+
+    public function getActiveBinaryPoints(Request $request)
+    {
+        try {
+            $userId = Auth::id();
+            if (!$userId) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Fetch all users to calculate generations in memory (fast since small DB)
+            $allUsers = \Illuminate\Support\Facades\DB::table('users')
+                ->select('id', 'id_referrer_sponsor')
+                ->get()
+                ->keyBy('id')
+                ->toArray();
+
+            $points = \Illuminate\Support\Facades\DB::table('points')
+                ->join('users', 'points.user_id', '=', 'users.id')
+                ->where('points.sponsor_id', $userId)
+                ->where('points.status', 1)
+                ->select(
+                    'points.id',
+                    'points.points',
+                    'points.side',
+                    'points.reason',
+                    'points.created_at',
+                    'points.user_id as generator_id',
+                    'users.name as sponsor_name',
+                    'users.last_name as sponsor_last_name',
+                    'users.photo as sponsor_photo'
+                )
+                ->orderBy('points.created_at', 'desc')
+                ->get();
+
+            $leftLeg = [];
+            $rightLeg = [];
+            $totalLeft = 0;
+            $totalRight = 0;
+
+            foreach ($points as $point) {
+                // Calculate generation
+                $generation = -1; // -1 means Spillover (Derrame)
+                $currentId = $point->generator_id; // user_id is the buyer
+                $steps = 0;
+
+                if ($currentId == $userId) {
+                    $generation = 0; // Compra propia
+                } else {
+                    while (isset($allUsers[$currentId]) && $allUsers[$currentId]->id_referrer_sponsor) {
+                        $steps++;
+                        $parentId = $allUsers[$currentId]->id_referrer_sponsor;
+                        if ($parentId == $userId) {
+                            $generation = $steps;
+                            break;
+                        }
+                        $currentId = $parentId;
+                        
+                        // Prevent infinite loops in bad data
+                        if ($steps > 100) break;
+                    }
+                }
+
+                $pointData = [
+                    'id' => $point->id,
+                    'points' => (float) $point->points,
+                    'reason' => $point->reason,
+                    'created_at' => $point->created_at,
+                    'sponsor' => [
+                        'name' => $point->sponsor_name . ' ' . $point->sponsor_last_name,
+                        'photo' => $point->sponsor_photo
+                    ],
+                    'generation' => $generation
+                ];
+
+                if ((int)$point->side === 0) {
+                    $leftLeg[] = $pointData;
+                    $totalLeft += (float) $point->points;
+                } else {
+                    $rightLeg[] = $pointData;
+                    $totalRight += (float) $point->points;
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'left_leg' => $leftLeg,
+                    'right_leg' => $rightLeg,
+                    'total_left' => $totalLeft,
+                    'total_right' => $totalRight
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("[WalletMovementsController] Error getting active binary points: " . $e->getMessage());
+            return response()->json(['error' => 'Internal server error'], 500);
+        }
+    }
 }

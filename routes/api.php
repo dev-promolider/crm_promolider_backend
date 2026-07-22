@@ -19,6 +19,38 @@ use Illuminate\Support\Facades\Route;
     });
 
     // ==========================================
+    // Rutas Públicas (Sin autenticación)
+    // ==========================================
+    Route::get('public/membership-plans', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'publicMembershipPlans'])->name('public.membership_plans');
+
+    // ==========================================
+    // Plan de Compensación (Lectura para todos los usuarios autenticados)
+    // ==========================================
+    Route::prefix('compensation')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('ranks', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getRanks'])->name('compensation.ranks.index');
+        Route::get('generational-bonuses', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getGenerationalBonuses'])->name('compensation.generational.index');
+    });
+
+    // ==========================================
+    // Panel Admin: Plan de Compensación (Solo Admin)
+    // ==========================================
+    Route::prefix('admin/compensation')->middleware(['auth:sanctum', 'role:Admin'])->group(function () {
+        // Membresías
+        Route::get('memberships', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getMemberships'])->name('admin.compensation.memberships.index');
+        Route::put('memberships/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateMembership'])->name('admin.compensation.memberships.update');
+
+        // Productos OPC
+        Route::get('opc-products', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getOpcProducts'])->name('admin.compensation.opc.index');
+        Route::put('opc-products/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateOpcProduct'])->name('admin.compensation.opc.update');
+
+        // Rangos (Solo edición)
+        Route::put('ranks/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateRank'])->name('admin.compensation.ranks.update');
+
+        // Bonos Generacionales (Solo edición)
+        Route::put('generational-bonuses/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateGenerationalBonus'])->name('admin.compensation.generational.update');
+    });
+
+    // ==========================================
     // Rutas Protegidas (Requieren Token)
     // ==========================================
     Route::middleware('auth:sanctum')->group(function () {
@@ -204,9 +236,21 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::post('movements/request-founds/reject', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'rejectRequest'])->name('marketing.reports.movements.request_founds_reject')->middleware('auth:sanctum');
         Route::post('movements/request-founds/approve', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'approveRequest'])->name('marketing.reports.movements.request_founds_approve')->middleware('auth:sanctum');
         Route::get('binary-history', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getBinaryHistory'])->name('marketing.reports.binary_history')->middleware('auth:sanctum');
+        Route::get('active-binary-points', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getActiveBinaryPoints'])->name('marketing.reports.active_binary_points')->middleware('auth:sanctum');
         Route::get('getsales/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getSales'])->name('marketing.reports.get_sales')->middleware('auth:sanctum');
         Route::get('movements/my-directs', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyDirects'])->name('marketing.reports.movements.my_directs')->middleware('auth:sanctum');
         Route::get('mypurchases/{userId}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyPurchases'])->name('marketing.reports.mypurchases')->middleware('auth:sanctum');
+        
+        // Recharge Wallet routes
+        Route::post('wallet/recharge/openpay', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletRechargeController::class, 'openpayRecharge'])->name('wallet.recharge.openpay')->middleware('auth:sanctum');
+
+        // Binary Cut Schedule routes (Admin only)
+        Route::group(['middleware' => ['auth:sanctum', 'role:Admin']], function () {
+            Route::get('binary-cut/schedule', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'getSchedule'])->name('admin.binary_cut.schedule.get');
+            Route::post('binary-cut/schedule', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'schedule'])->name('admin.binary_cut.schedule.post');
+            Route::delete('binary-cut/schedule', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'cancel'])->name('admin.binary_cut.schedule.cancel');
+            Route::post('binary-cut/execute', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'executeNow'])->name('admin.binary_cut.execute');
+        });
     });
 
     // Question Categories & Items

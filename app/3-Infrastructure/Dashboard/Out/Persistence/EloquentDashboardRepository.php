@@ -66,7 +66,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
         ];
     }
 
-    public function getWidgetsData(int $userId): array
+    public function getWidgetsData(int $userId, string $timeframe = 'normal'): array
     {
         $user = User::find($userId);
 
@@ -96,76 +96,159 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
 
         $isQualified = $left && $right;
 
+        $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('user_id', $userId)->first();
+        $walletId = $wallet ? $wallet->id : 0;
+
+        $thisMonth = $timeframe === 'historical' ? null : now()->startOfMonth();
+
+        $monthlyQuery = function ($reasonQuery) use ($walletId, $thisMonth) {
+            $query = \Illuminate\Support\Facades\DB::table('wallet_movements')
+                ->where('wallet_id', $walletId)
+                ->where($reasonQuery);
+            if ($thisMonth) {
+                $query->where('created_at', '>=', $thisMonth);
+            }
+            return $query;
+        };
+
+        $expansionMonthly = $monthlyQuery(function ($query) {
+            $query->where('reason', 'LIKE', '%Bono de expansión%');
+        })->sum('amount');
+
+        $binaryMonthly = $monthlyQuery(function ($query) {
+            $query->where('reason', 'LIKE', '%Bono binario%');
+        })->sum('amount');
+
+        $generationalMonthly = $monthlyQuery(function ($query) {
+            $query->where('reason', 'LIKE', 'Bono de % Generación%');
+        })->sum('amount');
+
+        // Obtener la fecha del último corte binario para este usuario
+        $lastCutDate = null;
+        if ($timeframe !== 'historical') {
+            $lastCutDate = \Illuminate\Support\Facades\DB::table('binary_cut_histories')
+                ->where('user_id', $userId)
+                ->max('created_at');
+        }
+
+        // Construir la consulta base para acumulativos
+        $cumulativeQuery = function ($reasonQuery) use ($walletId, $lastCutDate) {
+            $query = \Illuminate\Support\Facades\DB::table('wallet_movements')
+                ->where('wallet_id', $walletId)
+                ->where($reasonQuery);
+            if ($lastCutDate) {
+                $query->where('created_at', '>=', $lastCutDate);
+            }
+            return $query;
+        };
+
+        $fastCashCumulative = $cumulativeQuery(function ($query) {
+            $query->where('reason', 'LIKE', '%Bono de efectivo rápido%')
+                  ->orWhere('reason', 'LIKE', '%Bono de efectivo rapido%');
+        })->sum('amount');
+
+        $producerCumulative = $cumulativeQuery(function ($query) {
+            $query->where('reason', 'LIKE', '%Bono de productor%');
+        })->sum('amount');
+
+        $courseSaleCumulative = $cumulativeQuery(function ($query) {
+            $query->where('reason', 'LIKE', '%Bono por compra de curso%');
+        })->sum('amount');
+
         return [
             'conditions' => [
                 'membershipActive' => $isMembershipActive,
                 'active' => $isActive,
                 'qualified' => $isQualified
             ],
+            'last_cut_date' => $lastCutDate ? \Carbon\Carbon::parse($lastCutDate)->format('d/m/Y, H:i') : null,
             'monthly_bonuses' => [
-                'expansion' => 0.00,
-                'binary' => 0.00,
-                'generational' => 0.00
+                'expansion' => round((float)$expansionMonthly, 2),
+                'binary' => round((float)$binaryMonthly, 2),
+                'generational' => round((float)$generationalMonthly, 2)
             ],
             'cumulative_bonuses' => [
-                'fast_cash' => 0.00,
-                'producer' => 0.00,
-                'course_sale' => 0.00
+                'fast_cash' => round((float)$fastCashCumulative, 2),
+                'producer' => round((float)$producerCumulative, 2),
+                'course_sale' => round((float)$courseSaleCumulative, 2)
             ]
         ];
     }
 
     public function getUnilevelTree(int $userId): array
     {
-        $rootUser = User::where('id', $userId)->first();
-
-        $directs = User::where('id_referrer_sponsor', $userId)
-            ->select(
+        $allUsers = User::select(
                 'id', 'username', 'name', 'last_name', 'email', 
                 'phone', 'date_birth', 'created_at', 'photo', 
-                'id_referrer_sponsor', 'id_account_type', 'expiration_membership_date'
-            )
-            ->get();
+                'id_referrer_sponsor', 'id_account_type', 'expiration_membership_date', 'request', 'expiration_date'
+            )->get();
+
+        $rootUser = $allUsers->firstWhere('id', $userId);
+        if (!$rootUser) return [];
+
+        $childrenMap = [];
+        foreach ($allUsers as $u) {
+            $sponsorId = $u->id_referrer_sponsor;
+            if ($sponsorId) {
+                if (!isset($childrenMap[$sponsorId])) {
+                    $childrenMap[$sponsorId] = [];
+                }
+                $childrenMap[$sponsorId][] = $u;
+            }
+        }
 
         $classifications = \Illuminate\Support\Facades\DB::table('classified')->get()->keyBy('user_id')->toArray();
 
-        $formattedDirects = $directs->map(function ($direct) use ($classifications, $userId) {
-            // Buscar en qué pierna está posicionado relativo a su patrocinador
-            $leg = 'none';
-            $currentId = $direct->id;
+        $buildTree = function($currentUser, $depth = 1) use (&$buildTree, &$childrenMap, $classifications, $userId) {
+            $children = $childrenMap[$currentUser->id] ?? [];
+            $formattedDirects = [];
             
-            while (isset($classifications[$currentId]) && $classifications[$currentId]->user_above !== 'top') {
-                $parentId = (int) $classifications[$currentId]->user_above;
-                $position = (int) $classifications[$currentId]->position;
+            foreach ($children as $child) {
+                $leg = 'none';
+                $currentId = $child->id;
                 
-                if ($parentId === $userId) {
-                    $leg = ($position === 0) ? 'Izquierda' : 'Derecha';
-                    break;
+                while (isset($classifications[$currentId]) && $classifications[$currentId]->user_above !== 'top') {
+                    $parentId = (int) $classifications[$currentId]->user_above;
+                    $position = (int) $classifications[$currentId]->position;
+                    
+                    if ($parentId === $userId) {
+                        $leg = ($position === 0) ? 'Izquierda' : 'Derecha';
+                        break;
+                    }
+                    $currentId = $parentId;
+                    
+                    if ($currentId === $child->id) break;
                 }
-                $currentId = $parentId;
-                
-                // Evitar bucle infinito por consistencia de datos mala
-                if ($currentId === $direct->id) break;
-            }
 
-            return [
-                'id' => $direct->id,
-                'username' => $direct->username,
-                'name' => trim($direct->name . ' ' . $direct->last_name),
-                'first_name' => $direct->name,
-                'last_name' => $direct->last_name,
-                'email' => $direct->email,
-                'phone' => $direct->phone,
-                'date_birth' => $direct->date_birth,
-                'created_at' => $direct->created_at,
-                'photo' => $direct->photo,
-                'photoUrl' => !empty($direct->photo) ? \App\Helpers\ParseUrl::contacAtrrS3($direct->photo) : null,
-                'active' => $direct->membershipActive ?? 0,
-                'membershipActive' => $direct->membershipActive ?? 0,
-                'leg' => $leg,
-                'account_type' => ['id' => $direct->id_account_type, 'account' => 'Socio'] // Hardcoded temporalmente por tabla faltante
-            ];
-        });
+                $membershipActive = (is_null($child->expiration_membership_date) || $child->expiration_membership_date > now()) ? 1 : 0;
+
+                $childData = [
+                    'id' => $child->id,
+                    'username' => $child->username,
+                    'name' => trim($child->name . ' ' . $child->last_name),
+                    'first_name' => $child->name,
+                    'last_name' => $child->last_name,
+                    'email' => $child->email,
+                    'phone' => $child->phone,
+                    'date_birth' => $child->date_birth,
+                    'created_at' => $child->created_at,
+                    'photo' => $child->photo,
+                    'photoUrl' => !empty($child->photo) ? \App\Helpers\ParseUrl::contacAtrrS3($child->photo) : null,
+                    'active' => (is_null($child->expiration_date) || $child->expiration_date > now()) && ($child->request == 2) ? 1 : 0,
+                    'membershipActive' => $membershipActive,
+                    'leg' => $leg,
+                    'generation' => $depth,
+                    'account_type' => ['id' => $child->id_account_type, 'account' => 'Socio']
+                ];
+                
+                $childData['directs'] = $buildTree($child, $depth + 1);
+                $formattedDirects[] = $childData;
+            }
+            
+            return $formattedDirects;
+        };
+
+        $treeData = $buildTree($rootUser, 1);
 
         return [
             'root' => [
@@ -180,10 +263,10 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 'created_at' => $rootUser->created_at,
                 'photo' => $rootUser->photo,
                 'active' => (is_null($rootUser->expiration_date) || $rootUser->expiration_date > now()) && ($rootUser->request == 2),
-                'membershipActive' => ($rootUser->expiration_membership_date > now()) && ($rootUser->request == 2),
+                'membershipActive' => (is_null($rootUser->expiration_membership_date) || $rootUser->expiration_membership_date > now()) && ($rootUser->request == 2),
                 'account_type' => ['id' => $rootUser->id_account_type, 'account' => 'Socio']
             ],
-            'directs' => $formattedDirects
+            'directs' => $treeData
         ];
     }
 

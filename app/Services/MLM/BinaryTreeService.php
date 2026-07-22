@@ -4,6 +4,7 @@ namespace App\Services\MLM;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BinaryTreeService
 {
@@ -19,7 +20,26 @@ class BinaryTreeService
         $users = User::all()->keyBy('id')->toArray();
         
         // 2. Obtener las relaciones del árbol desde la tabla 'classified'
-        $classifications = \Illuminate\Support\Facades\DB::table('classified')->get()->keyBy('user_id')->toArray();
+        $classifications = DB::table('classified')->get()->keyBy('user_id')->toArray();
+
+        // 3. Obtener puntos activos agrupados por usuario y lado
+        $activePointsRaw = DB::table('points')
+            ->select('sponsor_id', 'side', DB::raw('SUM(points) as total'))
+            ->where('status', 1)
+            ->groupBy('sponsor_id', 'side')
+            ->get();
+            
+        $activePoints = [];
+        foreach ($activePointsRaw as $row) {
+            if (!isset($activePoints[$row->sponsor_id])) {
+                $activePoints[$row->sponsor_id] = ['left' => 0, 'right' => 0];
+            }
+            if ($row->side == 0) {
+                $activePoints[$row->sponsor_id]['left'] = $row->total;
+            } else {
+                $activePoints[$row->sponsor_id]['right'] = $row->total;
+            }
+        }
 
         $nodes = [];
         $rootId = null; 
@@ -33,6 +53,11 @@ class BinaryTreeService
             } else {
                 $userData['sponsor_name'] = 'Ninguno';
             }
+            
+            // Inyectar puntos sumados
+            $userData['left_points'] = $activePoints[$id]['left'] ?? 0;
+            $userData['right_points'] = $activePoints[$id]['right'] ?? 0;
+            
             $nodes[$id] = new BinaryNode($userData);
         }
         

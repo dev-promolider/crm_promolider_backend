@@ -56,6 +56,20 @@ class ProcessOpenpayWebhookUseCase
             }
             return;
         }
+
+        // ==========================================
+        // NUEVO: Verificar si es una recarga de Billetera
+        // ==========================================
+        if ($orderId && Cache::has('wallet_recharge_intent_' . $orderId)) {
+            Log::info('[WEBHOOK OPENPAY] Detectada recarga de billetera', ['order_id' => $transactionId]);
+            try {
+                app(\Promolider\Application\Wallet\UseCases\ConfirmRechargeOpenpayPaymentUseCase::class)->execute($transactionId);
+                Log::info('[WEBHOOK OPENPAY] Recarga procesada exitosamente', ['order_id' => $transactionId]);
+            } catch (Exception $e) {
+                Log::error('[WEBHOOK OPENPAY] Error al procesar recarga de billetera', ['error' => $e->getMessage()]);
+            }
+            return;
+        }
         
         // ==========================================
         // Flujo existente: Preregistro

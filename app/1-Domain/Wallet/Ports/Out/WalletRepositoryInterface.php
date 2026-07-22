@@ -19,4 +19,8 @@ interface WalletRepositoryInterface
     public function getSales(int $walletId, int $batch);
     public function getMyDirects(int $userId);
     public function getMyPurchases(int $userId, ?string $search, int $perPage, int $page);
+    public function executeBinaryCut(): void;
+    public function getBinaryCutSchedule(): ?string;
+    public function setBinaryCutSchedule(string $datetime): void;
+    public function cancelBinaryCutSchedule(): void;
 }
