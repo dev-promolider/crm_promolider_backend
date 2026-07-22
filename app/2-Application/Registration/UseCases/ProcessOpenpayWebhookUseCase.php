@@ -5,6 +5,7 @@ use App\Models\UnverifiedUser;
 use Promolider\Domain\Registration\Entities\RegistrationUser;
 use Promolider\Domain\Registration\Ports\Out\NotificationServiceInterface;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Exception;
 
 class ProcessOpenpayWebhookUseCase
@@ -40,6 +41,24 @@ class ProcessOpenpayWebhookUseCase
         if ($status !== 'completed' || !$transactionId) {
             return;
         }
+
+        // ==========================================
+        // NUEVO: Verificar si es un pago OPC (recompra)
+        // ==========================================
+        if (Cache::has('opc_intent_' . $transactionId)) {
+            Log::info('[WEBHOOK OPENPAY] Detectado pago OPC (recompra)', ['order_id' => $transactionId]);
+            try {
+                app(\Promolider\Application\Wallet\UseCases\OPC\ConfirmOpcOpenpayPaymentUseCase::class)->execute($transactionId);
+                Log::info('[WEBHOOK OPENPAY] Pago OPC procesado exitosamente', ['order_id' => $transactionId]);
+            } catch (Exception $e) {
+                Log::error('[WEBHOOK OPENPAY] Error al procesar pago OPC', ['error' => $e->getMessage()]);
+            }
+            return;
+        }
+        
+        // ==========================================
+        // Flujo existente: Preregistro
+        // ==========================================
 
         // Buscar el usuario no verificado por el openpay_order_id
         $unverifiedUser = UnverifiedUser::where('openpay_order_id', $transactionId)->first();
