@@ -24,22 +24,31 @@ class ConfirmOpcOpenpayPaymentUseCase
      */
     public function execute(string $chargeId): array
     {
-        // 1. Obtener la intención de pago segura guardada previamente
-        $intent = Cache::get('opc_intent_' . $chargeId);
+        // 1. Obtener la información del charge en Openpay para extraer el order_id
+        $chargeInfo = $this->paymentGateway->getCharge($chargeId);
+        if ($chargeInfo['status'] !== 'completed') {
+            throw new Exception("El pago en Openpay no está completado. Estado: " . $chargeInfo['status'], 400);
+        }
+
+        $orderId = $chargeInfo['order_id'] ?? null;
+
+        // 2. Obtener la intención de pago segura guardada previamente usando el order_id
+        $intent = Cache::get('opc_intent_' . $orderId);
+        
+        // Fallback temporal por si hay pagos iniciados con el código anterior
         if (!$intent) {
-            throw new Exception("Intención de pago no encontrada o expirada para el Charge ID: {$chargeId}", 404);
+            $intent = Cache::get('opc_intent_' . $chargeId);
+        }
+
+        if (!$intent) {
+            throw new Exception("Intención de pago no encontrada o expirada para la orden: {$orderId}", 404);
         }
 
         $userId = $intent['user_id'];
         $cuotasPagadas = $intent['cuotas'];
         $expectedAmount = $intent['amount'];
 
-        // 2. Verificar en Openpay que el pago fue exitoso y por el monto correcto
-        $chargeInfo = $this->paymentGateway->getCharge($chargeId);
-        if ($chargeInfo['status'] !== 'completed') {
-            throw new Exception("El pago en Openpay no está completado. Estado: " . $chargeInfo['status'], 400);
-        }
-        
+        // 3. Verificar que el monto sea correcto
         if ((float)$chargeInfo['amount'] !== (float)$expectedAmount) {
             Log::critical("Intento de fraude OPC", ['charge' => $chargeId, 'expected' => $expectedAmount, 'real' => $chargeInfo['amount']]);
             throw new Exception("El monto pagado no coincide con las cuotas solicitadas.", 400);

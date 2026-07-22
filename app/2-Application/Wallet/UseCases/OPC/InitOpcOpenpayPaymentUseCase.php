@@ -73,7 +73,7 @@ class InitOpcOpenpayPaymentUseCase
 
         // 6. Guardar la Intención de Pago (Seguridad Hexagonal contra manipulación)
         // Guardamos en caché o BD temporal para validarlo en el Webhook/Confirmación
-        Cache::put('opc_intent_' . $chargeResult['charge_id'], [
+        Cache::put('opc_intent_' . $orderId, [
             'user_id' => $userId,
             'cuotas'  => $cuotasRequested,
             'amount'  => $totalAmountFormatted,

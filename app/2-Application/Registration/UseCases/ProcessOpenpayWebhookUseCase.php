@@ -45,7 +45,8 @@ class ProcessOpenpayWebhookUseCase
         // ==========================================
         // NUEVO: Verificar si es un pago OPC (recompra)
         // ==========================================
-        if (Cache::has('opc_intent_' . $transactionId)) {
+        $orderId = $transaction['order_id'] ?? null;
+        if ($orderId && Cache::has('opc_intent_' . $orderId)) {
             Log::info('[WEBHOOK OPENPAY] Detectado pago OPC (recompra)', ['order_id' => $transactionId]);
             try {
                 app(\Promolider\Application\Wallet\UseCases\OPC\ConfirmOpcOpenpayPaymentUseCase::class)->execute($transactionId);
