@@ -69,6 +69,12 @@ use Illuminate\Support\Facades\Route;
             Route::get('infoproducts', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\GetMyProductsController::class)->name('profile.infoproducts');
         });
 
+        Route::prefix('infoproducts')->group(function () {
+            Route::get('categories', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'getCategories']);
+            Route::get('levels', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'levelsIndex']);
+            Route::get('certificate-templates', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'templatesIndex']);
+        });
+
         // ==========================================
         // Módulo: Cursos
         // ==========================================
