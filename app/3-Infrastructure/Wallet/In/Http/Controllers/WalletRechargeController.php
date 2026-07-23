@@ -10,7 +10,8 @@ use Exception;
 class WalletRechargeController extends Controller
 {
     public function __construct(
-        private InitRechargeOpenpayPaymentUseCase $initRechargeUseCase
+        private InitRechargeOpenpayPaymentUseCase $initRechargeUseCase,
+        private \Promolider\Application\Wallet\UseCases\ConfirmRechargeOpenpayPaymentUseCase $confirmRechargeUseCase
     ) {}
 
     /**
@@ -35,7 +36,34 @@ class WalletRechargeController extends Controller
                 'data' => $result
             ]);
         } catch (Exception $e) {
-            $statusCode = ($e->getCode() >= 400 && $e->getCode() < 600) ? $e->getCode() : 500;
+            $code = $e->getCode();
+            $statusCode = (is_numeric($code) && $code >= 400 && $code < 600) ? (int)$code : 500;
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * POST /api/wallet/recharge/confirm-openpay
+     */
+    public function confirmOpenpayRecharge(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|string', // Este es el charge_id de Openpay
+        ]);
+
+        try {
+            $result = $this->confirmRechargeUseCase->execute($request->input('id'));
+
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (Exception $e) {
+            $code = $e->getCode();
+            $statusCode = (is_numeric($code) && $code >= 400 && $code < 600) ? (int)$code : 500;
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()

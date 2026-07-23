@@ -243,6 +243,7 @@ Route::group(['prefix' => 'marketing'], function () {
         
         // Recharge Wallet routes
         Route::post('wallet/recharge/openpay', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletRechargeController::class, 'openpayRecharge'])->name('wallet.recharge.openpay')->middleware('auth:sanctum');
+        Route::post('wallet/recharge/confirm-openpay', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletRechargeController::class, 'confirmOpenpayRecharge'])->name('wallet.recharge.confirm_openpay')->middleware('auth:sanctum');
 
         // Binary Cut Schedule routes (Admin only)
         Route::group(['middleware' => ['auth:sanctum', 'role:Admin']], function () {
