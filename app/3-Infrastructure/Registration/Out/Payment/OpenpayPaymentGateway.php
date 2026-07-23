@@ -104,11 +104,19 @@ class OpenpayPaymentGateway implements PaymentGatewayInterface
 
         $charge = $openpay->charges->get($chargeId);
 
+        $orderId = null;
+        try {
+            $orderId = $charge->order_id;
+        } catch (\Exception $e) {
+            // Ignorar si no existe
+        }
+
         return [
             'id' => $charge->id,
             'status' => $charge->status,
             'amount' => $charge->amount,
             'authorization' => $charge->authorization,
+            'order_id' => $orderId,
         ];
     }
 }
