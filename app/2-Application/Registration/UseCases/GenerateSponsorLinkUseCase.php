@@ -47,7 +47,7 @@ class GenerateSponsorLinkUseCase
 
     private function generateUniqueUrl(int $userId): string
     {
-        $baseUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+        $baseUrl = rtrim(config('app.frontend_url'), '/');
         $timestamp = time();
         $randomString = substr(md5($userId . $timestamp . uniqid()), 0, 8);
         return "{$baseUrl}/register/{$userId}/{$timestamp}/{$randomString}";

@@ -42,7 +42,7 @@ class ProcessOpenpayRegistrationUseCase
         $orderNumber = time();
         $orderId = substr('preregistro-' . $orderNumber, 0, 100);
         $hashedPassword = password_hash($validatedData['password'], PASSWORD_DEFAULT);
-        $redirectUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/login';
+        $redirectUrl = config('app.frontend_url') . '/login';
 
         // 3. Calcular el monto con IVA
         $amount = number_format(

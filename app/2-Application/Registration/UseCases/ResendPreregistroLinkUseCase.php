@@ -43,7 +43,7 @@ class ResendPreregistroLinkUseCase
             'lado'             => $preregistro->lado,
             'access_token'     => $preregistro->access_token,
             'token_expires_at' => optional($preregistro->token_expires_at)->format(DATE_ATOM),
-            'retorno_url'      => env('FRONTEND_URL', 'http://localhost:5173') . '/registro?token=' . $preregistro->access_token,
+            'retorno_url'      => config('app.frontend_url') . '/registro?token=' . $preregistro->access_token,
         ];
 
         $webhookUrl = config('services.n8n.preregistro_webhook');

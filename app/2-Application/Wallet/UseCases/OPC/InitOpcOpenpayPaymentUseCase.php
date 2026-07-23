@@ -51,7 +51,7 @@ class InitOpcOpenpayPaymentUseCase
         // 4. Generar Order ID y Redirección
         $orderNumber = time();
         $orderId = substr('opc-' . $userId . '-' . $orderNumber, 0, 100);
-        $redirectUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/dashboard/mis-compras?payment=success_opc'; // Redirigir al dashboard con flag de éxito
+        $redirectUrl = config('app.frontend_url') . '/dashboard/mis-compras?payment=success_opc'; // Redirigir al dashboard con flag de éxito
 
         // 5. Configurar Link de Checkout en Openpay
         $checkoutData = [

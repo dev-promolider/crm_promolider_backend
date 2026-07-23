@@ -32,7 +32,7 @@ class InitRechargeOpenpayPaymentUseCase
         // Generar Order ID y Redirección
         $orderNumber = time();
         $orderId = substr('recharge-' . $userId . '-' . $orderNumber, 0, 100);
-        $redirectUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/dashboard/billetera?payment=success_recharge';
+        $redirectUrl = config('app.frontend_url') . '/dashboard/billetera?payment=success_recharge';
 
         // Configurar Link de Checkout en Openpay
         $checkoutData = [
