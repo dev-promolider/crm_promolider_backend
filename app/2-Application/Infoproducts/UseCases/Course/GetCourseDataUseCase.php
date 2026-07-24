@@ -1,18 +1,15 @@
 <?php
 
-namespace Promolider\Application\Infoproducts\UseCases\Course\Module;
+namespace Promolider\Application\Infoproducts\UseCases\Course;
 
-use Illuminate\Routing\Controller;
 use Promolider\Application\Infoproducts\Exceptions\InfoproductNotOwnedException;
 use Promolider\Application\Infoproducts\Exceptions\InfoproductNotFoundException;
 use Promolider\Domain\Infoproducts\Ports\Out\InfoproductRepositoryInterface;
-use Promolider\Domain\Infoproducts\Ports\Out\CourseRepositoryInterface;
 
-class GetEditModuleDataUseCase extends Controller
+class GetCourseDataUseCase
 {
     public function __construct(
-        private InfoproductRepositoryInterface $infoproductRepository,
-        private CourseRepositoryInterface $courseRepository
+        private InfoproductRepositoryInterface $infoproductRepository
     ) {}
 
     public function execute(int $userId, int $courseId): array
@@ -29,11 +26,8 @@ class GetEditModuleDataUseCase extends Controller
             throw new InfoproductNotOwnedException();
         }
 
-        $modules = $this->courseRepository->findModulesByCourseId($courseId);
-
         $data = [
-            'course' => $course,
-            'modules' => $modules,
+            'data' => $course,
         ];
 
         return $data;
