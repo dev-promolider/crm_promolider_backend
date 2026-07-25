@@ -66,6 +66,7 @@ use Illuminate\Support\Facades\Route;
         Route::prefix('course')->group(function () {
             Route::get('{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
             Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
+            Route::get('/{id}/orders', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'getOrders'])->name('course.orders');
 
             Route::prefix('module')->group(function () {
                 //Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'store'])->name('module.store');
@@ -79,16 +80,6 @@ use Illuminate\Support\Facades\Route;
                 Route::get('/configuration/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseConfigurationController::class, 'getConfigureCertificate']);
                 Route::post('/store/configuration', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseConfigurationController::class, 'store']);
             });
-
-            /* Route::prefix('{courseId}')->group(function () {
-                Route::get('/', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
-                Route::prefix('modules')->group(function () {
-                    Route::get('/', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'index'])->name('course.modules.index');
-                    Route::prefix('{moduleId}')->group(function () {
-                        //Route::get('classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\LessonController::class, 'index'])->name('course.modules.lessons.index');
-                    });
-                });
-            }); */
         });
     });
 

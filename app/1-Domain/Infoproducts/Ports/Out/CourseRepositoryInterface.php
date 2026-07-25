@@ -7,6 +7,7 @@ use Promolider\Domain\Infoproducts\Entities\Course\CourseConfiguration as Course
 interface CourseRepositoryInterface
 {
     public function findModulesById(int $courseId): array;
+    public function getOrdersById(int $courseId): array;
     public function storeCourseConfiguration(array $data): ?CourseConfigurationEntity;
     public function getCourseConfigurationData(int $courseId): ?CourseConfigurationEntity;
 }

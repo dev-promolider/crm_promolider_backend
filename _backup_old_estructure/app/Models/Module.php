@@ -27,9 +27,10 @@ class Module extends Model
 
     public function classes()
     {
-        return $this->hasMany(Clas::class, 'id_modules', 'id');
+        return $this->hasMany(Clas::class, 'id_modules', 'id')
+            ->orderBy('order');
     }
-    
+
     /**
      * Get the course that owns the Module
      *
@@ -38,5 +39,5 @@ class Module extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class, 'id_courses');
-    }   
+    }
 }

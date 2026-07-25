@@ -5,13 +5,15 @@ namespace Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Promolider\Application\Infoproducts\UseCases\Course\GetCourseDataUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\GetOrdersForCourseUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Module\GetModuleDataUseCase;
 
 class CourseController extends Controller
 {
     public function __construct(
         private GetCourseDataUseCase $getCourseDataUseCase,
-        private GetModuleDataUseCase $getModuleDataUseCase
+        private GetModuleDataUseCase $getModuleDataUseCase,
+        private GetOrdersForCourseUseCase $getOrdersForCourseUseCase
     ) {}
 
     public function show(Request $request)
@@ -32,5 +34,13 @@ class CourseController extends Controller
         $modules = $this->getModuleDataUseCase->execute($userId, $courseId);
 
         return response()->json($modules);
+    }
+
+    public function getOrders(Request $request)
+    {
+        $courseId = (int) $request->route('id');
+        $orders = $this->getOrdersForCourseUseCase->execute($courseId);
+
+        return response()->json($orders);
     }
 }

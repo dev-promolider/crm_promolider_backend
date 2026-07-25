@@ -26,6 +26,47 @@ class EloquentCourseRepository implements CourseRepositoryInterface
         })->toArray();
     }
 
+    public function getOrdersById(int $courseId): array
+    {
+        $modules = EloquentModule::query()
+            ->where('id_courses', $courseId)
+            ->select([
+                'id',
+                'name',
+                'order',
+            ])
+            ->with([
+                'classes' => function ($query) {
+                    $query
+                        ->select([
+                            'id',
+                            'name',
+                            'id_modules',
+                            'order',
+                        ])
+                        ->orderBy('order');
+                },
+                'classes.video',
+            ])
+            ->orderBy('order')
+            ->get();
+
+        return $modules
+            ->flatMap(function ($module) {
+                $classes = $module->classes;
+
+                $module->setAttribute('type', 'module');
+                $module->unsetRelation('classes');
+
+                $classes->each(function ($class) {
+                    $class->setAttribute('type', 'class');
+                });
+
+                return collect([$module])->concat($classes);
+            })
+            ->values();
+    }
+
     public function storeCourseConfiguration(array $data): ?CourseConfigurationEntity
     {
         $courseConfiguration = CourseConfigurationEloquent::create($data);
