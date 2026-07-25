@@ -21,6 +21,12 @@ use Illuminate\Support\Facades\Route;
     // ==========================================
     // Rutas Públicas (Sin autenticación)
     // ==========================================
+    Route::get('config', function () {
+        return response()->json([
+            'pusher_app_key' => env('PUSHER_APP_KEY'),
+            'pusher_cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
+        ]);
+    });
     Route::get('public/membership-plans', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'publicMembershipPlans'])->name('public.membership_plans');
 
     // ==========================================
