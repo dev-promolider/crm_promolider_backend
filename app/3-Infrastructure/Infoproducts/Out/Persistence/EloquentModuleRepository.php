@@ -10,20 +10,9 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
 {
     public function findById(int $moduleId): ?ModuleEntity
     {
-        $module = EloquentModule::find($moduleId);
+        $module = EloquentModule::query()->findOrFail($moduleId);
 
-        if (!$module) {
-            return null;
-        }
-
-        return new ModuleEntity(
-            $module->id,
-            $module->id_courses,
-            $module->name,
-            $module->description,
-            $module->order,
-            $module->status
-        );
+        return $this->toEntity($module);
     }
 
     public function findByCourseId(int $courseId): array
@@ -31,14 +20,7 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
         $modules = EloquentModule::where('id_courses', $courseId)->get();
 
         return $modules->map(function ($module) {
-            return new ModuleEntity(
-                $module->id,
-                $module->id_courses,
-                $module->name,
-                $module->description,
-                $module->order,
-                $module->status
-            );
+            return $this->toEntity($module);
         })->toArray();
     }
 
@@ -52,13 +34,25 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
             return null;
         }
 
+        return $this->toEntity($module);
+    }
+
+    public function updateModuleStatus(int $moduleId, int $status): void
+    {
+        $module = EloquentModule::findOrFail($moduleId);
+        $module->status = $status;
+        $module->save();
+    }
+
+    private function toEntity(EloquentModule $module): ModuleEntity
+    {
         return new ModuleEntity(
-            $module->id,
-            $module->id_courses,
-            $module->name,
-            $module->description,
-            $module->order,
-            $module->status
+            id: (int) $module->id,
+            courseId: (int) $module->id_courses,
+            name: $module->name,
+            description: $module->description,
+            order: (int) $module->order,
+            status: (int) $module->status
         );
     }
 }

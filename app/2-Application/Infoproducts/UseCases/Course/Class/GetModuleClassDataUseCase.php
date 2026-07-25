@@ -1,15 +1,13 @@
 <?php
 
-namespace Promolider\Application\Infoproducts\UseCases\Course\Lesson;
+namespace Promolider\Application\Infoproducts\UseCases\Course\Class;
 
-use Promolider\Domain\Infoproducts\Ports\Out\InfoproductRepositoryInterface;
 use Promolider\Domain\Infoproducts\Ports\Out\ModuleClassRepositoryInterface;
 use Promolider\Domain\Infoproducts\Ports\Out\ModuleRepositoryInterface;
 
 class GetModuleClassDataUseCase
 {
     public function __construct(
-        private InfoproductRepositoryInterface $infoproductRepository,
         private ModuleRepositoryInterface $moduleRepository,
         private ModuleClassRepositoryInterface $moduleClassRepository
     ) {}

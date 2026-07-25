@@ -5,6 +5,7 @@ namespace Promolider\Infrastructure\Infoproducts\Out\Persistence;
 use Promolider\Domain\Infoproducts\Entities\Course\Module as ModuleEntity;
 use Promolider\Domain\Infoproducts\Entities\Course\CourseConfiguration as CourseConfigurationEntity;
 use Promolider\Domain\Infoproducts\Ports\Out\CourseRepositoryInterface;
+use App\Models\Course as EloquentCourse;
 use App\Models\Infoproduct\Course\Module as EloquentModule;
 use App\Models\CourseConfiguration as CourseConfigurationEloquent;
 
@@ -65,6 +66,13 @@ class EloquentCourseRepository implements CourseRepositoryInterface
                 return collect([$module])->concat($classes);
             })
             ->values();
+    }
+
+    public function updateCourseStatus(int $courseId, int $status): void
+    {
+        $course = EloquentCourse::findOrFail($courseId);
+        $course->status = $status;
+        $course->save();
     }
 
     public function storeCourseConfiguration(array $data): ?CourseConfigurationEntity

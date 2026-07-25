@@ -113,13 +113,15 @@ use Illuminate\Support\Facades\Route;
         Route::prefix('course')->group(function () {
             Route::get('{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
             Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
-            Route::get('/{id}/orders', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'getOrders'])->name('course.orders');
+            Route::get('/{courseId}/orders', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'getOrders'])->name('course.orders');
 
             Route::prefix('module')->group(function () {
                 //Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'store'])->name('module.store');
 
                 Route::group(['prefix' => '/class'], function () {
+                    Route::post('/{moduleId}/save', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'save'])->name('class.save');
                     Route::get('/{moduleId}/classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getClassList'])->name('class.list');
+                    Route::get('/update-video-url/{id}/{name}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'generateVideoUploadUrl']);
                 });
             });
 
@@ -251,7 +253,7 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('getsales/{id}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getSales'])->name('marketing.reports.get_sales')->middleware('auth:sanctum');
         Route::get('movements/my-directs', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyDirects'])->name('marketing.reports.movements.my_directs')->middleware('auth:sanctum');
         Route::get('mypurchases/{userId}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getMyPurchases'])->name('marketing.reports.mypurchases')->middleware('auth:sanctum');
-        
+
         // Recharge Wallet routes
         Route::post('wallet/recharge/openpay', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletRechargeController::class, 'openpayRecharge'])->name('wallet.recharge.openpay')->middleware('auth:sanctum');
         Route::post('wallet/recharge/confirm-openpay', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletRechargeController::class, 'confirmOpenpayRecharge'])->name('wallet.recharge.confirm_openpay')->middleware('auth:sanctum');

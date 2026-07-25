@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use App\Models\Video;
 
 class Clas extends Model
 {
@@ -38,5 +40,13 @@ class Clas extends Model
     public function course()
     {
         return $this->belongsTo(Course::class, 'id_courses');
+    }
+
+    public function video(): MorphOne
+    {
+        return $this->morphOne(
+            Video::class,
+            'videoable'
+        );
     }
 }

@@ -19,6 +19,8 @@ class Module extends Model
     ];
 
     protected $casts = [
+        'id' => 'integer',
+        'id_courses' => 'integer',
         'order' => 'integer',
         'status' => 'integer',
     ];

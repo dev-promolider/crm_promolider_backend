@@ -20,6 +20,11 @@ class Clas implements JsonSerializable
         private ?bool $has_video = null
     ){}
 
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
     public function jsonSerialize(): array
     {
         return [
