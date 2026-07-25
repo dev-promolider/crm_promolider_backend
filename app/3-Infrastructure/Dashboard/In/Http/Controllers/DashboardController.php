@@ -31,12 +31,13 @@ class DashboardController extends Controller
         ], 200);
     }
 
-    public function dashboardWidgets()
+    public function dashboardWidgets(Request $request)
     {
         $userId = Auth::id();
         if (!$userId) return response()->json(['status' => 401, 'message' => 'Unauthorized'], 401);
 
-        $data = $this->getDashboardWidgetsUseCase->execute($userId);
+        $timeframe = $request->query('timeframe', 'normal');
+        $data = $this->getDashboardWidgetsUseCase->execute($userId, $timeframe);
 
         return response()->json([
             'status' => 200,

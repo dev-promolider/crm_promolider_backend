@@ -9,8 +9,8 @@ class GetDashboardWidgetsUseCase
         private DashboardRepositoryInterface $dashboardRepository
     ) {}
 
-    public function execute(int $userId): array
+    public function execute(int $userId, string $timeframe = 'normal'): array
     {
-        return $this->dashboardRepository->getWidgetsData($userId);
+        return $this->dashboardRepository->getWidgetsData($userId, $timeframe);
     }
 }

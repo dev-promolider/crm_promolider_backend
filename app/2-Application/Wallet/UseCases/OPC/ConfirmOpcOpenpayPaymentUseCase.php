@@ -24,41 +24,99 @@ class ConfirmOpcOpenpayPaymentUseCase
      */
     public function execute(string $chargeId): array
     {
-        // 1. Obtener la intención de pago segura guardada previamente
-        $intent = Cache::get('opc_intent_' . $chargeId);
-        if (!$intent) {
-            throw new Exception("Intención de pago no encontrada o expirada para el Charge ID: {$chargeId}", 404);
+        // 1. Verificar idempotencia temprana — si ya fue procesado, salir de inmediato
+        $existingPayment = Payment::where('operation_number', $chargeId)->first();
+        if ($existingPayment) {
+            Log::info('[CONFIRM OPC] Pago ya procesado anteriormente (idempotencia)', ['charge_id' => $chargeId]);
+            return ['success' => true, 'message' => 'El pago ya fue procesado anteriormente.'];
         }
 
-        $userId = $intent['user_id'];
-        $cuotasPagadas = $intent['cuotas'];
-        $expectedAmount = $intent['amount'];
-
-        // 2. Verificar en Openpay que el pago fue exitoso y por el monto correcto
+        // 2. Obtener la información del charge en Openpay
+        Log::info('[CONFIRM OPC] Consultando cargo en Openpay', ['charge_id' => $chargeId]);
         $chargeInfo = $this->paymentGateway->getCharge($chargeId);
+
+        Log::info('[CONFIRM OPC] Respuesta de Openpay', [
+            'charge_id' => $chargeId,
+            'status' => $chargeInfo['status'],
+            'amount' => $chargeInfo['amount'],
+            'order_id' => $chargeInfo['order_id'] ?? 'NULL',
+        ]);
+
         if ($chargeInfo['status'] !== 'completed') {
             throw new Exception("El pago en Openpay no está completado. Estado: " . $chargeInfo['status'], 400);
         }
-        
-        if ((float)$chargeInfo['amount'] !== (float)$expectedAmount) {
-            Log::critical("Intento de fraude OPC", ['charge' => $chargeId, 'expected' => $expectedAmount, 'real' => $chargeInfo['amount']]);
+
+        $orderId = $chargeInfo['order_id'] ?? null;
+
+        // 3. Intentar obtener la intención de pago del cache
+        $intent = null;
+        if ($orderId) {
+            $intent = Cache::get('opc_intent_' . $orderId);
+        }
+        // Fallback: buscar por chargeId (código legado)
+        if (!$intent) {
+            $intent = Cache::get('opc_intent_' . $chargeId);
+        }
+
+        // 4. Fallback final: reconstruir intención desde el order_id (opc-{userId}-{timestamp})
+        //    Esto cubre el caso donde el server se reinició y perdió el cache.
+        //    ES SEGURO porque los datos (userId, monto) vienen directamente de Openpay, no del cliente.
+        if (!$intent && $orderId && preg_match('/^opc-(\d+)-(\d+)$/', $orderId, $matches)) {
+            $userIdFromOrder = (int) $matches[1];
+            $amountFromOpenpay = (float) $chargeInfo['amount'];
+            $cuotasFromAmount  = (int) round($amountFromOpenpay / 30);
+
+            Log::warning('[CONFIRM OPC] Cache de intención no encontrado. Reconstruyendo desde order_id.', [
+                'order_id'     => $orderId,
+                'user_id'      => $userIdFromOrder,
+                'amount'       => $amountFromOpenpay,
+                'cuotas_calc'  => $cuotasFromAmount,
+            ]);
+
+            if ($cuotasFromAmount >= 1) {
+                $intent = [
+                    'user_id'    => $userIdFromOrder,
+                    'cuotas'     => $cuotasFromAmount,
+                    'amount'     => number_format($amountFromOpenpay, 2, '.', ''),
+                    'order_id'   => $orderId,
+                    'recovered'  => true, // Marcar como recuperado para auditoría
+                ];
+            }
+        }
+
+        if (!$intent) {
+            Log::error('[CONFIRM OPC] No se pudo reconstruir la intención de pago.', [
+                'charge_id' => $chargeId,
+                'order_id'  => $orderId,
+            ]);
+            throw new Exception("Intención de pago no encontrada o expirada para la orden: {$orderId}", 404);
+        }
+
+        $userId        = $intent['user_id'];
+        $cuotasPagadas = $intent['cuotas'];
+        $expectedAmount = $intent['amount'];
+
+        // 5. Verificar que el monto sea correcto (anti-fraude)
+        if (abs((float)$chargeInfo['amount'] - (float)$expectedAmount) > 0.01) {
+            Log::critical('[CONFIRM OPC] Discrepancia de monto — posible fraude', [
+                'charge_id' => $chargeId,
+                'expected'  => $expectedAmount,
+                'real'      => $chargeInfo['amount'],
+            ]);
             throw new Exception("El monto pagado no coincide con las cuotas solicitadas.", 400);
         }
 
         try {
             DB::beginTransaction();
 
-            // 3. Bloqueo atómico para evitar race conditions (Doble clic)
+            // 6. Bloqueo atómico para evitar race conditions (Doble clic)
             $user = User::where('id', $userId)->lockForUpdate()->first();
-            
-            // Verificar si el pago ya fue procesado (por idempotencia)
-            $existingPayment = Payment::where('details->charge_id', $chargeId)->first();
-            if ($existingPayment) {
-                DB::rollBack();
-                return ['success' => true, 'message' => 'El pago ya fue procesado anteriormente.'];
+
+            if (!$user) {
+                throw new Exception("Usuario no encontrado: {$userId}", 404);
             }
 
-            // 4. Lógica estricta de Fechas (La parte importante)
+            // 7. Lógica estricta de Fechas
             $oldExpiration = Carbon::parse($user->expiration_date);
             $newExpiration = $oldExpiration->copy()->addMonths($cuotasPagadas);
             
@@ -72,40 +130,43 @@ class ConfirmOpcOpenpayPaymentUseCase
             $user->expiration_date = $newExpiration;
             $user->save();
 
-            // 5. Dejamos el registro exacto en Payments (Audit Trail JSON)
+            // 8. Registro en Payments (igual al formato existente de recompras OPC)
             $payment = new Payment();
             $payment->user_id = $user->id;
             $payment->id_user_sponsor = $user->id_referrer_sponsor;
             $payment->amount = $expectedAmount;
-            $payment->operation_number = 5; // Openpay / Card
-            $payment->id_payment_method = 1; // 1 = Openpay? (Ajustar según catálogo)
-            $payment->details = json_encode([
-                'type' => 'opc_repurchase',
-                'charge_id' => $chargeId,
-                'cuotas_pagadas' => $cuotasPagadas,
-                'fecha_anterior' => $oldExpiration->toDateTimeString(),
-                'nueva_fecha' => $newExpiration->toDateTimeString(),
-                'openpay_auth' => $chargeInfo['authorization'] ?? null
-            ]);
+            $payment->operation_number = $chargeId; // ID de transacción de Openpay
+            $payment->id_payment_method = 1; // Tarjeta de crédito/débito
+            $payment->details = 'Recompra de OPC';
             $payment->save();
 
-            // 6. Repartir Puntos en la Red (Lógica existente abstraída)
+            // 9. Repartir Puntos en la Red
             $this->distributePoints($user, $cuotasPagadas);
 
             DB::commit();
 
-            // Limpiar la caché de intención
+            // Limpiar la caché
+            if ($orderId) {
+                Cache::forget('opc_intent_' . $orderId);
+            }
             Cache::forget('opc_intent_' . $chargeId);
 
+            Log::info('[CONFIRM OPC] Pago OPC confirmado exitosamente', [
+                'user_id'        => $userId,
+                'charge_id'      => $chargeId,
+                'cuotas'         => $cuotasPagadas,
+                'nueva_fecha'    => $newExpiration->format('Y-m-d'),
+            ]);
+
             return [
-                'success' => true,
-                'message' => "Mantenimiento OPC de {$cuotasPagadas} cuota(s) aplicado correctamente.",
-                'new_expiration' => $newExpiration->format('Y-m-d')
+                'success'        => true,
+                'message'        => "Mantenimiento OPC de {$cuotasPagadas} cuota(s) aplicado correctamente.",
+                'new_expiration' => $newExpiration->format('Y-m-d'),
             ];
 
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error("Error al procesar recompra OPC Hexagonal", ['error' => $e->getMessage()]);
+            Log::error('[CONFIRM OPC] Error al procesar recompra OPC', ['error' => $e->getMessage()]);
             throw $e;
         }
     }

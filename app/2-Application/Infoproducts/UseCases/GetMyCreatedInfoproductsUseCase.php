@@ -29,10 +29,7 @@ class GetMyCreatedInfoproductsUseCase
             $productTypeId
         );
 
-        // 2. Validar existencia de infoproductos
-        if ($infoproducts['meta']['total'] === 0) {
-            throw new Exception("No created infoproducts found for user ID: $userId", 404);
-        }
+        // 2. (Validación eliminada: se devuelve la estructura vacía correctamente en lugar de lanzar una excepción)
 
         // 3. Devolver datos estructurados
         return $infoproducts;

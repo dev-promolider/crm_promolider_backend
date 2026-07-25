@@ -6,7 +6,8 @@ use Promolider\Domain\Infoproducts\Entities\Infoproduct;
 
 interface InfoproductRepositoryInterface
 {
-    //public function findPurchasedByUserId(int $userId): ?Infoproduct;
+    public function findPurchasedByUserId(string $userId): array;
+
     public function findCreatedByUserIdPaginated(
         int $userId,
         int $page,

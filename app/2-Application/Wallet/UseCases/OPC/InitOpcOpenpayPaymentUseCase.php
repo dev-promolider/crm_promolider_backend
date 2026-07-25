@@ -43,23 +43,23 @@ class InitOpcOpenpayPaymentUseCase
             throw new Exception("No existe un producto OPC asociado a tu membresía.", 404);
         }
 
-        // 3. Calcular monto y topes (Opcional: Si deben 5 meses pero pagan 6, rechazar o limitar)
-        $amountPerQuota = $product->price;
+        // 3. Calcular monto fijo de $30.00 por cuota (regla de negocio solicitada)
+        $amountPerQuota = 30.00;
         $totalAmount = $amountPerQuota * $cuotasRequested;
         $totalAmountFormatted = number_format($totalAmount, 2, '.', '');
 
         // 4. Generar Order ID y Redirección
         $orderNumber = time();
         $orderId = substr('opc-' . $userId . '-' . $orderNumber, 0, 100);
-        $redirectUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/dashboard/mis-compras'; // O la URL correcta
+        $redirectUrl = config('app.frontend_url') . '/dashboard/mis-compras?payment=success_opc'; // Redirigir al dashboard con flag de éxito
 
-        // 5. Configurar Cargo en Openpay
-        $chargeData = [
+        // 5. Configurar Link de Checkout en Openpay
+        $checkoutData = [
+            'amount'      => (float) $totalAmountFormatted,
+            'description' => "Recompra OPC - {$cuotasRequested} cuotas",
             'order_id'    => $orderId,
-            'method'      => 'card',
-            'currency'    => 'USD',
-            'amount'      => $totalAmountFormatted,
-            'description' => "Recompra OPC - {$cuotasRequested} cuota(s)",
+            'currency'    => 'USD', // Openpay PE requiere PEN o USD según configuración
+            'redirect_url' => $redirectUrl,
             'customer'    => [
                 'name'         => $user->name,
                 'last_name'    => $user->last_name,
@@ -67,15 +67,13 @@ class InitOpcOpenpayPaymentUseCase
                 'email'        => $user->email,
             ],
             'send_email'   => false,
-            'confirm'      => false,
-            'redirect_url' => $redirectUrl,
         ];
 
-        $chargeResult = $this->paymentGateway->createCharge($chargeData);
+        $chargeResult = $this->paymentGateway->createCheckoutLink($checkoutData);
 
         // 6. Guardar la Intención de Pago (Seguridad Hexagonal contra manipulación)
         // Guardamos en caché o BD temporal para validarlo en el Webhook/Confirmación
-        Cache::put('opc_intent_' . $chargeResult['charge_id'], [
+        Cache::put('opc_intent_' . $orderId, [
             'user_id' => $userId,
             'cuotas'  => $cuotasRequested,
             'amount'  => $totalAmountFormatted,

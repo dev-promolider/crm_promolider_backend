@@ -31,6 +31,37 @@ class OpenpayPaymentGateway implements PaymentGatewayInterface
         ];
     }
 
+    public function createCheckoutLink(array $checkoutData): array
+    {
+        $openpayId     = config('services.openpay.id');
+        $openpaySecret = config('services.openpay.sk');
+        $isProduction  = config('services.openpay.production_mode', false);
+
+        if (empty($openpayId) || empty($openpaySecret)) {
+            throw new \Exception('Credenciales de Openpay no configuradas.', 500);
+        }
+        
+        $baseUrl = $isProduction 
+            ? "https://api.openpay.pe/v1/{$openpayId}/checkouts"
+            : "https://sandbox-api.openpay.pe/v1/{$openpayId}/checkouts";
+            
+        $response = \Illuminate\Support\Facades\Http::asJson()->acceptJson()
+            ->withBasicAuth($openpaySecret, '')
+            ->post($baseUrl, $checkoutData);
+            
+        if ($response->failed()) {
+            Log::error("Openpay Checkout Error: " . $response->body());
+            throw new \Exception('Error al conectar con la pasarela de pago. ' . $response->json('description', ''), 500);
+        }
+        
+        $result = $response->json();
+        
+        return [
+            'payment_url' => $result['checkout_link'],
+            'charge_id'   => $result['id'],
+        ];
+    }
+
     public function saveUnverifiedUser(array $userData): void
     {
         $unverified = new UnverifiedUser();
@@ -73,11 +104,19 @@ class OpenpayPaymentGateway implements PaymentGatewayInterface
 
         $charge = $openpay->charges->get($chargeId);
 
+        $orderId = null;
+        try {
+            $orderId = $charge->order_id;
+        } catch (\Exception $e) {
+            // Ignorar si no existe
+        }
+
         return [
             'id' => $charge->id,
             'status' => $charge->status,
             'amount' => $charge->amount,
             'authorization' => $charge->authorization,
+            'order_id' => $orderId,
         ];
     }
 }

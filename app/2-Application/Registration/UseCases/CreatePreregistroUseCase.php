@@ -83,7 +83,7 @@ class CreatePreregistroUseCase
             'referrer_whatsapp'  => $data['referrer_whatsapp'] ?? '',
             'access_token'       => $preregistro->accessToken,
             'token_expires_at'   => $preregistro->tokenExpiresAt?->format(DATE_ATOM),
-            'retorno_url'        => env('FRONTEND_URL', 'http://localhost:5173') . '/registro?token=' . $preregistro->accessToken,
+            'retorno_url'        => config('app.frontend_url') . '/registro?token=' . $preregistro->accessToken,
         ];
 
         // 6. Enviar señal a n8n (no bloquea el registro si falla)

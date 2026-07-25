@@ -17,9 +17,9 @@ class GetMyPurchasedInfoproductsUseCase
         // 1. Obtener infoproductos comprados por el usuario
         $infoproducts = $this->infoproductRepository->findPurchasedByUserId($userId);
 
-        // 2. Validar existencia de infoproductos
+        // 2. Asegurar que sea un arreglo vacío si no hay resultados en lugar de fallar
         if (!$infoproducts) {
-            throw new Exception("No purchased infoproducts found for user ID: $userId", 404);
+            $infoproducts = [];
         }
 
         // 3. Devolver datos estructurados
