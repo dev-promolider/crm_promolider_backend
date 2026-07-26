@@ -71,6 +71,34 @@ final class ClassResourceService
         }
     }
 
+    public function removeMany(array $resources, int $classId): void
+    {
+        foreach ($resources as $resource) {
+            $this->remove(
+                resourceId: $resource,
+                classId: $classId
+            );
+        }
+    }
+
+    private function remove(int $resourceId, int $classId): void
+    {
+        $resource = ClassResource::query()
+            ->where('id', $resourceId)
+            ->where('class_id', $classId)
+            ->first();
+
+        if ($resource === null) {
+            throw new RuntimeException(
+                "El recurso con ID {$resourceId} no existe."
+            );
+        }
+
+        Storage::disk('s3')->delete($resource->resource_file);
+
+        $resource->delete();
+    }
+
     private function formatFilename(string $filename): string
     {
         return preg_replace(

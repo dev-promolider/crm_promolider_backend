@@ -6,6 +6,8 @@ use Promolider\Domain\Infoproducts\Entities\Course\Clas as ClassEntity;
 use Promolider\Domain\Infoproducts\Ports\Out\ModuleClassRepositoryInterface;
 use App\Models\Clas as EloquentClass;
 use App\Models\Video as EloquentVideo;
+use App\Models\Module as EloquentModule;
+use App\Models\Course as EloquentCourse;
 use Illuminate\Support\Facades\DB;
 
 class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
@@ -64,9 +66,7 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
     public function findClassContext(int $classId): ?array
     {
         $class = EloquentClass::query()
-            ->with([
-                'module.course',
-            ])
+            ->with('module.course')
             ->find($classId);
 
         if (
@@ -79,9 +79,41 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
 
         return [
             'class_id' => (int) $class->id,
+            'module_id' => (int) $class->module->id,
             'course_id' => (int) $class->module->course->id,
             'user_id' => (int) $class->module->course->user_id,
         ];
+    }
+
+    public function updateClass(
+        int $classId,
+        array $data
+    ): void {
+        EloquentClass::query()
+            ->whereKey($classId)
+            ->update($data);
+    }
+
+    public function updateModuleStatus(
+        int $moduleId,
+        int $status
+    ): void {
+        EloquentModule::query()
+            ->whereKey($moduleId)
+            ->update([
+                'status' => $status,
+            ]);
+    }
+
+    public function updateCourseStatus(
+        int $courseId,
+        int $status
+    ): void {
+        EloquentCourse::query()
+            ->whereKey($courseId)
+            ->update([
+                'status' => $status,
+            ]);
     }
 
     public function saveVideoInformation(
