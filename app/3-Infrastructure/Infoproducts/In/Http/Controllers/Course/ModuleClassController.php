@@ -10,6 +10,7 @@ use Promolider\Infrastructure\Infoproducts\In\Http\Requests\Course\StoreModuleCl
 use Promolider\Application\Infoproducts\UseCases\Course\Class\GetModuleClassDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Class\SaveModuleClassUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GenerateClassVideoUploadUrlUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\ListCourseObservationsUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\UpdateModuleClassUseCase;
 
 class ModuleClassController extends Controller
@@ -18,7 +19,8 @@ class ModuleClassController extends Controller
         private GetModuleClassDataUseCase $getModuleClassDataUseCase,
         private GenerateClassVideoUploadUrlUseCase $generateVideoUploadUrlUseCase,
         private SaveModuleClassUseCase $saveModuleClassUseCase,
-        private UpdateModuleClassUseCase $updateModuleClassUseCase
+        private UpdateModuleClassUseCase $updateModuleClassUseCase,
+        private ListCourseObservationsUseCase $listCourseObservationsUseCase
     ) {}
 
     public function save(StoreModuleClassRequest $request) : JsonResponse
@@ -65,6 +67,21 @@ class ModuleClassController extends Controller
             'data' => $result,
             'message' => 'Registro actualizado.',
         ]);
+    }
+
+    public function listObservations(
+        int $courseId,
+        Request $request
+    ): JsonResponse {
+        $observations = $this->listCourseObservationsUseCase->execute(
+            userId: (int) $request->user()->id,
+            courseId: $courseId
+        );
+
+        return response()->json([
+            'data' => $observations,
+            'message' => 'Observaciones recuperadas correctamente.',
+        ], 200);
     }
 
     public function generateVideoUploadUrl(

@@ -122,6 +122,7 @@ use Illuminate\Support\Facades\Route;
                     Route::post('/{moduleId}/save', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'save'])->name('class.save');
                     Route::post('/{classId}/update', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'update'])->name('class.update');
                     Route::get('/{moduleId}/classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getClassList'])->name('class.list');
+                    Route::get('/{courseId}/listObservations', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'listObservations'])->name('class.listObservations');
                     Route::get('/update-video-url/{id}/{name}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'generateVideoUploadUrl']);
                 });
             });
