@@ -44,6 +44,32 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
         $module->save();
     }
 
+    public function belongsToUser(
+        int $moduleId,
+        int $userId
+    ): bool {
+        return EloquentModule::query()
+            ->whereKey($moduleId)
+            ->whereHas('course', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->exists();
+    }
+
+    public function updateName(
+        int $moduleId,
+        string $name
+    ): ModuleEntity {
+        $module = EloquentModule::query()
+            ->findOrFail($moduleId);
+
+        $module->update([
+            'name' => $name,
+        ]);
+
+        return $this->toEntity($module->fresh());
+    }
+
     private function toEntity(EloquentModule $module): ModuleEntity
     {
         return new ModuleEntity(
