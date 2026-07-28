@@ -393,15 +393,18 @@ class CoursesController extends Controller
         }
     }
 
-    public function ratingsStore(Request $request, int $courseId): JsonResponse
+    public function ratingsStore(Request $request, ?int $courseId = null): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'points' => 'required|integer|min:1|max:5',
-                'commentary' => 'nullable|string|max:500',
-            ]);
+            $targetCourseId = $courseId ?: (int) ($request->input('id_course') ?: $request->input('course_id'));
+            $points = (int) ($request->input('points') ?: $request->input('rate'));
+            $commentary = $request->input('commentary') ?: $request->input('comment');
 
-            $result = $this->courseUseCase->createRating($request->user()->id, $courseId, $validated['points'], $validated['commentary'] ?? null);
+            if (!$targetCourseId || !$points) {
+                return response()->json(['success' => false, 'message' => 'id_course y rate/points son requeridos'], 422);
+            }
+
+            $result = $this->courseUseCase->createRating($request->user()->id, $targetCourseId, $points, $commentary);
             return response()->json(['success' => true, 'data' => $result], 201);
         } catch (\Exception $e) {
             Log::error('Error creating rating: ' . $e->getMessage());
@@ -409,14 +412,14 @@ class CoursesController extends Controller
         }
     }
 
-    // ==================== OBSERVATIONS ====================
+    // ==================== OBSERVATIONS / COMMENTS ====================
 
     public function observationsStore(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'id_class' => 'required|integer|exists:classes,id',
-                'id_courses' => 'required|integer|exists:courses,id',
+                'id_class' => 'required|integer',
+                'id_courses' => 'required|integer',
                 'observation' => 'required|string',
             ]);
 
@@ -442,6 +445,44 @@ class CoursesController extends Controller
         } catch (\Exception $e) {
             Log::error('Error listing observations: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al listar observaciones'], 500);
+        }
+    }
+
+    public function sendComments(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'class_id' => 'required|integer',
+                'comments' => 'required|string',
+                'receiving_user_id' => 'nullable|integer',
+            ]);
+
+            $data = [
+                'id_class' => $validated['class_id'],
+                'id_courses' => (int) $request->input('id_courses', 0),
+                'observation' => $validated['comments'],
+                'id_analyst' => $request->user()->id,
+                'id_productor' => $validated['receiving_user_id'] ?? $request->user()->id,
+                'status' => 0,
+            ];
+
+            $result = $this->courseUseCase->createObservation($data);
+            return response()->json(['success' => true, 'data' => $result], 201);
+        } catch (\Exception $e) {
+            Log::error('Error sending comment: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al enviar comentario'], 500);
+        }
+    }
+
+    public function showComments(Request $request): JsonResponse
+    {
+        try {
+            $classId = (int) ($request->input('class_id') ?: $request->input('classId', 0));
+            $observations = $this->courseUseCase->listObservations($classId);
+            return response()->json(['success' => true, 'data' => $observations]);
+        } catch (\Exception $e) {
+            Log::error('Error showing comments: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al listar comentarios'], 500);
         }
     }
 

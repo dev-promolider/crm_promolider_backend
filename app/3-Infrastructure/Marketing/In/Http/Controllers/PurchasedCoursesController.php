@@ -46,6 +46,14 @@ class PurchasedCoursesController extends Controller
     }
 
     /**
+     * Alias legacy POST cart/buy-course
+     */
+    public function buyCourse(Request $request)
+    {
+        return $this->store($request);
+    }
+
+    /**
      * PUT /marketing/courses/purchased/update
      * Actualizar el estado de una clase a "SEEN".
      */

@@ -46,6 +46,14 @@ class WalletRechargeController extends Controller
     }
 
     /**
+     * Alias legacy POST pay/openpay-order
+     */
+    public function openpayOrder(Request $request)
+    {
+        return $this->openpayRecharge($request);
+    }
+
+    /**
      * POST /api/wallet/recharge/confirm-openpay
      */
     public function confirmOpenpayRecharge(Request $request)

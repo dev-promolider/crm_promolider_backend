@@ -186,6 +186,7 @@ return [
         \Promolider\Infrastructure\Infoproducts\Providers\InfoproductServiceProvider::class,
         \Promolider\Infrastructure\Marketing\Providers\MarketingServiceProvider::class,
         \Promolider\Infrastructure\Wallet\Providers\WalletServiceProvider::class,
+        \Promolider\Infrastructure\Messaging\Providers\MessagingServiceProvider::class,
 
     ],
 

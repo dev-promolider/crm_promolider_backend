@@ -429,6 +429,7 @@ Route::group(['prefix' => 'marketing'], function () {
         // Video Streaming
         Route::group(['prefix' => 'video'], function () {
             Route::get('stream', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'streamVideo'])->name('marketing.courses.video.stream')->middleware('auth:sanctum');
+            Route::get('stream-video', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'streamVideo'])->name('marketing.courses.video.stream_video')->middleware('auth:sanctum');
             Route::post('save-time', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'saveTime'])->name('marketing.courses.video.save_time')->middleware('auth:sanctum');
             Route::get('show-time', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'showTime'])->name('marketing.courses.video.show_time')->middleware('auth:sanctum');
             Route::patch('update-status', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'updateStatus'])->name('marketing.courses.video.update_status')->middleware('auth:sanctum');
@@ -440,12 +441,93 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::group(['prefix' => 'purchased'], function () {
             Route::post('/', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'store'])->name('marketing.courses.purchased.store')->middleware('auth:sanctum');
             Route::put('update', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'update'])->name('marketing.courses.purchased.update')->middleware('auth:sanctum');
+            Route::put('show', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'update'])->name('marketing.courses.purchased.update_show')->middleware('auth:sanctum');
             Route::get('show', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'show'])->name('marketing.courses.purchased.show')->middleware('auth:sanctum');
             Route::patch('save-class-seen', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'saveClassSeen'])->name('marketing.courses.purchased.save_class_seen')->middleware('auth:sanctum');
             Route::get('show-class-seen', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'showClassSeen'])->name('marketing.courses.purchased.show_class_seen')->middleware('auth:sanctum');
             Route::get('certificate-data', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'certificateData'])->name('marketing.courses.purchased.certificate_data')->middleware('auth:sanctum');
             Route::get('get-time', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'getTime'])->name('marketing.courses.purchased.get_time')->middleware('auth:sanctum');
         });
+    });
+
+    // Aliases Legacy Directos para Módulo 2 (Purchased)
+    Route::group(['prefix' => 'purchased'], function () {
+        Route::post('/', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'store'])->name('legacy.purchased.store')->middleware('auth:sanctum');
+        Route::put('update', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'update'])->name('legacy.purchased.update')->middleware('auth:sanctum');
+        Route::put('show', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'update'])->name('legacy.purchased.update_show')->middleware('auth:sanctum');
+        Route::get('show', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'show'])->name('legacy.purchased.show')->middleware('auth:sanctum');
+        Route::patch('save-class-seen', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'saveClassSeen'])->name('legacy.purchased.save_class_seen')->middleware('auth:sanctum');
+        Route::get('show-class-seen', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'showClassSeen'])->name('legacy.purchased.show_class_seen')->middleware('auth:sanctum');
+    });
+
+    // Aliases Legacy para Módulo 1 y 3 (Cursos, Contenido, Exámenes y Dinámicas: /course/*, /class/*, /video/*)
+    Route::group(['prefix' => 'course'], function () {
+        Route::get('released-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'released'])->name('legacy.course.released')->middleware('auth:sanctum');
+        Route::get('details/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'show'])->name('legacy.course.details');
+        Route::get('temary/get-all-class/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'modulesIndex'])->name('legacy.course.temary');
+        Route::get('related-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'recommendedCourses'])->name('legacy.course.related')->middleware('auth:sanctum');
+        Route::get('interesting-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'interestingCourses'])->name('legacy.course.interesting')->middleware('auth:sanctum');
+        Route::get('list-available-books', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'listAvailableBooks'])->name('legacy.course.available_books');
+        Route::get('last-courses-rep', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'lastPlayed'])->name('legacy.course.last_played')->middleware('auth:sanctum');
+
+        // Módulo 3: Exámenes y Dinámicas
+        Route::group(['prefix' => 'exam'], function () {
+            Route::post('active', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ExamsController::class, 'active'])->name('legacy.exam.active')->middleware('auth:sanctum');
+            Route::post('module/active', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ExamsController::class, 'getActiveModuleExams'])->name('legacy.exam.module_active')->middleware('auth:sanctum');
+            Route::post('/', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ExamsController::class, 'active'])->name('legacy.exam.show')->middleware('auth:sanctum');
+            Route::post('answers', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ExamsController::class, 'submit'])->name('legacy.exam.submit')->middleware('auth:sanctum');
+            Route::get('daily', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DailyQuestionsController::class, 'index'])->name('legacy.exam.daily')->middleware('auth:sanctum');
+            Route::post('daily/points', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DailyQuestionsController::class, 'validate'])->name('legacy.exam.daily_points')->middleware('auth:sanctum');
+        });
+
+        // Módulo 5: Calificaciones de Curso (Legacy)
+        Route::group(['prefix' => 'rate'], function () {
+            Route::get('show/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'ratingsIndex'])->name('legacy.course.rate.show');
+            Route::post('store', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'ratingsStore'])->name('legacy.course.rate.store')->middleware('auth:sanctum');
+        });
+    });
+
+    // Aliases Legacy para Módulo 5 (Comentarios)
+    Route::group(['prefix' => 'comments'], function () {
+        Route::get('show-comments', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'showComments'])->name('legacy.comments.show')->middleware('auth:sanctum');
+        Route::post('send-comments', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'sendComments'])->name('legacy.comments.send')->middleware('auth:sanctum');
+    });
+
+    Route::group(['prefix' => 'class'], function () {
+        Route::get('show-class/{courseId}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'classesIndex'])->name('legacy.class.show_class');
+    });
+
+    Route::group(['prefix' => 'video'], function () {
+        Route::get('stream-video', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'streamVideo'])->name('legacy.video.stream_video')->middleware('auth:sanctum');
+    });
+
+    // Aliases Legacy para Módulo 4 (Gamificación y Ranking)
+    Route::group(['prefix' => 'classroom-points'], function () {
+        Route::get('ranking', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'ranking'])->name('legacy.classroom_points.ranking')->middleware('auth:sanctum');
+    });
+
+    Route::group(['prefix' => 'badges'], function () {
+        Route::get('my-progress', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'myBadges'])->name('legacy.badges.my_progress')->middleware('auth:sanctum');
+    });
+
+    // Módulo 6: Mensajería
+    Route::group(['prefix' => 'messages'], function () {
+        Route::get('list', [\Promolider\Infrastructure\Messaging\In\Http\Controllers\MessageController::class, 'list'])->name('messaging.list')->middleware('auth:sanctum');
+        Route::post('add', [\Promolider\Infrastructure\Messaging\In\Http\Controllers\MessageController::class, 'send'])->name('messaging.add')->middleware('auth:sanctum');
+        Route::post('sendNewMessage', [\Promolider\Infrastructure\Messaging\In\Http\Controllers\MessageController::class, 'sendNewMessage'])->name('messaging.send_new')->middleware('auth:sanctum');
+    });
+
+    // Módulo 7: Reportes, Carrito y Pagos
+    Route::group(['prefix' => 'reports'], function () {
+        Route::get('mymovements/{userId}', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletMovementsController::class, 'getAllMovementsWallet'])->name('wallet.reports.mymovements')->middleware('auth:sanctum');
+    });
+
+    Route::group(['prefix' => 'cart'], function () {
+        Route::post('buy-course', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'buyCourse'])->name('cart.buy_course')->middleware('auth:sanctum');
+    });
+
+    Route::group(['prefix' => 'pay'], function () {
+        Route::post('openpay-order', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\WalletRechargeController::class, 'openpayOrder'])->name('pay.openpay_order')->middleware('auth:sanctum');
     });
 
     // Gamificacion: Puntos, Niveles, Insignias y Recompensas
