@@ -83,7 +83,11 @@ use Illuminate\Support\Facades\Route;
         // Módulo: Perfil
         // ==========================================
         Route::get('profile/info', function (\Illuminate\Http\Request $request) {
-            return response()->json(['user' => $request->user()]);
+            $user = $request->user()->toArray();
+            // Mock temporal: Añadir fechas de expiración para que el frontend reconozca OPC y Membresía activa
+            $user['expiration_date'] = now()->addYear()->toDateTimeString();
+            $user['expiration_membership_date'] = now()->addYear()->toDateTimeString();
+            return response()->json(['user' => $user]);
         });
         
         Route::put('profile/update', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updateProfile']);

@@ -19,12 +19,12 @@ class BinaryTreeService
         // 1. Obtener todos los usuarios
         $users = User::all()->keyBy('id')->toArray();
         
-        // 2. Obtener las relaciones del árbol desde la tabla 'classified'
-        $classifications = DB::table('classified')->get()->keyBy('user_id')->toArray();
+        // 2. Obtener las relaciones del árbol desde la tabla 'binary_tree'
+        $classifications = DB::table('binary_tree')->get()->keyBy('user_id')->toArray();
 
         // 3. Obtener puntos activos agrupados por usuario y lado
         $activePointsRaw = DB::table('points')
-            ->select('sponsor_id', 'side', DB::raw('SUM(points) as total'))
+            ->select('sponsor_id', 'side', DB::raw('SUM(points_val) as total'))
             ->where('status', 1)
             ->groupBy('sponsor_id', 'side')
             ->get();
@@ -69,20 +69,20 @@ class BinaryTreeService
             // Buscar la clasificación del usuario actual
             $classification = $classifications[$id] ?? null;
             
-            if ($classification && $classification->user_above && $classification->user_above !== 'top') {
+            if ($classification && $classification->user_above) {
                 $parentId = (int) $classification->user_above;
-                $position = (int) $classification->position; // 0 = Izquierda, 1 = Derecha
+                $position = $classification->position; // 'L' = Izquierda, 'R' = Derecha
                 
                 if (isset($nodes[$parentId])) {
-                    if ($position === 0) {
+                    if ($position === 'L') {
                         $nodes[$parentId]->left = $nodes[$id];
-                    } elseif ($position === 1) {
+                    } elseif ($position === 'R') {
                         $nodes[$parentId]->right = $nodes[$id];
                     }
                 }
             } else {
-                // Si user_above es 'top', entonces es la raíz principal
-                if ($classification && $classification->user_above === 'top') {
+                // Si no hay user_above, entonces es la raíz principal
+                if ($classification && !$classification->user_above) {
                     $rootId = $id;
                 } elseif (!$rootId && $id === 1) {
                     $rootId = $id; // Fallback por seguridad
@@ -126,13 +126,10 @@ class BinaryTreeService
         // Si este nodo (usuario) es un socio activo, agregamos a SU patrocinador al conjunto
         $userData = $users[$node->userId] ?? null;
         if ($userData) {
-            $now = now();
-            $isRequestApproved = isset($userData['request']) && $userData['request'] == 2;
-            $isActive = $isRequestApproved && (empty($userData['expiration_date']) || \Carbon\Carbon::parse($userData['expiration_date']) > $now);
-            $isMembershipActive = $isRequestApproved && (!empty($userData['expiration_membership_date']) && \Carbon\Carbon::parse($userData['expiration_membership_date']) > $now);
-            $idAccountType = $userData['id_account_type'] ?? null;
+            $isActive = $userData['is_approved'] == 1;
+            $isMembershipActive = true; // Mock temporal hasta integrar account_type_details
 
-            if ($isActive && $isMembershipActive && $idAccountType != 5 && $idAccountType != 6) {
+            if ($isActive && $isMembershipActive) {
                 $sponsorId = $userData['id_referrer_sponsor'] ?? null;
                 if ($sponsorId) {
                     $activeSponsors[(int)$sponsorId] = true;

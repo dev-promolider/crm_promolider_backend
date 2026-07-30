@@ -369,7 +369,7 @@ class WalletMovementsController extends Controller
                 ->where('points.status', 1)
                 ->select(
                     'points.id',
-                    'points.points',
+                    'points.points_val',
                     'points.side',
                     'points.reason',
                     'points.created_at',
@@ -411,7 +411,7 @@ class WalletMovementsController extends Controller
 
                 $pointData = [
                     'id' => $point->id,
-                    'points' => (float) $point->points,
+                    'points' => (float) $point->points_val,
                     'reason' => $point->reason,
                     'created_at' => $point->created_at,
                     'sponsor' => [
@@ -423,10 +423,10 @@ class WalletMovementsController extends Controller
 
                 if ((int)$point->side === 0) {
                     $leftLeg[] = $pointData;
-                    $totalLeft += (float) $point->points;
+                    $totalLeft += (float) $point->points_val;
                 } else {
                     $rightLeg[] = $pointData;
-                    $totalRight += (float) $point->points;
+                    $totalRight += (float) $point->points_val;
                 }
             }
 

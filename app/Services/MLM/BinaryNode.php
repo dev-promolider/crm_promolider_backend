@@ -37,18 +37,9 @@ class BinaryNode
      */
     public function toArray(): array
     {
-        $now = now();
-        $isRequestApproved = isset($this->rawUserData['request']) && $this->rawUserData['request'] == 2;
+        $opcActive = $this->rawUserData['is_approved'] == 1;
+        $membershipActive = true; // Mock temporal
         
-        $opcActive = $isRequestApproved && (
-            empty($this->rawUserData['expiration_date']) || 
-            \Carbon\Carbon::parse($this->rawUserData['expiration_date']) > $now
-        );
-        
-        $membershipActive = $isRequestApproved && (
-            !empty($this->rawUserData['expiration_membership_date']) && 
-            \Carbon\Carbon::parse($this->rawUserData['expiration_membership_date']) > $now
-        );
         $leftArray = $this->left ? $this->left->toArray() : null;
         $rightArray = $this->right ? $this->right->toArray() : null;
         

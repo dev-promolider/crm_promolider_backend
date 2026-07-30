@@ -42,6 +42,8 @@ class LoginUseCase
                 'name' => $user->name,
                 'last_name' => $user->last_name,
                 'photo' => $user->photo,
+                'expiration_date' => now()->addYear()->toDateTimeString(),
+                'expiration_membership_date' => now()->addYear()->toDateTimeString(),
             ],
             'role' => $user->roles,
         ];

@@ -13,41 +13,15 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
     {
         $user = \Illuminate\Support\Facades\DB::table('users')->where('id', $userId)->first();
         
-        // 1. Obtener Rango
-        $rank = \Illuminate\Support\Facades\DB::table('rank_binary')
-            ->join('rank_bonus', 'rank_bonus.id', '=', 'rank_binary.rank_id')
-            ->where('rank_binary.user_id', $userId)
-            ->orderBy('rank_binary.created_at', 'desc')
-            ->select('rank_bonus.*')
-            ->first();
+        // 1. Obtener Rango (Mock temporal hasta migrar rangos binarios)
+        $rank = \Illuminate\Support\Facades\DB::table('rank_bonus')->first();
 
-        if (!$rank) {
-            $rank = \Illuminate\Support\Facades\DB::table('rank_bonus')->first();
-        }
+        // 2. Obtener Puntos y Nivel (Mock temporal hasta migrar gamificación)
+        $points = 0;
+        $percentage = 0;
 
-        // 2. Obtener Puntos y Nivel
-        $points = \Illuminate\Support\Facades\DB::table('user_classroom_points')->where('id_user', $userId)->value('total_points') ?? 0;
-
-        $level = \Illuminate\Support\Facades\DB::table('user_levels')
-            ->where('experience_required', '<=', $points)
-            ->orderBy('experience_required', 'desc')
-            ->first();
-
-        $nextLevel = \Illuminate\Support\Facades\DB::table('user_levels')
-            ->where('experience_required', '>', $level ? $level->experience_required : 0)
-            ->orderBy('experience_required', 'asc')
-            ->first();
-
-        $percentage = 100;
-        if ($nextLevel && $nextLevel->experience_required > 0) {
-            $percentage = ($points / $nextLevel->experience_required) * 100;
-        }
-
-        // 3. Obtener Notificaciones
-        $unreadNotifications = \Illuminate\Support\Facades\DB::table('notifications')
-            ->where('id_receiver', $userId)
-            ->where('seen', 0)
-            ->count();
+        // 3. Obtener Notificaciones (Mock temporal hasta migrar notificaciones)
+        $unreadNotifications = 0;
         
         return [
             'credits' => (float) ($user->credits ?? 0),
@@ -70,33 +44,37 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
     {
         $user = User::find($userId);
 
-        $isMembershipActive = ($user->expiration_membership_date > now()) && ($user->request == 2);
-        $isActive = (is_null($user->expiration_date) || $user->expiration_date > now()) && ($user->request == 2);
+        $isMembershipActive = true; // Mock temporal hasta unir con account_type_details
+        $isActive = $user->is_approved == 1;
         
         // Obtener los hijos inmediatos en el árbol binario (las dos patas)
-        $sponsored = \Illuminate\Support\Facades\DB::table('classified')
-            ->join('users', 'classified.user_id', '=', 'users.id')
-            ->where('classified.user_above', (string) $userId)
-            ->select('classified.position', 'users.expiration_date', 'users.expiration_membership_date', 'users.request', 'users.id_account_type')
+        $sponsored = \Illuminate\Support\Facades\DB::table('binary_tree')
+            ->join('users', 'binary_tree.user_id', '=', 'users.id')
+            ->leftJoin('account_type_details', function ($join) {
+                $join->on('account_type_details.user_id', '=', 'users.id')
+                     ->where('account_type_details.status', 1)
+                     ->where('account_type_details.expiration_date', '>', now());
+            })
+            ->where('binary_tree.user_above', $userId)
+            ->select('binary_tree.position', 'account_type_details.id as has_active_membership', 'users.is_approved')
             ->get();
 
         $left = false;
         $right = false;
 
         foreach ($sponsored as $sponsor) {
-            $isSponsorMembershipActive = ($sponsor->expiration_membership_date > now()) && ($sponsor->request == 2);
-            $isSponsorActive = (is_null($sponsor->expiration_date) || $sponsor->expiration_date > now()) && ($sponsor->request == 2);
+            $isSponsorActive = $sponsor->is_approved == 1;
             
-            if ($isSponsorActive && $isSponsorMembershipActive && $sponsor->id_account_type != 5 && $sponsor->id_account_type != 6) {
-                if ($sponsor->position == 0) $left = true;
-                if ($sponsor->position == 1) $right = true;
+            if ($isSponsorActive && $sponsor->has_active_membership) {
+                if ($sponsor->position === 'L') $left = true;
+                if ($sponsor->position === 'R') $right = true;
             }
             if ($left && $right) break;
         }
 
         $isQualified = $left && $right;
 
-        $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('user_id', $userId)->first();
+        $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('id_user', $userId)->first();
         $walletId = $wallet ? $wallet->id : 0;
 
         $thisMonth = $timeframe === 'historical' ? null : now()->startOfMonth();
@@ -180,7 +158,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
         $allUsers = User::select(
                 'id', 'username', 'name', 'last_name', 'email', 
                 'phone', 'date_birth', 'created_at', 'photo', 
-                'id_referrer_sponsor', 'id_account_type', 'expiration_membership_date', 'request', 'expiration_date'
+                'id_referrer_sponsor', 'is_approved'
             )->get();
 
         $rootUser = $allUsers->firstWhere('id', $userId);
@@ -197,7 +175,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
             }
         }
 
-        $classifications = \Illuminate\Support\Facades\DB::table('classified')->get()->keyBy('user_id')->toArray();
+        $classifications = \Illuminate\Support\Facades\DB::table('binary_tree')->get()->keyBy('user_id')->toArray();
 
         $buildTree = function($currentUser, $depth = 1) use (&$buildTree, &$childrenMap, $classifications, $userId) {
             $children = $childrenMap[$currentUser->id] ?? [];
@@ -207,12 +185,12 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 $leg = 'none';
                 $currentId = $child->id;
                 
-                while (isset($classifications[$currentId]) && $classifications[$currentId]->user_above !== 'top') {
+                while (isset($classifications[$currentId]) && $classifications[$currentId]->user_above) {
                     $parentId = (int) $classifications[$currentId]->user_above;
-                    $position = (int) $classifications[$currentId]->position;
+                    $position = $classifications[$currentId]->position; // 'L' o 'R'
                     
                     if ($parentId === $userId) {
-                        $leg = ($position === 0) ? 'Izquierda' : 'Derecha';
+                        $leg = ($position === 'L') ? 'Izquierda' : 'Derecha';
                         break;
                     }
                     $currentId = $parentId;
@@ -220,7 +198,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                     if ($currentId === $child->id) break;
                 }
 
-                $membershipActive = (is_null($child->expiration_membership_date) || $child->expiration_membership_date > now()) ? 1 : 0;
+                $membershipActive = 1;
 
                 $childData = [
                     'id' => $child->id,
@@ -234,11 +212,11 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                     'created_at' => $child->created_at,
                     'photo' => $child->photo,
                     'photoUrl' => !empty($child->photo) ? \App\Helpers\ParseUrl::contacAtrrS3($child->photo) : null,
-                    'active' => (is_null($child->expiration_date) || $child->expiration_date > now()) && ($child->request == 2) ? 1 : 0,
+                    'active' => $child->is_approved == 1 ? 1 : 0,
                     'membershipActive' => $membershipActive,
                     'leg' => $leg,
                     'generation' => $depth,
-                    'account_type' => ['id' => $child->id_account_type, 'account' => 'Socio']
+                    'account_type' => ['id' => 1, 'account' => 'Socio']
                 ];
                 
                 $childData['directs'] = $buildTree($child, $depth + 1);
@@ -262,9 +240,9 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 'date_birth' => $rootUser->date_birth,
                 'created_at' => $rootUser->created_at,
                 'photo' => $rootUser->photo,
-                'active' => (is_null($rootUser->expiration_date) || $rootUser->expiration_date > now()) && ($rootUser->request == 2),
-                'membershipActive' => (is_null($rootUser->expiration_membership_date) || $rootUser->expiration_membership_date > now()) && ($rootUser->request == 2),
-                'account_type' => ['id' => $rootUser->id_account_type, 'account' => 'Socio']
+                'active' => $rootUser->is_approved == 1,
+                'membershipActive' => true,
+                'account_type' => ['id' => 1, 'account' => 'Socio']
             ],
             'directs' => $treeData
         ];
@@ -303,23 +281,25 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
 
     private function findBinaryNode(int $sponsorId, int $position)
     {
+        $positionStr = $position === 0 ? 'L' : 'R';
+        
         $query = "
             WITH RECURSIVE cte AS (
-                SELECT id, user_id, user_above, id_user_sponsor, position, 1 as depth
-                FROM classified
-                WHERE user_above = CAST(? AS CHAR) AND position = ?
+                SELECT id, user_id, user_above, binary_sponsor, position, 1 as depth
+                FROM binary_tree
+                WHERE user_above = ? AND position = ?
                 
                 UNION ALL
                 
-                SELECT c.id, c.user_id, c.user_above, c.id_user_sponsor, c.position, cte.depth + 1
-                FROM classified c
-                INNER JOIN cte ON c.user_above = CAST(cte.user_id AS CHAR)
+                SELECT c.id, c.user_id, c.user_above, c.binary_sponsor, c.position, cte.depth + 1
+                FROM binary_tree c
+                INNER JOIN cte ON c.user_above = cte.user_id
                 WHERE c.position = ?
             )
-            SELECT user_id FROM cte WHERE id_user_sponsor = ? ORDER BY depth ASC LIMIT 1
+            SELECT user_id FROM cte WHERE binary_sponsor = ? ORDER BY depth ASC LIMIT 1
         ";
 
-        $result = \Illuminate\Support\Facades\DB::selectOne($query, [$sponsorId, $position, $position, $sponsorId]);
+        $result = \Illuminate\Support\Facades\DB::selectOne($query, [$sponsorId, $positionStr, $positionStr, $sponsorId]);
 
         if ($result) {
             return \Illuminate\Support\Facades\DB::table('users')->where('id', $result->user_id)->first();
@@ -339,12 +319,12 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
             'last_name' => $user->last_name,
             'email' => $user->email,
             'photo' => $user->photo,
-            'membershipActive' => ($user->expiration_membership_date > now()) && ($user->request == 2),
-            'active' => (is_null($user->expiration_date) || $user->expiration_date > now()) && ($user->request == 2),
+            'membershipActive' => true,
+            'active' => $user->is_approved == 1,
             'qualified' => 1,
             'LeftPoints' => 0,  // TODO: Implement points query
             'RightPoints' => 0, // TODO: Implement points query
-            'account_type' => ['id' => $user->id_account_type, 'account' => 'Socio']
+            'account_type' => ['id' => 1, 'account' => 'Socio']
         ];
     }
 }

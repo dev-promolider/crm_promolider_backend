@@ -53,7 +53,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
     public function createWallet(int $userId): void
     {
         Wallet::create([
-            'user_id' => $userId,
+            'id_user' => $userId,
             'status'  => 1,
         ]);
     }
@@ -259,7 +259,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
                 ->where('status', 1)
                 ->whereIn('name', ['Binance', 'Tarjeta crédito / débito'])
                 ->get()->toArray(),
-            'user_types' => \Spatie\Permission\Models\Role::where('name', '!=', 'Admin')->get()->toArray(),
+            'user_types' => \Spatie\Permission\Models\Role::whereNotIn('name', ['Admin', 'Administrador'])->get()->toArray(),
         ];
     }
 
@@ -365,7 +365,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
             ->map(fn($u) => [
                 'id'             => $u->id,
                 'nombre'         => trim(($u->name ?? '') . ' ' . ($u->last_name ?? '')),
-                'lado'           => $u->binary_position == 0 ? 'izquierda' : 'derecha',
+                'lado'           => 'izquierda', // Mock temporal, requiere JOIN con binary_tree
                 'whatsapp'       => $u->phone ?? '',
                 'correo'         => $u->email ?? '',
                 'fecha_registro' => $u->created_at ? $u->created_at->toDateTimeString() : null,
