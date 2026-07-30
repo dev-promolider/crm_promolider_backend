@@ -123,6 +123,7 @@ use Illuminate\Support\Facades\Route;
                 Route::group(['prefix' => '/class'], function () {
                     Route::post('/{moduleId}/save', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'save'])->name('class.save');
                     Route::post('/{classId}/update', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'update'])->name('class.update');
+                    Route::delete('/{classId}/delete', [Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'delete'])->name('class.delete');
                     Route::get('/{moduleId}/classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getClassList'])->name('class.list');
                     Route::get('/{courseId}/listObservations', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'listObservations'])->name('class.listObservations');
                     Route::get('/{classId}/details', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getClassDetails'])->name('class.details');

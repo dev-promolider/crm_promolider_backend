@@ -8,6 +8,9 @@ use App\Models\Clas as EloquentClass;
 use App\Models\Video as EloquentVideo;
 use App\Models\Module as EloquentModule;
 use App\Models\Course as EloquentCourse;
+use App\Models\ClassResource as EloquentClassResource;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
@@ -197,5 +200,71 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
         $video->videoable()->associate($class);
 
         $video->save();
+    }
+
+    public function deleteClassWithRelations(int $classId): void
+    {
+        $filesToDelete = [];
+
+        DB::transaction(function () use (
+            $classId,
+            &$filesToDelete
+        ) {
+            $class = EloquentClass::query()
+                ->lockForUpdate()
+                ->findOrFail($classId);
+
+            $resources = EloquentClassResource::query()
+                ->where('class_id', $classId)
+                ->get();
+
+            $videos = EloquentVideo::query()
+                ->where('class_id', $classId)
+                ->get();
+
+            foreach ($resources as $resource) {
+                if (!empty($resource->resource_file)) {
+                    $filesToDelete[] = $resource->resource_file;
+                }
+            }
+
+            foreach ($videos as $video) {
+                if (!empty($video->path)) {
+                    $filesToDelete[] = $video->path;
+                }
+            }
+
+            EloquentClassResource::query()
+                ->where('class_id', $classId)
+                ->delete();
+
+            EloquentVideo::query()
+                ->where('class_id', $classId)
+                ->delete();
+
+            $class->delete();
+        });
+
+        $filesToDelete = array_values(
+            array_unique(
+                array_filter($filesToDelete)
+            )
+        );
+
+        if (empty($filesToDelete)) {
+            return;
+        }
+
+        $deleted = Storage::disk('s3')->delete($filesToDelete);
+
+        if (!$deleted) {
+            Log::warning(
+                'La clase fue eliminada, pero algunos archivos no pudieron eliminarse de S3.',
+                [
+                    'class_id' => $classId,
+                    'files' => $filesToDelete,
+                ]
+            );
+        }
     }
 }

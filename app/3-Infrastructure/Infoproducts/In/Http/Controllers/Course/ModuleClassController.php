@@ -9,6 +9,7 @@ use Promolider\Infrastructure\Infoproducts\In\Http\Requests\Course\UpdateClassRe
 use Promolider\Infrastructure\Infoproducts\In\Http\Requests\Course\StoreModuleClassRequest;
 use Promolider\Application\Infoproducts\UseCases\Course\Class\GetModuleClassDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Class\SaveModuleClassUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\DeleteModuleClassUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GenerateClassVideoUploadUrlUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GetModuleClassDetailsUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\ListCourseObservationsUseCase;
@@ -22,7 +23,8 @@ class ModuleClassController extends Controller
         private SaveModuleClassUseCase $saveModuleClassUseCase,
         private UpdateModuleClassUseCase $updateModuleClassUseCase,
         private ListCourseObservationsUseCase $listCourseObservationsUseCase,
-        private GetModuleClassDetailsUseCase $getModuleClassDetailsUseCase
+        private GetModuleClassDetailsUseCase $getModuleClassDetailsUseCase,
+        private DeleteModuleClassUseCase $deleteModuleClassUseCase
     ) {}
 
     public function save(StoreModuleClassRequest $request) : JsonResponse
@@ -136,5 +138,21 @@ class ModuleClassController extends Controller
         $lessonData = $this->getModuleClassDataUseCase->execute($moduleId);
 
         return response()->json($lessonData, 200);
+    }
+
+    public function delete(
+        int $classId,
+        Request $request
+    ): JsonResponse {
+        $result = $this->deleteModuleClassUseCase->execute(
+            userId: (int) $request->user()->id,
+            classId: $classId
+        );
+
+        return response()->json([
+            'status' => true,
+            'data' => $result,
+            'message' => 'Clase eliminada correctamente.',
+        ], 200);
     }
 }

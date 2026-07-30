@@ -28,4 +28,5 @@ interface ModuleClassRepositoryInterface
         string $filename,
         string $path
     ): void;
+    public function deleteClassWithRelations(int $classId): void;
 }
