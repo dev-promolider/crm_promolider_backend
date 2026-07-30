@@ -85,6 +85,53 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
         ];
     }
 
+    public function findClassDetails(int $classId): ?array
+    {
+        $class = EloquentClass::query()
+            ->with([
+                'resources',
+                'video',
+            ])
+            ->find($classId);
+
+        if ($class === null) {
+            return null;
+        }
+
+        $resources = $class->resources
+            ->map(function ($resource) {
+                return [
+                    'id' => (int) $resource->id,
+                    'class_id' => (int) $resource->class_id,
+                    'resource_file' => $resource->resource_file,
+                    'filename' => $resource->filename,
+                    'created_at' => $resource->created_at
+                        ? $resource->created_at->toDateTimeString()
+                        : null,
+                ];
+            })
+            ->all();
+
+        $video = $class->video !== null
+            ? [
+                'id' => (int) $class->video->id,
+                'class_id' => (int) $class->video->class_id,
+                'filename' => $class->video->filename,
+                'path' => $class->video->path,
+                'saved_time' => (int) $class->video->saved_time,
+                'created_at' => $class->video->created_at
+                    ? $class->video->created_at->toDateTimeString()
+                    : null,
+            ]
+            : null;
+
+        return [
+            'resources' => $resources,
+            'video' => $video,
+            'has_video' => $video !== null,
+        ];
+    }
+
     public function updateClass(
         int $classId,
         array $data

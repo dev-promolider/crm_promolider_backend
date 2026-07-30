@@ -22,6 +22,7 @@ interface ModuleClassRepositoryInterface
         int $status
     ): void;
     public function findClassContext(int $classId): ?array;
+    public function findClassDetails(int $classId): ?array;
     public function saveVideoInformation(
         int $classId,
         string $filename,

@@ -10,6 +10,7 @@ use Promolider\Infrastructure\Infoproducts\In\Http\Requests\Course\StoreModuleCl
 use Promolider\Application\Infoproducts\UseCases\Course\Class\GetModuleClassDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Class\SaveModuleClassUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GenerateClassVideoUploadUrlUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\GetModuleClassDetailsUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\ListCourseObservationsUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\UpdateModuleClassUseCase;
 
@@ -20,7 +21,8 @@ class ModuleClassController extends Controller
         private GenerateClassVideoUploadUrlUseCase $generateVideoUploadUrlUseCase,
         private SaveModuleClassUseCase $saveModuleClassUseCase,
         private UpdateModuleClassUseCase $updateModuleClassUseCase,
-        private ListCourseObservationsUseCase $listCourseObservationsUseCase
+        private ListCourseObservationsUseCase $listCourseObservationsUseCase,
+        private GetModuleClassDetailsUseCase $getModuleClassDetailsUseCase
     ) {}
 
     public function save(StoreModuleClassRequest $request) : JsonResponse
@@ -81,6 +83,21 @@ class ModuleClassController extends Controller
         return response()->json([
             'data' => $observations,
             'message' => 'Observaciones recuperadas correctamente.',
+        ], 200);
+    }
+
+    public function getClassDetails(
+        int $classId,
+        Request $request
+    ): JsonResponse {
+        $details = $this->getModuleClassDetailsUseCase->execute(
+            userId: (int) $request->user()->id,
+            classId: $classId
+        );
+
+        return response()->json([
+            'data' => $details,
+            'message' => 'Datos recuperados correctamente.',
         ], 200);
     }
 
