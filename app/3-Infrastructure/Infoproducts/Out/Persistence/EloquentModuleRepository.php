@@ -5,6 +5,8 @@ namespace Promolider\Infrastructure\Infoproducts\Out\Persistence;
 use Promolider\Domain\Infoproducts\Ports\Out\ModuleRepositoryInterface;
 use Promolider\Domain\Infoproducts\Entities\Course\Module as ModuleEntity;
 use App\Models\Module as EloquentModule;
+use App\Models\Course as EloquentCourse;
+use Illuminate\Support\Facades\DB;
 
 class EloquentModuleRepository implements ModuleRepositoryInterface
 {
@@ -42,6 +44,36 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
         $module = EloquentModule::findOrFail($moduleId);
         $module->status = $status;
         $module->save();
+    }
+
+    public function createAtEnd(
+        int $courseId,
+        string $name
+    ): ModuleEntity {
+        return DB::transaction(function () use ($courseId, $name) {
+            /*
+             * Bloquea el curso mientras se calcula el siguiente orden.
+             * Evita que dos peticiones creen módulos con el mismo orden.
+             */
+            EloquentCourse::query()
+                ->whereKey($courseId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $maxOrder = EloquentModule::query()
+                ->where('id_courses', $courseId)
+                ->max('order');
+
+            $module = EloquentModule::query()->create([
+                'id_courses' => $courseId,
+                'name' => $name,
+                'description' => null,
+                'status' => 0,
+                'order' => ((int) $maxOrder) + 1,
+            ]);
+
+            return $this->toEntity($module);
+        });
     }
 
     public function belongsToUser(

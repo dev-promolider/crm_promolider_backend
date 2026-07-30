@@ -10,6 +10,10 @@ interface ModuleRepositoryInterface
     public function findByCourseId(int $courseId): array;
     public function findByIdAndCourseId(int $moduleId, int $courseId): ?ModuleEntity;
     public function updateModuleStatus(int $moduleId, int $status): void;
+    public function createAtEnd(
+        int $courseId,
+        string $name
+    ): ModuleEntity;
     public function belongsToUser(
         int $moduleId,
         int $userId

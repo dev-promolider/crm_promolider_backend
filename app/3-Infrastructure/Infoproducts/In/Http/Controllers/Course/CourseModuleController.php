@@ -6,14 +6,17 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Promolider\Application\Infoproducts\UseCases\Course\Module\GetModuleDataUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\StoreModuleUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\UpdateModuleUseCase;
+use Promolider\Infrastructure\Infoproducts\In\Http\Requests\Course\ModuleRequest;
 use Promolider\Infrastructure\Infoproducts\In\Http\Requests\Course\UpdateModuleRequest;
 
 class CourseModuleController extends Controller
 {
     public function __construct(
         private GetModuleDataUseCase $getModuleDataUseCase,
-        private UpdateModuleUseCase $updateModuleUseCase
+        private UpdateModuleUseCase $updateModuleUseCase,
+        private StoreModuleUseCase $storeModuleUseCase
     ) {}
 
     public function index(Request $request)
@@ -24,6 +27,22 @@ class CourseModuleController extends Controller
         $moduleData = $this->getModuleDataUseCase->execute($userId, $courseId);
 
         return response()->json($moduleData);
+    }
+
+    public function store(ModuleRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $result = $this->storeModuleUseCase->execute(
+            userId: (int) $request->user()->id,
+            courseId: (int) $validated['course_id'],
+            name: $validated['name']
+        );
+
+        return response()->json([
+            'data' => $result,
+            'message' => 'Módulo creado correctamente.',
+        ], 201);
     }
 
     public function update(
