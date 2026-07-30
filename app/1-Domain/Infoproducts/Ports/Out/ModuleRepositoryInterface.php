@@ -23,4 +23,5 @@ interface ModuleRepositoryInterface
         int $moduleId,
         string $name
     ): ModuleEntity;
+    public function deleteWithClasses(int $moduleId): void;
 }

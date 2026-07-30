@@ -5,6 +5,7 @@ namespace Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Promolider\Application\Infoproducts\UseCases\Course\DeleteModuleUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Module\GetModuleDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\StoreModuleUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\UpdateModuleUseCase;
@@ -16,7 +17,8 @@ class CourseModuleController extends Controller
     public function __construct(
         private GetModuleDataUseCase $getModuleDataUseCase,
         private UpdateModuleUseCase $updateModuleUseCase,
-        private StoreModuleUseCase $storeModuleUseCase
+        private StoreModuleUseCase $storeModuleUseCase,
+        private DeleteModuleUseCase $deleteModuleUseCase
     ) {}
 
     public function index(Request $request)
@@ -61,5 +63,20 @@ class CourseModuleController extends Controller
             'data' => $module,
             'message' => 'Módulo actualizado correctamente.',
         ]);
+    }
+
+    public function delete(
+        int $moduleId,
+        Request $request
+    ): JsonResponse {
+        $result = $this->deleteModuleUseCase->execute(
+            userId: (int) $request->user()->id,
+            moduleId: $moduleId
+        );
+
+        return response()->json([
+            'data' => $result,
+            'message' => 'Módulo eliminado correctamente.',
+        ], 200);
     }
 }

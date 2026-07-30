@@ -118,6 +118,7 @@ use Illuminate\Support\Facades\Route;
             Route::prefix('module')->group(function () {
                 Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'store'])->name('module.store');
                 Route::put('/{moduleId}/update', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'update'])->name('module.update');
+                Route::delete('/{moduleId}/delete', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'delete'])->name('module.delete');
 
                 Route::group(['prefix' => '/class'], function () {
                     Route::post('/{moduleId}/save', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'save'])->name('class.save');

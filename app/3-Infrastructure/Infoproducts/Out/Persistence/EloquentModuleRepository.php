@@ -7,6 +7,7 @@ use Promolider\Domain\Infoproducts\Entities\Course\Module as ModuleEntity;
 use App\Models\Module as EloquentModule;
 use App\Models\Course as EloquentCourse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class EloquentModuleRepository implements ModuleRepositoryInterface
 {
@@ -100,6 +101,51 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
         ]);
 
         return $this->toEntity($module->fresh());
+    }
+
+     public function deleteWithClasses(int $moduleId): void
+    {
+        $filesToDelete = [];
+
+        DB::transaction(function () use (
+            $moduleId,
+            &$filesToDelete
+        ) {
+            $module = EloquentModule::query()
+                ->with([
+                    'classes.resources',
+                    'classes.video',
+                ])
+                ->findOrFail($moduleId);
+
+            foreach ($module->classes as $class) {
+                foreach ($class->resources as $resource) {
+                    if (!empty($resource->resource_file)) {
+                        $filesToDelete[] = $resource->resource_file;
+                    }
+
+                    $resource->delete();
+                }
+
+                if ($class->video !== null) {
+                    if (!empty($class->video->path)) {
+                        $filesToDelete[] = $class->video->path;
+                    }
+
+                    $class->video->delete();
+                }
+
+                $class->delete();
+            }
+
+            $module->delete();
+        });
+
+        if (!empty($filesToDelete)) {
+            Storage::disk('s3')->delete(
+                array_unique($filesToDelete)
+            );
+        }
     }
 
     private function toEntity(EloquentModule $module): ModuleEntity
