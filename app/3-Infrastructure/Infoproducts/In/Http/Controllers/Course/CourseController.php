@@ -2,18 +2,21 @@
 
 namespace Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Promolider\Application\Infoproducts\UseCases\Course\GetCourseDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GetOrdersForCourseUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Module\GetModuleDataUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\SubmitCourseForReviewUseCase;
 
 class CourseController extends Controller
 {
     public function __construct(
         private GetCourseDataUseCase $getCourseDataUseCase,
         private GetModuleDataUseCase $getModuleDataUseCase,
-        private GetOrdersForCourseUseCase $getOrdersForCourseUseCase
+        private GetOrdersForCourseUseCase $getOrdersForCourseUseCase,
+        private SubmitCourseForReviewUseCase $submitCourseForReviewUseCase
     ) {}
 
     public function show(Request $request)
@@ -42,5 +45,26 @@ class CourseController extends Controller
         $orders = $this->getOrdersForCourseUseCase->execute($courseId);
 
         return response()->json($orders);
+    }
+
+    public function sendRequest(
+        int $courseId,
+        Request $request
+    ): JsonResponse {
+        $result = $this->submitCourseForReviewUseCase->execute(
+            userId: (int) $request->user()->id,
+            courseId: $courseId
+        );
+
+        $statusCode = $result === 'empty_files'
+            ? 422
+            : 200;
+
+        return response()->json([
+            'data' => $result,
+            'message' => $result === 'ok'
+                ? 'Solicitud de revisión enviada correctamente.'
+                : 'No se pudo enviar la solicitud de revisión.',
+        ], $statusCode);
     }
 }
