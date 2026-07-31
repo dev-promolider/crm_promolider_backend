@@ -115,6 +115,7 @@ use Illuminate\Support\Facades\Route;
             Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
             Route::get('/{courseId}/orders', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'getOrders'])->name('course.orders');
             Route::post('/{courseId}/sendRequest', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'sendRequest'])->name('courses.sendRequest');
+            Route::patch('/change-order', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'changeOrder']);
 
             Route::prefix('module')->group(function () {
                 Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'store'])->name('module.store');

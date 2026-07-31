@@ -23,6 +23,11 @@ interface ModuleClassRepositoryInterface
     ): void;
     public function findClassContext(int $classId): ?array;
     public function findClassDetails(int $classId): ?array;
+    public function classesBelongToCourse(
+        array $classIds,
+        int $courseId
+    ): bool;
+    public function updateClassesOrder(array $items): void;
     public function saveVideoInformation(
         int $classId,
         string $filename,

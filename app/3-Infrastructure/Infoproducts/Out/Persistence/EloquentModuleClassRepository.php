@@ -166,6 +166,39 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
             ]);
     }
 
+    public function classesBelongToCourse(
+        array $classIds,
+        int $courseId
+    ): bool {
+        if (empty($classIds)) {
+            return true;
+        }
+
+        $classIds = array_values(array_unique($classIds));
+
+        $classesCount = EloquentClass::query()
+            ->whereIn('id', $classIds)
+            ->whereHas('module', function ($query) use ($courseId) {
+                $query->where('id_courses', $courseId);
+            })
+            ->count();
+
+        return $classesCount === count($classIds);
+    }
+
+     public function updateClassesOrder(array $items): void
+    {
+        DB::transaction(function () use ($items) {
+            foreach ($items as $item) {
+                EloquentClass::query()
+                    ->whereKey($item['id'])
+                    ->update([
+                        'order' => $item['order'],
+                    ]);
+            }
+        });
+    }
+
     public function saveVideoInformation(
         int $classId,
         string $filename,

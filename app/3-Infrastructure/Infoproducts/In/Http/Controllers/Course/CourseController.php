@@ -5,10 +5,12 @@ namespace Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Promolider\Application\Infoproducts\UseCases\Course\ChangeClassOrderUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GetCourseDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GetOrdersForCourseUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Module\GetModuleDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\SubmitCourseForReviewUseCase;
+use Promolider\Infrastructure\Infoproducts\In\Http\Requests\ChangeClassOrderRequest;
 
 class CourseController extends Controller
 {
@@ -16,7 +18,8 @@ class CourseController extends Controller
         private GetCourseDataUseCase $getCourseDataUseCase,
         private GetModuleDataUseCase $getModuleDataUseCase,
         private GetOrdersForCourseUseCase $getOrdersForCourseUseCase,
-        private SubmitCourseForReviewUseCase $submitCourseForReviewUseCase
+        private SubmitCourseForReviewUseCase $submitCourseForReviewUseCase,
+        private ChangeClassOrderUseCase $changeClassOrderUseCase
     ) {}
 
     public function show(Request $request)
@@ -66,5 +69,22 @@ class CourseController extends Controller
                 ? 'Solicitud de revisión enviada correctamente.'
                 : 'No se pudo enviar la solicitud de revisión.',
         ], $statusCode);
+    }
+
+    public function changeOrder(
+        ChangeClassOrderRequest $request
+    ): JsonResponse {
+        $validated = $request->validated();
+
+        $order = $this->changeClassOrderUseCase->execute(
+            userId: (int) $request->user()->id,
+            courseId: (int) $validated['id'],
+            items: $validated['order']
+        );
+
+        return response()->json([
+            'data' => $order,
+            'message' => 'Orden de las clases actualizado correctamente.',
+        ]);
     }
 }
