@@ -148,6 +148,41 @@ class EloquentModuleRepository implements ModuleRepositoryInterface
         }
     }
 
+    public function modulesBelongToCourse(
+        array $moduleIds,
+        int $courseId
+    ): bool {
+        if (empty($moduleIds)) {
+            return true;
+        }
+
+        $moduleIds = array_values(
+            array_unique(
+                array_map('intval', $moduleIds)
+            )
+        );
+
+        $modulesCount = EloquentModule::query()
+            ->where('id_courses', $courseId)
+            ->whereIn('id', $moduleIds)
+            ->count();
+
+        return $modulesCount === count($moduleIds);
+    }
+
+    public function updateModulesOrder(array $items): void
+    {
+        DB::transaction(function () use ($items) {
+            foreach ($items as $item) {
+                EloquentModule::query()
+                    ->whereKey($item['id'])
+                    ->update([
+                        'order' => $item['order'],
+                    ]);
+            }
+        });
+    }
+
     private function toEntity(EloquentModule $module): ModuleEntity
     {
         return new ModuleEntity(

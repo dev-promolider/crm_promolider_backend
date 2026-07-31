@@ -18,7 +18,11 @@ interface ModuleRepositoryInterface
         int $moduleId,
         int $userId
     ): bool;
-
+    public function modulesBelongToCourse(
+        array $moduleIds,
+        int $courseId
+    ): bool;
+    public function updateModulesOrder(array $items): void;
     public function updateName(
         int $moduleId,
         string $name

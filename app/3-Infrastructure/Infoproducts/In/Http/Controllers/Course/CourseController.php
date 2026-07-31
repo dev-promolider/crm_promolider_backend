@@ -6,11 +6,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Promolider\Application\Infoproducts\UseCases\Course\ChangeClassOrderUseCase;
+use Promolider\Application\Infoproducts\UseCases\Course\ChangeModuleOrderUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GetCourseDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\GetOrdersForCourseUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Module\GetModuleDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\SubmitCourseForReviewUseCase;
 use Promolider\Infrastructure\Infoproducts\In\Http\Requests\ChangeClassOrderRequest;
+use Promolider\Infrastructure\Infoproducts\In\Http\Requests\ChangeModuleOrderRequest;
 
 class CourseController extends Controller
 {
@@ -19,7 +21,8 @@ class CourseController extends Controller
         private GetModuleDataUseCase $getModuleDataUseCase,
         private GetOrdersForCourseUseCase $getOrdersForCourseUseCase,
         private SubmitCourseForReviewUseCase $submitCourseForReviewUseCase,
-        private ChangeClassOrderUseCase $changeClassOrderUseCase
+        private ChangeClassOrderUseCase $changeClassOrderUseCase,
+        private ChangeModuleOrderUseCase $changeModuleOrderUseCase
     ) {}
 
     public function show(Request $request)
@@ -85,6 +88,23 @@ class CourseController extends Controller
         return response()->json([
             'data' => $order,
             'message' => 'Orden de las clases actualizado correctamente.',
+        ]);
+    }
+
+    public function changeOrderModule(
+        ChangeModuleOrderRequest $request
+    ): JsonResponse {
+        $validated = $request->validated();
+
+        $result = $this->changeModuleOrderUseCase->execute(
+            userId: (int) $request->user()->id,
+            courseId: (int) $validated['id'],
+            items: $validated['order']
+        );
+
+        return response()->json([
+            'data' => $result,
+            'message' => 'Orden de los módulos actualizado correctamente.',
         ]);
     }
 }
