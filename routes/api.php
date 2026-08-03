@@ -85,11 +85,11 @@ use Illuminate\Support\Facades\Route;
         Route::get('profile/info', function (\Illuminate\Http\Request $request) {
             return response()->json(['user' => $request->user()]);
         });
-        
+
         Route::put('profile/update', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updateProfile']);
         Route::put('profile/password', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updatePassword']);
         Route::get('profile/membership-history', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'getMembershipHistory']);
-        
+
         Route::get('countries', function () {
             return response()->json(\App\Models\Country::select('id', 'name')->orderBy('name')->get());
         });
@@ -116,12 +116,32 @@ use Illuminate\Support\Facades\Route;
         // ==========================================
         // Módulo: Cursos
         // ==========================================
-        Route::prefix('courses')->group(function () {
-            Route::prefix('{courseId}')->group(function () {
-                Route::prefix('modules')->group(function () {
-                    Route::get('edit-data', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\Module\GetEditModuleDataController::class)->name('course.module.edit_data');
+        Route::prefix('course')->group(function () {
+            Route::get('{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
+            Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
+
+            Route::prefix('module')->group(function () {
+                //Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'store'])->name('module.store');
+
+                Route::group(['prefix' => '/class'], function () {
+                    Route::get('/{moduleId}/classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getClassList'])->name('class.list');
                 });
             });
+
+            Route::prefix('certificate')->group(function () {
+                Route::get('/configuration/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseConfigurationController::class, 'getConfigureCertificate']);
+                Route::post('/store/configuration', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseConfigurationController::class, 'store']);
+            });
+
+            /* Route::prefix('{courseId}')->group(function () {
+                Route::get('/', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
+                Route::prefix('modules')->group(function () {
+                    Route::get('/', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'index'])->name('course.modules.index');
+                    Route::prefix('{moduleId}')->group(function () {
+                        //Route::get('classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\LessonController::class, 'index'])->name('course.modules.lessons.index');
+                    });
+                });
+            }); */
         });
     });
 

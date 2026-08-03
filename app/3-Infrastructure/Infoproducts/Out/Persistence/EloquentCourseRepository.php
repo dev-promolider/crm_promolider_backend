@@ -2,18 +2,20 @@
 
 namespace Promolider\Infrastructure\Infoproducts\Out\Persistence;
 
-use Promolider\Domain\Infoproducts\Entities\Course\Module;
+use Promolider\Domain\Infoproducts\Entities\Course\Module as ModuleEntity;
+use Promolider\Domain\Infoproducts\Entities\Course\CourseConfiguration as CourseConfigurationEntity;
 use Promolider\Domain\Infoproducts\Ports\Out\CourseRepositoryInterface;
 use App\Models\Infoproduct\Course\Module as EloquentModule;
+use App\Models\CourseConfiguration as CourseConfigurationEloquent;
 
 class EloquentCourseRepository implements CourseRepositoryInterface
 {
-    public function findModulesByCourseId(int $courseId): array
+    public function findModulesById(int $courseId): array
     {
         $modules = EloquentModule::where('id_courses', $courseId)->get();
 
         return $modules->map(function ($module) {
-            return new Module(
+            return new ModuleEntity(
                 $module->id,
                 $module->id_courses,
                 $module->name,
@@ -22,5 +24,39 @@ class EloquentCourseRepository implements CourseRepositoryInterface
                 $module->status
             );
         })->toArray();
+    }
+
+    public function storeCourseConfiguration(array $data): ?CourseConfigurationEntity
+    {
+        $courseConfiguration = CourseConfigurationEloquent::create($data);
+
+        return new CourseConfigurationEntity(
+            $courseConfiguration->id,
+            $courseConfiguration->course_id,
+            $courseConfiguration->data,
+            $courseConfiguration->condition_to_certificate,
+            $courseConfiguration->type_certificate,
+            $courseConfiguration->validated_by,
+            $courseConfiguration->customized_certificate
+        );
+    }
+
+    public function getCourseConfigurationData(int $courseId): ?CourseConfigurationEntity
+    {
+        $courseConfiguration = CourseConfigurationEloquent::where('course_id', $courseId)->first();
+
+        if (!$courseConfiguration) {
+            return null;
+        }
+
+        return new CourseConfigurationEntity(
+            $courseConfiguration->id,
+            $courseConfiguration->course_id,
+            $courseConfiguration->data,
+            $courseConfiguration->condition_to_certificate,
+            $courseConfiguration->type_certificate,
+            $courseConfiguration->validated_by,
+            $courseConfiguration->customized_certificate
+        );
     }
 }
