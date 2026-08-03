@@ -45,4 +45,17 @@ class AuthController extends Controller
             ], $code);
         }
     }
+
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+        if ($user && method_exists($user, 'currentAccessToken') && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada exitosamente',
+        ], 200);
+    }
 }

@@ -10,5 +10,5 @@ class Notifications extends Model
     use HasFactory;
 
     protected $table = 'notifications';
-    protected $guarded = [];
+    protected $guarded = ['id', 'user_id', 'status', 'created_at', 'updated_at'];
 }

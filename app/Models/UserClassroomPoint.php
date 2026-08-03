@@ -10,5 +10,5 @@ class UserClassroomPoint extends Model
     use HasFactory;
 
     protected $table = 'user_classroom_points';
-    protected $guarded = [];
+    protected $guarded = ['id', 'user_id', 'total_points', 'created_at', 'updated_at'];
 }

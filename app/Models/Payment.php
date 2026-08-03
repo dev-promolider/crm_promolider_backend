@@ -14,7 +14,7 @@ class Payment extends Model
 {
     use HasFactory;
     protected $table = 'payments';
-    protected $guarded = [];
+    protected $guarded = ['id', 'user_id', 'id_user_sponsor', 'status', 'amount', 'created_at', 'updated_at'];
     protected $hidden = ['pivot'];
 
     public function paymentMethod(): BelongsTo

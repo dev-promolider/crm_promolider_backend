@@ -10,10 +10,11 @@
     "require": {
         "php": "^7.3|^8.0",
         "doctrine/dbal": "^4.4",
-        "guzzlehttp/guzzle": "^7.0.1",
+        "fruitcake/laravel-cors": "^2.2",
+        "guzzlehttp/guzzle": "^7.9",
         "ifsnop/mysqldump-php": "^2.12",
         "laravel/framework": "^8.75",
-        "laravel/sanctum": "^2.11",
+        "laravel/sanctum": "^2.19",
         "laravel/tinker": "^2.5",
         "league/flysystem-aws-s3-v3": "~1.0.29",
         "openpay/sdk": "^3.1",

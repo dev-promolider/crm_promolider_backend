@@ -11,7 +11,7 @@ class Product extends Model
 {
     use HasFactory;
     protected $table = 'product';
-    protected $guarded = [];
+    protected $guarded = ['id', 'price', 'status', 'created_at', 'updated_at'];
 
     /**
      * The payments that belong to the Product

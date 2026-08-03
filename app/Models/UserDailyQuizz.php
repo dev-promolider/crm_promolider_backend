@@ -10,5 +10,5 @@ class UserDailyQuizz extends Model
     use HasFactory;
 
     protected $table = 'user_daily_quizzs';
-    protected $guarded = [];
+    protected $guarded = ['id', 'user_id', 'points', 'created_at', 'updated_at'];
 }

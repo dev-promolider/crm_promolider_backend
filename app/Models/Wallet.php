@@ -10,5 +10,5 @@ class Wallet extends Model
     use HasFactory;
 
     protected $table = 'wallet';
-    protected $guarded = [];
+    protected $guarded = ['id', 'user_id', 'balance', 'total_redeemed', 'created_at', 'updated_at'];
 }

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class AccountType extends Model
 {
     use HasFactory;
-    protected $guarded = [];
+    protected $guarded = ['id', 'price', 'status', 'created_at', 'updated_at'];
     protected $table = "account_type";
 
     /**

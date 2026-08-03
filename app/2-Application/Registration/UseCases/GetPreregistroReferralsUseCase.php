@@ -9,12 +9,17 @@ class GetPreregistroReferralsUseCase
 {
     public function execute(string $username, int $userId): array
     {
+        // Defensivo: asegurar que $userId es entero antes de construir el patrón LIKE.
+        $userId = (int) $userId;
+        $needleJson = '%"id_referrer_sponsor":"' . $userId . '"%';
+        $needleRaw = '%"id_referrer_sponsor":' . $userId . '%';
+
         // 1. Preregistros que iniciaron pago (origen: preregistro, pendiente)
         // UnverifiedUser almacena en su JSON data el id_referrer_sponsor o username
         $preregistrosConPago = collect();
         // Optimización: Usar LIKE en lugar de JSON_EXTRACT (menos carga de CPU)
-        $unverifiedRows = UnverifiedUser::whereRaw('data LIKE ?', ['%"id_referrer_sponsor":"' . $userId . '"%'])
-            ->orWhereRaw('data LIKE ?', ['%"id_referrer_sponsor":' . $userId . '%'])
+        $unverifiedRows = UnverifiedUser::whereRaw('data LIKE ?', [$needleJson])
+            ->orWhereRaw('data LIKE ?', [$needleRaw])
             ->get();
 
         $preregistroIdsConPago = [];

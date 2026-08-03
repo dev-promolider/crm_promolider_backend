@@ -541,10 +541,10 @@ class EloquentCourseRepository implements CourseRepositoryInterface
             })->toArray();
         }
 
-        // Preserve order from the subquery
-        $ordered = implode(',', $courseIds);
+        // Preserve order from the subquery using bound placeholders (no string interpolation)
+        $placeholders = implode(',', array_fill(0, count($courseIds), '?'));
         return Course::whereIn('id', $courseIds)
-            ->orderByRaw(\DB::raw("FIELD(id, {$ordered})"))
+            ->orderByRaw("FIELD(id, {$placeholders})", $courseIds)
             ->get()
             ->toArray();
     }

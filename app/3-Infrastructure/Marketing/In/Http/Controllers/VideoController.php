@@ -22,9 +22,36 @@ class VideoController extends Controller
     public function streamVideo(Request $request): JsonResponse
     {
         try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json(['message' => 'No autenticado'], 401);
+            }
+
             $classId = $request->input('class_id');
             if (!$classId) {
                 return response()->json(['message' => 'class_id es requerido'], 400);
+            }
+
+            $clas = \App\Models\Clas::find($classId);
+            if (!$clas) {
+                return response()->json(['message' => 'Clase no encontrada'], 404);
+            }
+
+            $module = \App\Models\Module::find($clas->id_modules);
+            $course = $module ? \App\Models\Course::find($module->id_courses) : null;
+            if (!$course) {
+                return response()->json(['message' => 'Curso no encontrado'], 404);
+            }
+
+            // CRM-13: Verificar compra o autoría del curso
+            $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('Admin')) || ($user->id_account_type ?? null) == 1;
+            $isAuthor = $course->user_id == $user->id;
+            $hasPurchased = \App\Models\PurchasedCourse::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->exists();
+
+            if (!$isAdmin && !$isAuthor && !$hasPurchased) {
+                return response()->json(['message' => 'No tienes acceso a este curso o clase'], 403);
             }
 
             $video = Video::where('class_id', $classId)
@@ -165,6 +192,14 @@ class VideoController extends Controller
             $module = \App\Models\Module::find($clas->id_modules);
             $course = $module ? \App\Models\Course::find($module->id_courses) : null;
 
+            // CRM-14: Verificar autoría del curso o rol Admin
+            $isAdmin = (method_exists($user, 'hasRole') && $user->hasRole('Admin')) || ($user->id_account_type ?? null) == 1;
+            $isAuthor = $course && ($course->user_id == $user->id);
+
+            if (!$isAdmin && !$isAuthor) {
+                return response()->json(['message' => 'No tienes permiso para actualizar este video'], 403);
+            }
+
             $courseId = $course ? $course->id : 0;
             $path = "courses/{$user->id}/{$courseId}/{$id}/class/";
             $url = $path . $filename;
@@ -181,10 +216,10 @@ class VideoController extends Controller
             ]);
 
             try {
+                // CRM-14: Quitar 'ACL' => 'public-read' para mantener bucket y objetos privados
                 $cmd = $s3Client->getCommand('PutObject', [
                     'Bucket' => env('AWS_BUCKET'),
                     'Key' => $url,
-                    'ACL' => 'public-read',
                 ]);
 
                 // Eliminar video anterior si existe

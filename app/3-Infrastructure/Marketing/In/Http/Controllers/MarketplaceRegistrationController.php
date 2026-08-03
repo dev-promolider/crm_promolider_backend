@@ -625,6 +625,22 @@ class MarketplaceRegistrationController extends Controller
                 ], 404);
             }
 
+            // CRM-10: Verificar pertenencia del participante al distribuidor autenticado o rol Admin
+            $currentUserId = auth()->id();
+            $currentUser = auth()->user();
+            $isAdmin = $currentUser && (
+                (method_exists($currentUser, 'hasRole') && $currentUser->hasRole('Admin'))
+                || ($currentUser->id_account_type ?? null) == 1
+            );
+
+            $distributorId = $user->distributor_id ?? $user->id_distributor ?? $user->id_user_distributor ?? null;
+            if (!$isAdmin && $distributorId && $distributorId != $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes autorización sobre este participante'
+                ], 403);
+            }
+
             $user->isParticipant = (int) $request->input('participant');
             $user->save();
 
@@ -709,6 +725,22 @@ class MarketplaceRegistrationController extends Controller
                     'success' => false,
                     'message' => 'Usuario no encontrado'
                 ], 404);
+            }
+
+            // CRM-10: Verificar pertenencia del participante al distribuidor autenticado o rol Admin
+            $currentUserId = auth()->id();
+            $currentUser = auth()->user();
+            $isAdmin = $currentUser && (
+                (method_exists($currentUser, 'hasRole') && $currentUser->hasRole('Admin'))
+                || ($currentUser->id_account_type ?? null) == 1
+            );
+
+            $distributorId = $user->distributor_id ?? $user->id_distributor ?? $user->id_user_distributor ?? null;
+            if (!$isAdmin && $distributorId && $distributorId != $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes autorización sobre este participante'
+                ], 403);
             }
 
             $user->observation = $request->input('observation');

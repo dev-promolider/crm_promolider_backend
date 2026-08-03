@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Classified extends Model
+class Preferences extends Model
 {
     use HasFactory;
 
-    protected $table = 'classified';
-    protected $guarded = ['id', 'user_id', 'status', 'created_at', 'updated_at'];
+    protected $table = 'preferences';
+    protected $fillable = ['user_id', 'categories_id'];
 }

@@ -75,7 +75,7 @@ class PagesController extends Controller
     {
         try {
             $data = $request->validate([
-                'user_id' => 'required|integer',
+                'user_id' => 'nullable|integer',
                 'title' => 'required|string|max:255',
                 'slug' => 'nullable|string|max:255',
                 'content' => 'nullable|string',
@@ -89,6 +89,18 @@ class PagesController extends Controller
                 'type' => 'nullable|string',
                 'meta' => 'nullable|array',
             ]);
+
+            // CRM-11: Forzar el user_id del usuario autenticado si no es Admin
+            $user = auth()->user();
+            $isAdmin = $user && (
+                (method_exists($user, 'hasRole') && $user->hasRole('Admin'))
+                || ($user->id_account_type ?? null) == 1
+            );
+
+            if (!$isAdmin || empty($data['user_id'])) {
+                $data['user_id'] = auth()->id();
+            }
+
             $page = $this->createPageUseCase->execute($data);
             return response()->json(['success' => true, 'data' => $page], 201);
         } catch (\Exception $e) {
@@ -103,6 +115,23 @@ class PagesController extends Controller
     public function update(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         try {
+            $existingPage = $this->getTemplatesUseCase->getPage($id);
+            if (!$existingPage) {
+                return response()->json(['success' => false, 'message' => 'Página no encontrada'], 404);
+            }
+
+            // CRM-11: Control de propiedad (ownership check)
+            $user = auth()->user();
+            $isAdmin = $user && (
+                (method_exists($user, 'hasRole') && $user->hasRole('Admin'))
+                || ($user->id_account_type ?? null) == 1
+            );
+
+            $ownerId = is_array($existingPage) ? ($existingPage['user_id'] ?? null) : ($existingPage->user_id ?? null);
+            if (!$isAdmin && $ownerId != auth()->id()) {
+                return response()->json(['success' => false, 'message' => 'No tienes permiso para modificar esta página'], 403);
+            }
+
             $data = $request->validate([
                 'title' => 'nullable|string|max:255',
                 'slug' => 'nullable|string|max:255',
@@ -118,9 +147,6 @@ class PagesController extends Controller
                 'meta' => 'nullable|array',
             ]);
             $page = $this->updatePageUseCase->execute($id, $data);
-            if (!$page) {
-                return response()->json(['success' => false, 'message' => 'Página no encontrada'], 404);
-            }
             return response()->json(['success' => true, 'data' => $page]);
         } catch (\Exception $e) {
             Log::error('Error updating page: ' . $e->getMessage());
@@ -198,7 +224,9 @@ class PagesController extends Controller
             $html = $page->contentHtml ?? $page->content ?? '';
 
             return response($html)
-                ->header('Content-Type', 'text/html');
+                ->header('Content-Type', 'text/html; charset=UTF-8')
+                ->header('X-Content-Type-Options', 'nosniff')
+                ->header('X-Frame-Options', 'SAMEORIGIN');
         } catch (\Exception $e) {
             Log::error('Error serving public page: ' . $e->getMessage());
             abort(500, 'Error interno del servidor');

@@ -46,19 +46,33 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $request->validate([
+            'current_password' => 'required|string',
             'password' => 'required|string|min:8|confirmed',
         ], [
+            'current_password.required' => 'La contraseña actual es obligatoria.',
             'password.required' => 'La contraseña es obligatoria.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.'
         ]);
 
+        // CRM-15: Verificar que la contraseña actual coincida
+        if (!Hash::check($request->current_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['La contraseña actual es incorrecta.'],
+            ]);
+        }
+
         $user->update([
             'password' => Hash::make($request->password)
         ]);
 
+        // Invalidar tokens previos tras el cambio de contraseña
+        if (method_exists($user, 'tokens')) {
+            $user->tokens()->delete();
+        }
+
         return response()->json([
-            'message' => 'Contraseña actualizada exitosamente'
+            'message' => 'Contraseña actualizada exitosamente. Por favor inicie sesión nuevamente.'
         ]);
     }
 

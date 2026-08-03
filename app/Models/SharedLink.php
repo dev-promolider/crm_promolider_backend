@@ -10,5 +10,5 @@ class SharedLink extends Model
     use HasFactory;
 
     protected $table = 'sponsor_link';
-    protected $guarded = [];
+    protected $guarded = ['id', 'user_id', 'status', 'created_at', 'updated_at'];
 }

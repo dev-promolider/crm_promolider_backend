@@ -15,7 +15,12 @@ use Illuminate\Support\Facades\Route;
     // Módulo: Autenticación
     // ==========================================
     Route::group(['prefix' => 'auth'], function () {
-        Route::post('login', [\Promolider\Infrastructure\Auth\In\Http\Controllers\AuthController::class, 'login'])->name('auth.login');
+        Route::post('login', [\Promolider\Infrastructure\Auth\In\Http\Controllers\AuthController::class, 'login'])
+            ->middleware('throttle:5,1')
+            ->name('auth.login');
+        Route::post('logout', [\Promolider\Infrastructure\Auth\In\Http\Controllers\AuthController::class, 'logout'])
+            ->middleware('auth:sanctum')
+            ->name('auth.logout');
     });
 
     // ==========================================
@@ -68,6 +73,164 @@ use Illuminate\Support\Facades\Route;
             Route::get('widgets', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'dashboardWidgets'])->name('dashboard.widgets');
             Route::get('unilevel-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'unilevelTree'])->name('dashboard.unilevel_tree');
             Route::get('binary-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'binaryTree'])->name('dashboard.binary_tree');
+            Route::get('getattributes', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrDashboardController::class, 'getAttributes']);
+            Route::get('lastlessonseen', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrDashboardController::class, 'lastLessonSeen']);
+        });
+
+        // ==========================================
+        // Módulo: VCR Inicio / Dashboard Legacy
+        // ==========================================
+        Route::group(['prefix' => 'course'], function () {
+            Route::get('purchased-courses', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'purchasedCourses']);
+            Route::get('last-courses-rep', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'lastCoursesRep']);
+            Route::get('related-courses', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'relatedCourses']);
+            Route::get('released-courses', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'releasedCourses']);
+            Route::get('interesting-courses', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'interestingCourses']);
+            Route::get('details/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'detailsCourse']);
+            Route::get('list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'listCourses']);
+            Route::get('list/random', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'listRandom']);
+            Route::get('search-courses/{str}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'searchCourses']);
+            Route::get('list-available-books', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'listAvailableBooks']);
+            Route::get('certificate-list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'certificateList']);
+            Route::get('certificate/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'showCertificate']);
+            Route::get('temary/get-all-class/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'getTemary']);
+            Route::get('{courseId}/progress', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'getProgress']);
+            Route::get('{courseId}/completed-lessons', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'getCompletedLessons']);
+            Route::post('{courseId}/complete-lesson', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'completeLesson']);
+            Route::post('{courseId}/update-progress', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'updateProgress']);
+            Route::get('certificate/check/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'checkCertificate']);
+        });
+
+        Route::group(['prefix' => 'exam'], function () {
+            Route::post('active', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'active']);
+            Route::post('module/active', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'moduleActive']);
+            Route::post('answers', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'answers']);
+            Route::post('calification', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'calification']);
+            Route::get('isconfig/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'isConfigured']);
+            Route::get('daily', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'dailyQuestion']);
+            Route::post('daily/points', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrExamController::class, 'dailyPoints']);
+        });
+
+        Route::group(['prefix' => 'category'], function () {
+            Route::get('list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrPreferencesController::class, 'categoryList']);
+        });
+
+        Route::group(['prefix' => 'preferences'], function () {
+            Route::get('show-preferences', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrPreferencesController::class, 'showPreferences']);
+            Route::post('add', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrPreferencesController::class, 'addPreferences']);
+            Route::post('update/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrPreferencesController::class, 'updatePreference']);
+            Route::post('delete/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrPreferencesController::class, 'deletePreference']);
+            Route::post('delete-preferences', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrPreferencesController::class, 'deleteMultiplePreferences']);
+        });
+
+        Route::group(['prefix' => 'cart'], function () {
+            Route::get('show', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCartController::class, 'cartShow']);
+            Route::get('add/{course}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCartController::class, 'cartAdd']);
+            Route::post('buy-course', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCartController::class, 'buyCourse']);
+            Route::post('buy-certificate', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'buyCertificate']);
+        });
+
+        Route::group(['prefix' => 'pay'], function () {
+            Route::post('course-openpay', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCartController::class, 'payCourseOpenpay']);
+        });
+
+        Route::group(['prefix' => 'purchased'], function () {
+            Route::get('show', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'showPurchased']);
+            Route::patch('save-class-seen', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'saveClassSeen']);
+            Route::get('show-class-seen', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrLearningController::class, 'showClassSeen']);
+        });
+
+        Route::group(['prefix' => 'certificate'], function () {
+            Route::get('check/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'checkEligibility']);
+            Route::get('download/{course_id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'downloadCourseCertificatePDF']);
+        });
+
+        Route::group(['prefix' => 'my-courses'], function () {
+            Route::get('{course}/certificate/download', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'downloadCourseCertificatePDF']);
+            Route::get('{module}/module/certificate/download', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCertificateController::class, 'downloadModuleCertificatePDF']);
+        });
+
+        Route::group(['prefix' => 'user'], function () {
+            Route::get('get-data-currentuser', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrDashboardController::class, 'getDataCurrentUser']);
+        });
+
+        Route::group(['prefix' => 'classroom-points'], function () {
+            Route::get('ranking', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'ranking']);
+            Route::post('insert-user-points', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'insertUserPoints']);
+        });
+
+        Route::group(['prefix' => 'badges'], function () {
+            Route::get('my-progress', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'myProgress']);
+            Route::get('my-badges', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'myBadges']);
+            Route::get('list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'listBadges']);
+        });
+
+        Route::group(['prefix' => 'profile'], function () {
+            Route::get('points/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'profilePoints']);
+        });
+
+        Route::group(['prefix' => 'rewards'], function () {
+            Route::get('/', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'rewardsList']);
+            Route::get('credits', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'rewardsCredits']);
+            Route::post('redeem', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'redeemReward']);
+            Route::get('my-redemptions', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrRewardsController::class, 'myRedemptions']);
+        });
+
+        Route::group(['prefix' => 'notifications'], function () {
+            Route::get('list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrNotificationController::class, 'list']);
+        });
+
+        Route::group(['prefix' => 'reports'], function () {
+            Route::get('last-sells', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCourseController::class, 'lastSells']);
+            Route::get('starting_bonus', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrBinaryTreeController::class, 'startingBonus']);
+            Route::get('growth_bonus', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrBinaryTreeController::class, 'growthBonus']);
+        });
+
+        Route::group(['prefix' => 'ramabinaria'], function () {
+            Route::get('listbinary', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrBinaryTreeController::class, 'listbinary']);
+            Route::get('binaryTree/{id?}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrBinaryTreeController::class, 'binaryTree']);
+        });
+
+        Route::group(['prefix' => 'frequent-questions'], function () {
+            Route::get('/', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrFrequentQuestionsController::class, 'index']);
+            Route::get('all', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrFrequentQuestionsController::class, 'all']);
+            Route::post('store', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrFrequentQuestionsController::class, 'store']);
+            Route::post('update', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrFrequentQuestionsController::class, 'update']);
+            Route::post('change-status', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrFrequentQuestionsController::class, 'changeStatus']);
+            Route::delete('{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrFrequentQuestionsController::class, 'destroy']);
+        });
+
+        Route::group(['prefix' => 'messages'], function () {
+            Route::get('listContacts', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'listContacts']);
+            Route::post('content', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'getContent']);
+            Route::post('add', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'addMessage']);
+            Route::get('with/{email}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'show']);
+            Route::get('list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'list']);
+            Route::get('listAll', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'listAll']);
+            Route::get('listNewContacts/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'listNewContacts']);
+            Route::post('sendNewMessage', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrMessageController::class, 'sendNewMessage']);
+        });
+
+        Route::group(['prefix' => 'me'], function () {
+            Route::get('infoproducts', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'myInfoproducts']);
+        });
+
+        Route::group(['prefix' => 'marketing'], function () {
+            Route::get('tools', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'marketingTools']);
+            Route::get('marketplace/masterclass/list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'masterclassList']);
+            Route::get('marketplace/ebooks/list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'ebooksList']);
+            Route::get('marketplace/minicourses/list', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'miniCoursesList']);
+            Route::get('{id}/list-students', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'listStudentsMasterclass']);
+            Route::get('{id}/list-students/minicourse', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'listStudentsMinicourse']);
+            Route::get('{id}/list-students/ebook', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'listStudentsEbook']);
+            Route::post('mini-course/invitation-link/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'createInvitationMinicourse']);
+            Route::post('ebook/invitation-link/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'createInvitationEbook']);
+            Route::post('toggleMarketplaceViewability/{courseId}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrCartController::class, 'toggleMarketplaceViewability']);
+        });
+
+        Route::group(['prefix' => 'masterclass'], function () {
+            Route::post('register-masterclass/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'registerMasterclass']);
+            Route::post('create-invitation/{id}', [\Promolider\Infrastructure\VCR\In\Http\Controllers\VcrInfoproductController::class, 'createInvitationMasterclass']);
         });
 
         // ==========================================

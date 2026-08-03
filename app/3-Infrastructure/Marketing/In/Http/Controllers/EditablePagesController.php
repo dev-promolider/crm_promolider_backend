@@ -96,6 +96,22 @@ class EditablePagesController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
+            $page = $this->listEditablePagesUseCase->getById($id);
+            if (!$page) {
+                return response()->json(['success' => false, 'message' => 'Plantilla editable no encontrada'], 404);
+            }
+
+            // CRM-12: Verificación de propiedad (ownership)
+            $user = $request->user();
+            $isAdmin = $user && (
+                (method_exists($user, 'hasRole') && $user->hasRole('Admin'))
+                || ($user->id_account_type ?? null) == 1
+            );
+
+            if (!$isAdmin && $page->userId != $user->id) {
+                return response()->json(['success' => false, 'message' => 'No tienes permiso para actualizar esta plantilla'], 403);
+            }
+
             $validated = $request->validate([
                 'title' => 'nullable|string|max:255',
                 'content_html' => 'nullable|string',
@@ -105,9 +121,6 @@ class EditablePagesController extends Controller
             ]);
 
             $result = $this->updateEditablePageUseCase->execute($id, $validated);
-            if (!$result) {
-                return response()->json(['success' => false, 'message' => 'Plantilla editable no encontrada'], 404);
-            }
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'message' => 'Datos inválidos', 'errors' => $e->errors()], 422);
@@ -117,13 +130,26 @@ class EditablePagesController extends Controller
         }
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         try {
-            $deleted = $this->deleteEditablePageUseCase->execute($id);
-            if (!$deleted) {
+            $page = $this->listEditablePagesUseCase->getById($id);
+            if (!$page) {
                 return response()->json(['success' => false, 'message' => 'Plantilla editable no encontrada'], 404);
             }
+
+            // CRM-12: Verificación de propiedad (ownership)
+            $user = $request->user();
+            $isAdmin = $user && (
+                (method_exists($user, 'hasRole') && $user->hasRole('Admin'))
+                || ($user->id_account_type ?? null) == 1
+            );
+
+            if (!$isAdmin && $page->userId != $user->id) {
+                return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar esta plantilla'], 403);
+            }
+
+            $deleted = $this->deleteEditablePageUseCase->execute($id);
             return response()->json(['success' => true, 'message' => 'Plantilla editable eliminada']);
         } catch (\Exception $e) {
             Log::error('Error deleting editable page: ' . $e->getMessage());
@@ -140,7 +166,9 @@ class EditablePagesController extends Controller
             }
 
             return response($page->contentHtml)
-                ->header('Content-Type', 'text/html');
+                ->header('Content-Type', 'text/html; charset=UTF-8')
+                ->header('X-Content-Type-Options', 'nosniff')
+                ->header('X-Frame-Options', 'SAMEORIGIN');
         } catch (\Exception $e) {
             Log::error('Error serving public editable page: ' . $e->getMessage());
             abort(500, 'Error interno del servidor');

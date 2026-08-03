@@ -200,6 +200,18 @@ class PreregistroController extends Controller
      */
     public function openpayWebhook(Request $request, \Promolider\Application\Registration\UseCases\ProcessOpenpayWebhookUseCase $webhookUseCase)
     {
+        // CRM-25: Verificar firma HMAC de Openpay si la clave y encabezado existen
+        $sk = config('services.openpay.sk', env('OPENPAY_SK'));
+        $signatureHeader = $request->header('X-Openpay-Signature') ?? $request->header('X-OpenPay-Webhook-Signature');
+
+        if (!empty($sk) && !empty($signatureHeader)) {
+            $expected = hash_hmac('sha256', $request->getContent(), $sk);
+            if (!hash_equals($expected, $signatureHeader)) {
+                Log::warning('Firma HMAC inválida en webhook de Openpay', ['ip' => $request->ip()]);
+                return response()->json(['error' => 'Firma inválida'], 401);
+            }
+        }
+
         try {
             $webhookUseCase->execute($request->all());
             return response()->json(['success' => 'success'], 200);
