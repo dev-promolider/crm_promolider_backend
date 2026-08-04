@@ -9,7 +9,7 @@ class CourseObservation extends Model
 {
     use HasFactory;
 
-    protected $table = 'course_observations';
+    protected $table = 'course_observation';
 
     protected $fillable = [
         'id_class',

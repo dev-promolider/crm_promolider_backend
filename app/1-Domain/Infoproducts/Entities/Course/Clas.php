@@ -14,7 +14,7 @@ class Clas implements JsonSerializable
         private ?string $time,
         private ?string $description,
         private string $url,
-        private int $order,
+        private ?int $order,
         private ?string $status,
         private ?int $progress,
         private ?bool $has_video = null

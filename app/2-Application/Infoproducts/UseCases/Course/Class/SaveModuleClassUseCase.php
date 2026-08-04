@@ -29,7 +29,7 @@ class SaveModuleClassUseCase
         return $this->moduleClassRepository->transaction(
             function () use ($userId, $moduleId, $data, $resources) {
                 $module = $this->moduleRepository
-                        ->findById($moduleId); 
+                        ->findById($moduleId);
 
                 $course = $this->infoproductRepository->findCourseById($module->getCourseId());
 

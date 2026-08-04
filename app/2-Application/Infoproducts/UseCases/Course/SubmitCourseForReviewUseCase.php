@@ -2,7 +2,7 @@
 
 namespace Promolider\Application\Infoproducts\UseCases\Course;
 
-use App\Services\PHPMailerService;
+//use App\Services\PHPMailerService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Log;
 use Promolider\Infrastructure\Infoproducts\Out\Services\NotificationService;
@@ -22,7 +22,7 @@ final class SubmitCourseForReviewUseCase
 
     public function __construct(
         private CourseRepositoryInterface $courseRepository,
-        private PHPMailerService $mailerService,
+        //private PHPMailerService $mailerService,
         private NotificationService $notificationService
     ) {
     }
@@ -206,13 +206,13 @@ final class SubmitCourseForReviewUseCase
         ];
 
         try {
-            $this->mailerService->sendEmailWithTemplate(
+            /* $this->mailerService->sendEmailWithTemplate(
                 'soporte@promolider.info',
                 '🕒 Curso pendiente de revisión: ' . $course['title'],
                 'emails.course-status-pending',
                 $templateData,
                 'Promolíder - Estado de Curso'
-            );
+            ); */
         } catch (\Throwable $exception) {
             Log::error(
                 'Error enviando correo de revisión a soporte.',
@@ -224,14 +224,14 @@ final class SubmitCourseForReviewUseCase
         }
 
         try {
-            $this->mailerService->sendEmailWithTemplate(
+            /* $this->mailerService->sendEmailWithTemplate(
                 $course['instructor_email'],
                 'Tu curso está pendiente de revisión: '
                     . $course['title'],
                 'emails.course-status-pending',
                 $templateData,
                 'Promolíder - Estado de Curso'
-            );
+            ); */
         } catch (\Throwable $exception) {
             Log::error(
                 'Error enviando correo de revisión al usuario.',
