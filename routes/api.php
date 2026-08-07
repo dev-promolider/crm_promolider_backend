@@ -97,6 +97,7 @@ use Illuminate\Support\Facades\Route;
 
         Route::put('profile/update', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updateProfile']);
         Route::put('profile/password', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'updatePassword']);
+        Route::post('profile/role-requests/courses/apply', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\UserRoleRequestController::class, 'applyForCourseRole']);
         Route::get('profile/membership-history', [\Promolider\Infrastructure\Auth\In\Http\Controllers\ProfileController::class, 'getMembershipHistory']);
 
         Route::get('countries', function () {
@@ -731,6 +732,7 @@ Route::group(['prefix' => 'trivia'], function () {
 Route::group(['prefix' => 'admin/requests', 'middleware' => ['auth:sanctum']], function () {
     // Retiro de Fondos
     Route::get('withdrawals', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'index'])->name('admin.requests.withdrawals.index');
+    Route::get('withdrawals/approved', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'approvedHistory'])->name('admin.requests.withdrawals.approved');
     Route::post('withdrawals/approve', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'approve'])->name('admin.requests.withdrawals.approve');
     Route::post('withdrawals/reject', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'reject'])->name('admin.requests.withdrawals.reject');
 

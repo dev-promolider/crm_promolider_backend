@@ -11,6 +11,16 @@ use Illuminate\Support\Facades\Log;
 
 class EloquentWithdrawalRequestRepository implements WithdrawalRequestRepositoryInterface
 {
+    public function getAllPaginated(int $perPage = 15)
+    {
+        return WalletMovements::with(['wallet.user'])
+            ->whereNull('bonus_type_id')
+            ->where('status', '!=', 0) // Todos los aprobados o rechazados
+            ->where('amount', '<', 0)
+            ->orderBy('id', 'desc')
+            ->paginate($perPage);
+    }
+
     public function getAllPending(): Collection
     {
         $movements = WalletMovements::with(['wallet' => function($query) {

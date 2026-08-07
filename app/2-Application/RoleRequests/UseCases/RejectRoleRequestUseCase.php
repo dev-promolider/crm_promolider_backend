@@ -2,30 +2,31 @@
 
 namespace Promolider\Application\RoleRequests\UseCases;
 
-use App\Models\RoleRequest;
-use App\Models\ToolPermissionRequest;
+use Illuminate\Support\Facades\DB;
 
 class RejectRoleRequestUseCase
 {
-    public function executeCourseRequest($userId, $justification)
+    public function executeCourseRequest($requestId, $justification)
     {
-        $role_request = RoleRequest::where('id_user', $userId)->first();
+        $role_request = DB::table('role_requests')->where('id', $requestId)->where('status', 1)->first();
         if ($role_request) {
-            $role_request->status = 3;
-            $role_request->reason = $justification;
-            $role_request->update();
+            DB::table('role_requests')->where('id', $role_request->id)->update([
+                'status' => 3,
+                'reason' => $justification
+            ]);
             return true;
         }
         throw new \Exception("Request not found for user");
     }
 
-    public function executeToolRequest($userId, $justification)
+    public function executeToolRequest($requestId, $justification)
     {
-        $role_request = ToolPermissionRequest::where('id_user', $userId)->first();
+        $role_request = DB::table('tool_permission_requests')->where('id', $requestId)->where('status', 1)->first();
         if ($role_request) {
-            $role_request->status = 3;
-            $role_request->reason = $justification;
-            $role_request->update();
+            DB::table('tool_permission_requests')->where('id', $role_request->id)->update([
+                'status' => 3,
+                'reason' => $justification
+            ]);
             return true;
         }
         throw new \Exception("Request not found for user");

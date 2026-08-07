@@ -5,6 +5,7 @@ namespace Promolider\Infrastructure\Requests\In\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Promolider\Application\Requests\UseCases\Withdrawal\ListWithdrawalRequestsUseCase;
+use Promolider\Application\Requests\UseCases\Withdrawal\ListApprovedWithdrawalRequestsUseCase;
 use Promolider\Application\Requests\UseCases\Withdrawal\ApproveWithdrawalRequestUseCase;
 use Promolider\Application\Requests\UseCases\Withdrawal\RejectWithdrawalRequestUseCase;
 use Illuminate\Support\Facades\Log;
@@ -14,15 +15,18 @@ use App\Helpers\Helper;
 class WithdrawalRequestController extends Controller
 {
     private $listUseCase;
+    private $listApprovedUseCase;
     private $approveUseCase;
     private $rejectUseCase;
 
     public function __construct(
         ListWithdrawalRequestsUseCase $listUseCase,
+        ListApprovedWithdrawalRequestsUseCase $listApprovedUseCase,
         ApproveWithdrawalRequestUseCase $approveUseCase,
         RejectWithdrawalRequestUseCase $rejectUseCase
     ) {
         $this->listUseCase = $listUseCase;
+        $this->listApprovedUseCase = $listApprovedUseCase;
         $this->approveUseCase = $approveUseCase;
         $this->rejectUseCase = $rejectUseCase;
         // Assuming there is a policy for admin
@@ -46,13 +50,38 @@ class WithdrawalRequestController extends Controller
             return response()->json($data, 200);
 
         } catch (\Exception $e) {
-            Log::error('WithdrawalRequestController: Error al obtener lista de solicitudes', [
+            Log::error('WithdrawalRequestController: Error al obtener lista', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'authenticated_user' => auth()->id()
+                'trace' => $e->getTraceAsString()
             ]);
-            
-            return response()->json(['error' => 'Error interno del servidor'], 500);
+
+            return response()->json([
+                'error' => 'No se pudieron cargar las solicitudes pendientes',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function approvedHistory(Request $request)
+    {
+        Log::info('WithdrawalRequestController: Iniciando obtención de historial aprobado', [
+            'authenticated_user' => auth()->id()
+        ]);
+
+        try {
+            $perPage = $request->input('per_page', 15);
+            $paginated = $this->listApprovedUseCase->execute($perPage);
+
+            return response()->json($paginated, 200);
+        } catch (\Exception $e) {
+            Log::error('WithdrawalRequestController: Error al obtener historial aprobado', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'error' => 'No se pudo cargar el historial',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 

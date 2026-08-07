@@ -15,6 +15,12 @@ interface WithdrawalRequestRepositoryInterface
     public function getAllPending(): Collection;
 
     /**
+     * @param int $perPage
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function getAllPaginated(int $perPage = 15);
+
+    /**
      * Get a specific withdrawal request by ID
      *
      * @param int $id

@@ -39,10 +39,14 @@ class RoleRequestController extends Controller
     public function approveCourseRequest(Request $request)
     {
         $request->validate(['id' => 'required|integer']);
+        $userId = $request->id;
+        \Log::info('[ApproveRole] Recibida petición para user_id=' . $userId);
         try {
-            $this->approveUseCase->executeCourseRequest($request->id);
+            $this->approveUseCase->executeCourseRequest($userId);
+            \Log::info('[ApproveRole] Aprobado correctamente user_id=' . $userId);
             return response()->json(['message' => 'Permisos otorgados con éxito'], 200);
         } catch (\Exception $e) {
+            \Log::error('[ApproveRole] Error para user_id=' . $userId . ': ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
