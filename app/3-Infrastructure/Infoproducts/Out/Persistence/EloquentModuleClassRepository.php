@@ -15,7 +15,9 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
                                 ->orderBy('order', 'asc')
                                 ->get()
                                 ->map(function ($lesson) {
-                                    $lesson->has_video = EloquentVideo::where('class_id', $lesson->id)->exists();
+                                    $video = EloquentVideo::where('class_id', $lesson->id)->first();
+                                    $lesson->has_video = $video ? true : false;
+                                    $lesson->video_url = $video ? 'https://promolider-storage-user.s3.sa-east-1.amazonaws.com/' . ltrim($video->path, '/') : null;
                                     return $lesson;
                                 });
 
@@ -26,12 +28,13 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
                 $lesson->name,
                 $lesson->slug,
                 $lesson->time,
-                $lesson->url,
                 $lesson->description,
+                $lesson->url,
                 $lesson->order,
                 $lesson->status,
                 $lesson->progress,
-                $lesson->has_video
+                $lesson->has_video,
+                $lesson->video_url
             );
         })->toArray();
     }

@@ -17,4 +17,8 @@ interface InfoproductRepositoryInterface
     ): array;
 
     public function findCourseById(int $courseId): ?Infoproduct;
+
+    public function getNextId(): int;
+
+    public function create(array $data): array;
 }

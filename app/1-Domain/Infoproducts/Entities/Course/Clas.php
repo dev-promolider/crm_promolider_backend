@@ -17,7 +17,8 @@ class Clas implements JsonSerializable
         private int $order,
         private ?string $status,
         private ?int $progress,
-        private ?bool $has_video = null
+        private ?bool $has_video = null,
+        private ?string $video_url = null
     ){}
 
     public function jsonSerialize(): array
@@ -34,6 +35,7 @@ class Clas implements JsonSerializable
             'status' => $this->status ?? '0',
             'progress' => $this->progress ?? 0,
             'has_video' => $this->has_video ?? false,
+            'video_url' => $this->video_url,
         ];
     }
 }

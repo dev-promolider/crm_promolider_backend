@@ -8,32 +8,32 @@ class Infoproduct implements JsonSerializable
 {
     public function __construct(
         private int $id,
-        private string $product_type_id,
+        private ?string $product_type_id,
         private ?string $instructor_signature_path,
         private int $user_id,
-        private string $id_categories,
-        private string $title,
-        private string $slug,
+        private ?string $id_categories,
+        private ?string $title,
+        private ?string $slug,
         private ?string $area,
-        private string $description,
-        private string $currency,
+        private ?string $description,
+        private ?string $currency,
         private float $price,
         private ?string $ranking_by_user,
-        private string $status,
-        private string $portada,
-        private string $url_portada,
-        private string $course_about,
-        private string $will_learn,
-        private string $prev_knowledge,
-        private string $course_for,
-        private string $course_time,
+        private ?string $status,
+        private ?string $portada,
+        private ?string $url_portada,
+        private ?string $course_about,
+        private ?string $will_learn,
+        private ?string $prev_knowledge,
+        private ?string $course_for,
+        private ?string $course_time,
         private ?string $course_level_id,
         private ?string $months,
-        private string $path_url,
+        private ?string $path_url,
         private float $price_base,
-        private string $certificate,
+        private ?string $certificate,
         private ?string $certificate_template_id,
-        private string $marketplace_listed
+        private ?string $marketplace_listed
     ) {}
 
     public function jsonSerialize(): array
@@ -71,32 +71,32 @@ class Infoproduct implements JsonSerializable
 
     // Getters públicos para acceder a las propiedades
     public function getId(): int { return $this->id; }
-    public function getProductTypeId(): string { return $this->product_type_id; }
+    public function getProductTypeId(): ?string { return $this->product_type_id; }
     public function getInstructorSignaturePath(): ?string { return $this->instructor_signature_path; }
     public function getUserId(): int { return $this->user_id; }
-    public function getIdCategories(): string { return $this->id_categories; }
-    public function getTitle(): string { return $this->title; }
-    public function getSlug(): string { return $this->slug; }
+    public function getIdCategories(): ?string { return $this->id_categories; }
+    public function getTitle(): ?string { return $this->title; }
+    public function getSlug(): ?string { return $this->slug; }
     public function getArea(): ?string { return $this->area; }
-    public function getDescription(): string { return $this->description; }
-    public function getCurrency(): string { return $this->currency; }
+    public function getDescription(): ?string { return $this->description; }
+    public function getCurrency(): ?string { return $this->currency; }
     public function getPrice(): float { return $this->price; }
     public function getRankingByUser(): ?string { return $this->ranking_by_user; }
-    public function getStatus(): string { return $this->status; }
-    public function getPortada(): string { return $this->portada; }
-    public function getUrlPortada(): string { return $this->url_portada; }
-    public function getCourseAbout(): string { return $this->course_about; }
-    public function getWillLearn(): string { return $this->will_learn; }
-    public function getPrevKnowledge(): string { return $this->prev_knowledge; }
-    public function getCourseFor(): string { return $this->course_for; }
-    public function getCourseTime(): string { return $this->course_time; }
+    public function getStatus(): ?string { return $this->status; }
+    public function getPortada(): ?string { return $this->portada; }
+    public function getUrlPortada(): ?string { return $this->url_portada; }
+    public function getCourseAbout(): ?string { return $this->course_about; }
+    public function getWillLearn(): ?string { return $this->will_learn; }
+    public function getPrevKnowledge(): ?string { return $this->prev_knowledge; }
+    public function getCourseFor(): ?string { return $this->course_for; }
+    public function getCourseTime(): ?string { return $this->course_time; }
     public function getCourseLevelId(): ?string { return $this->course_level_id; }
     public function getMonths(): ?string { return $this->months; }
-    public function getPathUrl(): string { return $this->path_url; }
+    public function getPathUrl(): ?string { return $this->path_url; }
     public function getPriceBase(): float { return $this->price_base; }
-    public function getCertificate(): string { return $this->certificate; }
+    public function getCertificate(): ?string { return $this->certificate; }
     public function getCertificateTemplateId(): ?string { return $this->certificate_template_id; }
-    public function getMarketplaceListed(): string { return $this->marketplace_listed; }
+    public function getMarketplaceListed(): ?string { return $this->marketplace_listed; }
 
     // Lógica de negocio: Verificar si el infoproducto está pendiente de aprobación
     public function pendingApproval(): bool

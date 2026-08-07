@@ -13,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(
+            \Promolider\Domain\Requests\Repositories\WithdrawalRequestRepositoryInterface::class,
+            \Promolider\Infrastructure\Requests\Out\Persistence\EloquentWithdrawalRequestRepository::class
+        );
     }
 
     /**

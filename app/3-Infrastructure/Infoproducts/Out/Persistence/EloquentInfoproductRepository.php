@@ -158,4 +158,19 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
             $infoproduct->marketplace_listed
         );
     }
+
+    public function getNextId(): int
+    {
+        $id = \Illuminate\Support\Facades\DB::select("SHOW TABLE STATUS LIKE 'courses'");
+        if (!empty($id)) {
+            return $id[0]->Auto_increment;
+        }
+        return 1;
+    }
+
+    public function create(array $data): array
+    {
+        $infoproduct = EloquentInfoproduct::create($data);
+        return $infoproduct->toArray();
+    }
 }

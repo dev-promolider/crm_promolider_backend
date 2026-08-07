@@ -71,6 +71,15 @@ use Illuminate\Support\Facades\Route;
         });
 
         // ==========================================
+        // Módulo: Notificaciones
+        // ==========================================
+        Route::group(['prefix' => 'notifications'], function () {
+            Route::get('list', [\App\Http\Controllers\NotificationController::class, 'index']);
+            Route::get('all', [\App\Http\Controllers\NotificationController::class, 'getAll']);
+            Route::put('update', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
+        });
+
+        // ==========================================
         // ==========================================
         // Módulo: MLM Árbol Binario
         // ==========================================
@@ -105,6 +114,7 @@ use Illuminate\Support\Facades\Route;
 
         Route::prefix('me')->group(function () {
             Route::get('infoproducts', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\GetMyProductsController::class)->name('profile.infoproducts');
+            Route::post('infoproducts', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\CreateInfoproductController::class)->name('profile.infoproducts.create');
         });
 
         Route::prefix('infoproducts')->group(function () {
@@ -121,10 +131,19 @@ use Illuminate\Support\Facades\Route;
             Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
 
             Route::prefix('module')->group(function () {
-                //Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseModuleController::class, 'store'])->name('module.store');
+                Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'store'])->name('module.store');
+                Route::post('/{id}/update', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'update'])->name('module.update');
+                Route::delete('/{id}/delete', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'destroy'])->name('module.delete');
+                Route::post('/reorder', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'reorder'])->name('module.reorder');
 
                 Route::group(['prefix' => '/class'], function () {
                     Route::get('/{moduleId}/classList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getClassList'])->name('class.list');
+                    Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'store'])->name('class.store');
+                    Route::post('/{id}/update', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'update'])->name('class.update');
+                    Route::delete('/{id}/delete', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'destroy'])->name('class.delete');
+                    Route::post('/reorder', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'reorder'])->name('class.reorder');
+                    Route::post('/generate-upload-url', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'generatePresignedUrl'])->name('class.generateUploadUrl');
+                    Route::post('/confirm-upload', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'confirmUpload'])->name('class.confirmUpload');
                 });
             });
 
@@ -704,4 +723,38 @@ Route::group(['prefix' => 'trivia'], function () {
     Route::get('{slug}/pregunta/{numero}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DinamicaPublicController::class, 'triviaQuestion'])->name('trivia.question');
     Route::post('{slug}/pregunta/{numero}/respuesta', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DinamicaPublicController::class, 'submitAnswer'])->name('trivia.answer');
     Route::get('{slug}/resultados', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DinamicaPublicController::class, 'triviaResults'])->name('trivia.results');
+});
+
+// ==========================================
+// Módulo: Solicitudes (Admin Requests)
+// ==========================================
+Route::group(['prefix' => 'admin/requests', 'middleware' => ['auth:sanctum']], function () {
+    // Retiro de Fondos
+    Route::get('withdrawals', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'index'])->name('admin.requests.withdrawals.index');
+    Route::post('withdrawals/approve', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'approve'])->name('admin.requests.withdrawals.approve');
+    Route::post('withdrawals/reject', [\Promolider\Infrastructure\Requests\In\Http\Controllers\WithdrawalRequestController::class, 'reject'])->name('admin.requests.withdrawals.reject');
+
+    // Nuevos Usuarios
+    Route::get('new-users', [\Promolider\Infrastructure\Requests\In\Http\Controllers\NewUserRequestController::class, 'index'])->name('admin.requests.new_users.index');
+    Route::get('new-users/{id}', [\Promolider\Infrastructure\Requests\In\Http\Controllers\NewUserRequestController::class, 'getUserById'])->name('admin.requests.new_users.show');
+    Route::post('new-users/update', [\Promolider\Infrastructure\Requests\In\Http\Controllers\NewUserRequestController::class, 'updateUnverifiedRequest'])->name('admin.requests.new_users.update');
+
+    // Verificación de Información (Courses)
+    Route::get('courses/verification', [\Promolider\Infrastructure\Courses\In\Http\Controllers\CourseVerificationController::class, 'index'])->name('admin.requests.courses.verification.index');
+    Route::post('courses/{id}/approve', [\Promolider\Infrastructure\Courses\In\Http\Controllers\CourseVerificationController::class, 'approve'])->name('admin.requests.courses.verification.approve');
+    Route::post('courses/{id}/reject', [\Promolider\Infrastructure\Courses\In\Http\Controllers\CourseVerificationController::class, 'reject'])->name('admin.requests.courses.verification.reject');
+
+    // Creación de Cursos y Herramientas (Role Requests)
+    Route::get('role-requests/courses', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\RoleRequestController::class, 'listCourseRequests'])->name('admin.requests.role.courses.index');
+    Route::post('role-requests/courses/approve', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\RoleRequestController::class, 'approveCourseRequest'])->name('admin.requests.role.courses.approve');
+    Route::post('role-requests/courses/reject', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\RoleRequestController::class, 'rejectCourseRequest'])->name('admin.requests.role.courses.reject');
+
+    Route::get('role-requests/tools', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\RoleRequestController::class, 'listToolRequests'])->name('admin.requests.role.tools.index');
+    Route::post('role-requests/tools/approve', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\RoleRequestController::class, 'approveToolRequest'])->name('admin.requests.role.tools.approve');
+    Route::post('role-requests/tools/reject', [\Promolider\Infrastructure\RoleRequests\In\Http\Controllers\RoleRequestController::class, 'rejectToolRequest'])->name('admin.requests.role.tools.reject');
+
+    // Revisión de Exámenes (Exam Reviews)
+    Route::get('exam-reviews', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'list'])->name('admin.requests.exam.reviews.index');
+    Route::get('exam-reviews/{headerId}/details', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'detailList'])->name('admin.requests.exam.reviews.details');
+    Route::post('exam-reviews/update', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'update'])->name('admin.requests.exam.reviews.update');
 });
