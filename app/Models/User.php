@@ -62,4 +62,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Payment::class, 'user_id');
     }
+
+    public function accountType()
+    {
+        return $this->belongsTo(AccountType::class, 'id_account_type');
+    }
 }

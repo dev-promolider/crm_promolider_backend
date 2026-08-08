@@ -39,17 +39,15 @@ class DashboardController extends Controller
         $user = \Illuminate\Support\Facades\DB::table('users')->where('id', $userId)->first();
         if (!$user) return response()->json(['status' => 404, 'message' => 'User not found'], 404);
 
-        $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('user_id', $userId)->first();
-        $totalPayments = $wallet ? \Illuminate\Support\Facades\DB::table('wallet_movements')
-            ->where('wallet_id', $wallet->id)
-            ->where('reason', 'LIKE', '%Bono%')
-            ->sum('amount') : 0;
+        $totalPayments = \Illuminate\Support\Facades\DB::table('payments')
+            ->where('id_user_sponsor', $userId)
+            ->sum('amount');
 
         $totalCourses = \Illuminate\Support\Facades\DB::table('courses')->where('user_id', $userId)->count();
 
         $accountType = \Illuminate\Support\Facades\DB::table('account_type')->where('id', $user->id_account_type)->value('account');
 
-        $totalClients = \Illuminate\Support\Facades\DB::table('classified')->where('user_above', (string)$userId)->count();
+        $totalClients = \Illuminate\Support\Facades\DB::table('users')->where('id_referrer_sponsor', $userId)->count();
 
         $roleName = \Illuminate\Support\Facades\DB::table('model_has_roles')
             ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
@@ -60,10 +58,10 @@ class DashboardController extends Controller
             'status' => 200,
             'message' => 'success',
             'data' => [
-                'totalPayments' => $totalPayments,
-                'totalCourses' => $totalCourses,
-                'accountType' => $accountType,
-                'totalClients' => $totalClients,
+                'totalPayments' => $totalPayments ?? 0,
+                'totalCourses' => $totalCourses ?? 0,
+                'accountType' => $accountType ?? 'Básico',
+                'totalClients' => $totalClients ?? 0,
                 'role' => $roleName ?? 'Student'
             ]
         ], 200);

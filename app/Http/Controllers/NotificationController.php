@@ -121,7 +121,7 @@ class NotificationController extends Controller
                 ->toArray();
         }
 
-        $paginated->getCollection()->transform(function ($notif) use ($generators) {
+        $paginated = $paginated->through(function ($notif) use ($generators) {
             $photo = null;
             if ($notif->id_generator && isset($generators[$notif->id_generator])) {
                 $photoPath = $generators[$notif->id_generator];
