@@ -11,11 +11,12 @@ class EloquentModuleClassRepository implements ModuleClassRepositoryInterface
 {
     public function findClassesByModuleId(int $moduleId): array
     {
-        $lessons = EloquentClass::where('id_modules', $moduleId)
+        $lessons = EloquentClass::with('video')
+                                ->where('id_modules', $moduleId)
                                 ->orderBy('order', 'asc')
                                 ->get()
                                 ->map(function ($lesson) {
-                                    $video = EloquentVideo::where('class_id', $lesson->id)->first();
+                                    $video = $lesson->video;
                                     $lesson->has_video = $video ? true : false;
                                     $lesson->video_url = $video ? 'https://promolider-storage-user.s3.sa-east-1.amazonaws.com/' . ltrim($video->path, '/') : null;
                                     return $lesson;

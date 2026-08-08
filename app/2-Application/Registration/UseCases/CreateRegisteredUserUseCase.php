@@ -86,6 +86,16 @@ class CreateRegisteredUserUseCase
             'type'         => 1,
         ]);
 
+        if ($user->getRequestStatus() === 1) {
+            $this->registrationRepository->createNotification([
+                'id_generator' => $userId,
+                'id_receiver'  => 1, // Admin (id=1)
+                'title'        => 'Nuevo Usuario Pendiente',
+                'body'         => $user->name . ' ' . $user->lastName . ' (' . $user->username . ') se ha registrado y está pendiente de verificación.',
+                'type'         => 1, // Assuming 1 is standard notification type
+            ]);
+        }
+
         // 11. Envío de correo de bienvenida (no bloquea si falla)
         try {
             $this->notificationService->sendWelcomeEmail(

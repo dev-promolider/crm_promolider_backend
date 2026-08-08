@@ -37,12 +37,12 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
         $user->nro_document          = $userData->nroDocument;
         $user->biography             = $userData->biography;
         $user->request               = $userData->getRequestStatus();
-        $user->expiration_date       = $userData->getExpirationTimestamp();
+        $user->expiration_date       = date('Y-m-d H:i:s', $userData->getExpirationTimestamp());
         $user->photo                 = $userData->photo;
 
         $membershipExp = $userData->getMembershipExpirationTimestamp();
         if ($membershipExp) {
-            $user->expiration_membership_date = $membershipExp;
+            $user->expiration_membership_date = date('Y-m-d H:i:s', $membershipExp);
         }
 
         $user->save();
@@ -80,12 +80,9 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
         $notification->save();
     }
 
-    public function findReferrer(int $referrerId): ?array
+    public function findReferrer(int $id): ?array
     {
-        $user = User::select('id', 'username', 'position')
-            ->where('id', $referrerId)
-            ->first();
-
+        $user = User::find($id);
         if (!$user) return null;
 
         return [
@@ -93,6 +90,16 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
             'username' => $user->username,
             'position' => $user->position,
         ];
+    }
+
+    public function updateUserPosition(int $userId, int $position): bool
+    {
+        $user = User::find($userId);
+        if ($user) {
+            $user->position = $position;
+            return $user->save();
+        }
+        return false;
     }
 
     public function deleteSharedLink(int $userId): void

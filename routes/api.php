@@ -64,10 +64,19 @@ use Illuminate\Support\Facades\Route;
         // Módulo: Dashboard
         // ==========================================
         Route::group(['prefix' => 'dashboard'], function () {
+            Route::get('getattributes', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'getattributes'])->name('dashboard.getattributes');
             Route::get('topbar-stats', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'topbarStats'])->name('dashboard.stats');
             Route::get('widgets', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'dashboardWidgets'])->name('dashboard.widgets');
             Route::get('unilevel-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'unilevelTree'])->name('dashboard.unilevel_tree');
             Route::get('binary-tree', [\Promolider\Infrastructure\Dashboard\In\Http\Controllers\DashboardController::class, 'binaryTree'])->name('dashboard.binary_tree');
+        });
+
+        // ==========================================
+        // VCR Backward Compatibility Routes
+        // ==========================================
+        Route::group(['prefix' => 'course'], function () {
+            Route::get('last-courses-rep', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'lastPlayed']);
+            Route::get('released-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'released']);
         });
 
         // ==========================================
@@ -615,6 +624,7 @@ Route::group(['prefix' => 'registration'], function () {
     Route::get('form-data', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistrationController::class, 'getFormData'])->name('registration.form_data');
     Route::post('check-availability', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistrationController::class, 'checkAvailability'])->name('registration.check_availability');
     Route::post('create', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistrationController::class, 'create'])->name('registration.create');
+    Route::post('openpay', [\Promolider\Infrastructure\Registration\In\Http\Controllers\RegistrationController::class, 'openpay'])->name('registration.openpay');
 
     // Registro a Productos (Cursos, Ebooks, Masterclass)
     Route::post('ebook', [\Promolider\Infrastructure\Registration\In\Http\Controllers\EbookRegistrationController::class, 'register'])->name('registration.ebook');

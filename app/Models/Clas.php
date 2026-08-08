@@ -39,4 +39,9 @@ class Clas extends Model
     {
         return $this->belongsTo(Course::class, 'id_courses');
     }
+
+    public function video()
+    {
+        return $this->hasOne(Video::class, 'class_id');
+    }
 }

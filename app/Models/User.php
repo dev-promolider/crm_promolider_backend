@@ -52,4 +52,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(PaypalAccount::class);
     }
+
+    public function country()
+    {
+        return $this->belongsTo(Country::class, 'id_country');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'user_id');
+    }
 }

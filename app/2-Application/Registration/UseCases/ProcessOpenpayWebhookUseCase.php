@@ -111,6 +111,9 @@ class ProcessOpenpayWebhookUseCase
             userType: $data['user_type'] ?? null
         );
 
+        // Since this is a webhook confirmation for a successful payment, verify the user immediately
+        $registrationUser->setAsVerified();
+
         $paymentData = [
             'id_payment_method' => $data['payment_method_id'] ?? 1,
             'operation_number'  => $transactionId,

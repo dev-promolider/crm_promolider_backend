@@ -31,6 +31,44 @@ class DashboardController extends Controller
         ], 200);
     }
 
+    public function getattributes()
+    {
+        $userId = Auth::id();
+        if (!$userId) return response()->json(['status' => 401, 'message' => 'Unauthorized'], 401);
+
+        $user = \Illuminate\Support\Facades\DB::table('users')->where('id', $userId)->first();
+        if (!$user) return response()->json(['status' => 404, 'message' => 'User not found'], 404);
+
+        $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('user_id', $userId)->first();
+        $totalPayments = $wallet ? \Illuminate\Support\Facades\DB::table('wallet_movements')
+            ->where('wallet_id', $wallet->id)
+            ->where('reason', 'LIKE', '%Bono%')
+            ->sum('amount') : 0;
+
+        $totalCourses = \Illuminate\Support\Facades\DB::table('courses')->where('user_id', $userId)->count();
+
+        $accountType = \Illuminate\Support\Facades\DB::table('account_type')->where('id', $user->id_account_type)->value('account');
+
+        $totalClients = \Illuminate\Support\Facades\DB::table('classified')->where('user_above', (string)$userId)->count();
+
+        $roleName = \Illuminate\Support\Facades\DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_id', $userId)
+            ->value('roles.name');
+
+        return response()->json([
+            'status' => 200,
+            'message' => 'success',
+            'data' => [
+                'totalPayments' => $totalPayments,
+                'totalCourses' => $totalCourses,
+                'accountType' => $accountType,
+                'totalClients' => $totalClients,
+                'role' => $roleName ?? 'Student'
+            ]
+        ], 200);
+    }
+
     public function dashboardWidgets(Request $request)
     {
         $userId = Auth::id();

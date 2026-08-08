@@ -52,6 +52,7 @@ class NotificationController extends Controller
                 'seen' => (bool)$notif->seen,
                 'photo' => $photo,
                 'created_at' => $notif->created_at,
+                'formatted_created_at_string' => $notif->created_at ? \Carbon\Carbon::parse($notif->created_at)->setTimezone('America/Lima')->format('Y-m-d H:i') : 'N/A',
             ];
         });
 
@@ -139,6 +140,7 @@ class NotificationController extends Controller
                 'seen' => (bool)$notif->seen,
                 'photo' => $photo,
                 'created_at' => $notif->created_at,
+                'formatted_created_at_string' => $notif->created_at ? \Carbon\Carbon::parse($notif->created_at)->setTimezone('America/Lima')->format('Y-m-d H:i') : 'N/A',
             ];
         });
 

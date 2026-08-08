@@ -45,7 +45,9 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
                 $infoproduct->price_base,
                 $infoproduct->certificate,
                 $infoproduct->certificate_template_id,
-                $infoproduct->marketplace_listed
+                $infoproduct->marketplace_listed,
+                $infoproduct->created_at ? (string) $infoproduct->created_at : null,
+                $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
             );
         })->toArray();
     }
@@ -102,7 +104,9 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
                 $infoproduct->price_base,
                 $infoproduct->certificate,
                 $infoproduct->certificate_template_id,
-                $infoproduct->marketplace_listed
+                $infoproduct->marketplace_listed,
+                $infoproduct->created_at ? (string) $infoproduct->created_at : null,
+                $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
             );
         })->toArray();
 
@@ -155,7 +159,9 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
             $infoproduct->price_base,
             $infoproduct->certificate,
             $infoproduct->certificate_template_id,
-            $infoproduct->marketplace_listed
+            $infoproduct->marketplace_listed,
+            $infoproduct->created_at ? (string) $infoproduct->created_at : null,
+            $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
         );
     }
 

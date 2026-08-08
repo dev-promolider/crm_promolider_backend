@@ -19,7 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://crm.promolider.email', env('FRONTEND_URL', 'http://localhost:5173')],
+    'allowed_origins' => [
+        env('FRONTEND_CRM_URL', 'http://localhost:5173'),
+        env('FRONTEND_VCR_URL', 'http://localhost:8080'),
+        'https://crm.promolider.email',
+        'https://vcr.promolider.email'
+    ],
 
     'allowed_origins_patterns' => [],
 

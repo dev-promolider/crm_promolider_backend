@@ -33,7 +33,9 @@ interface RegistrationRepositoryInterface
     /**
      * Busca los datos del patrocinador (referrer) por ID.
      */
-    public function findReferrer(int $referrerId): ?array;
+    public function findReferrer(int $id): ?array;
+    
+    public function updateUserPosition(int $userId, int $position): bool;
 
     /**
      * Elimina el enlace compartido del patrocinador (una vez usado).

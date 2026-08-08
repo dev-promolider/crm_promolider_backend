@@ -31,30 +31,38 @@ class UpdateNewUserRequestUseCase
     {
         $user = User::findOrFail($id);
         
-        if (!Classified::where('user_id', $user->id)->exists()) {
-            if ($status == 3) {
-                $user->request = $status;
-                $user->update();
-            } else if ($status == 2) {
-                $account_type = AccountType::find($user->id_account_type);
-                $id_user = $user->id;
+        if ($status == 3) {
+            $user->request = $status;
+            $user->update();
+            return;
+        }
 
+        if ($status == 2) {
+            $account_type = AccountType::find($user->id_account_type);
+            $id_user = $user->id;
+
+            if (!Wallet::where('user_id', $id_user)->exists()) {
                 Wallet::create(['user_id' => $id_user, 'status' => 1]);
+            }
 
+            if (!UserDailyQuizz::where('id_user', $id_user)->exists()) {
                 $user_daily_quizz = new UserDailyQuizz();
                 $user_daily_quizz->id_user = $id_user;
                 $user_daily_quizz->passed_quizz = 0;
                 $user_daily_quizz->save();
+            }
 
-                $user_referrer_position = User::select('username', 'position')->where('id', $id_referrer_sponsor)->first();
-                
-                $this->newUserService->saveUserMembershipExpirationDate($id_user, $account_type->id);
-
+            if (!UserClassroomPoint::where('id_user', $id_user)->exists()) {
                 $user_classroom_point = new UserClassroomPoint();
                 $user_classroom_point->id_user = $id_user;
                 $user_classroom_point->total_points = 0;
                 $user_classroom_point->save();
+            }
 
+            $this->newUserService->saveUserMembershipExpirationDate($id_user, $account_type->id);
+
+            if (!Classified::where('user_id', $id_user)->exists()) {
+                $user_referrer_position = User::select('username', 'position')->where('id', $id_referrer_sponsor)->first();
                 $user->position = $user->position == 0 ? 1 : 0;
                 $position = $user_referrer_position->position == 0 ? 'user_position_left' : 'user_position_right';
                 
@@ -80,9 +88,9 @@ class UpdateNewUserRequestUseCase
                 $notification->body = $user->name . ' ' . $user->last_name . ' se acaba de registrar con tu enlace';
                 $notification->type = 1;
                 $notification->save();
-
-                $this->updateRequest($status, $id_user);
             }
+
+            $this->updateRequest($status, $id_user);
         }
     }
 
@@ -99,6 +107,8 @@ class UpdateNewUserRequestUseCase
                     }
                 
                     $user->request = $status;
+                    $user->expiration_date = date('Y-m-d H:i:s', strtotime('+30 days'));
+                    $user->expiration_membership_date = date('Y-m-d H:i:s', strtotime('+365 days'));
                     $user->save();
                 
                     $fullName = $user->name;

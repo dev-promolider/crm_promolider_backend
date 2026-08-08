@@ -14,8 +14,11 @@ class GenerateSponsorLinkUseCase
         $this->repository = $repository;
     }
 
-    public function execute(int $userId): array
+    public function execute(int $userId, int $position = 0): array
     {
+        // 0. Update user's position globally
+        $this->repository->updateUserPosition($userId, $position);
+
         // 1. Eliminar enlaces expirados
         $this->repository->deleteExpiredSponsorLinks($userId);
 

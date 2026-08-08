@@ -47,7 +47,9 @@ class RegistroDashboardController extends Controller
     {
         try {
             $userId = $request->user()->id;
-            $result = $this->generateSponsorLinkUseCase->execute($userId);
+            $position = $request->input('position', 0); // 0 = left, 1 = right
+
+            $result = $this->generateSponsorLinkUseCase->execute($userId, $position);
             
             $status = $result['success'] ? 200 : 400;
             return response()->json($result, $status);

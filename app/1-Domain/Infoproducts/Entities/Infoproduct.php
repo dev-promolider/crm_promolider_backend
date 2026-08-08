@@ -33,7 +33,9 @@ class Infoproduct implements JsonSerializable
         private float $price_base,
         private ?string $certificate,
         private ?string $certificate_template_id,
-        private ?string $marketplace_listed
+        private ?string $marketplace_listed,
+        private ?string $created_at = null,
+        private ?string $updated_at = null
     ) {}
 
     public function jsonSerialize(): array
@@ -65,7 +67,9 @@ class Infoproduct implements JsonSerializable
             'price_base' => $this->price_base,
             'certificate' => $this->certificate,
             'certificate_template_id' => $this->certificate_template_id,
-            'marketplace_listed' => $this->marketplace_listed
+            'marketplace_listed' => $this->marketplace_listed,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at
         ];
     }
 
@@ -97,6 +101,8 @@ class Infoproduct implements JsonSerializable
     public function getCertificate(): ?string { return $this->certificate; }
     public function getCertificateTemplateId(): ?string { return $this->certificate_template_id; }
     public function getMarketplaceListed(): ?string { return $this->marketplace_listed; }
+    public function getCreatedAt(): ?string { return $this->created_at; }
+    public function getUpdatedAt(): ?string { return $this->updated_at; }
 
     // Lógica de negocio: Verificar si el infoproducto está pendiente de aprobación
     public function pendingApproval(): bool

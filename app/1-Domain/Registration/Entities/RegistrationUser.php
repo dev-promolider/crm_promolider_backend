@@ -3,6 +3,8 @@ namespace Promolider\Domain\Registration\Entities;
 
 class RegistrationUser
 {
+    private bool $forceVerified = false;
+
     public function __construct(
         public ?int $id = null,
         public string $username = '',
@@ -24,6 +26,12 @@ class RegistrationUser
         public ?string $userType = null
     ) {}
 
+    public function setAsVerified(): self
+    {
+        $this->forceVerified = true;
+        return $this;
+    }
+
     /**
      * Regla de negocio: Las cuentas tipo 5 (free) y 9 (free) son gratuitas.
      * No requieren pago y se aprueban inmediatamente (request = 2).
@@ -40,6 +48,7 @@ class RegistrationUser
      */
     public function getRequestStatus(): int
     {
+        if ($this->forceVerified) return 2;
         return $this->isFreeTier() ? 2 : 1;
     }
 
@@ -55,12 +64,10 @@ class RegistrationUser
     }
 
     /**
-     * Regla de negocio: Las cuentas de pago tienen membresía de 365 días.
+     * Regla de negocio: Todas las cuentas tienen membresía de 365 días al momento del pago o activación gratuita.
      */
     public function getMembershipExpirationTimestamp(): ?int
     {
-        return $this->isFreeTier()
-            ? strtotime('+365 days')
-            : null;
+        return strtotime('+365 days');
     }
 }
