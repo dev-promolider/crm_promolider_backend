@@ -9,7 +9,7 @@ use Promolider\Domain\Marketing\Entities\Category;
 interface ToolRepositoryInterface
 {
     /** @return Tool[] */
-    public function getToolsByUser(int $userId): array;
+    public function getToolsByUser(int $userId, ?int $courseId = null): array;
 
     /** @return Campaign[] */
     public function getCampaigns(): array;

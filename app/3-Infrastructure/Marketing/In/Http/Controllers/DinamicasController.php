@@ -15,11 +15,12 @@ class DinamicasController extends Controller
         private ManageDinamicasUseCase $manageDinamicasUseCase
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
             $userId = Auth::id();
-            $dinamicas = $this->manageDinamicasUseCase->getAll($userId);
+            $courseId = $request->query('course_id');
+            $dinamicas = $this->manageDinamicasUseCase->getAll($userId, $courseId);
             return response()->json(['success' => true, 'data' => $dinamicas]);
         } catch (\Exception $e) {
             Log::error('Error getting dinamicas: ' . $e->getMessage());
@@ -53,6 +54,7 @@ class DinamicasController extends Controller
                 'descripcion' => 'nullable|string',
                 'category_id' => 'nullable|integer',
                 'is_public' => 'nullable|boolean',
+                'course_id' => 'required|integer|exists:courses,id',
             ]);
 
             $userId = Auth::id();

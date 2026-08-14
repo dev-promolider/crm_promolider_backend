@@ -34,7 +34,8 @@ class MarketingToolsController extends Controller
     {
         try {
             $userId = $request->user()->id;
-            $tools = $this->getToolsUseCase->execute($userId);
+            $courseId = $request->query('course_id');
+            $tools = $this->getToolsUseCase->execute($userId, $courseId);
             return response()->json(['success' => true, 'data' => $tools]);
         } catch (\Exception $e) {
             Log::error('Error getting tools: ' . $e->getMessage());
@@ -235,6 +236,12 @@ class MarketingToolsController extends Controller
             };
 
             return response()->json(['success' => true, 'data' => ['id' => $toolId]], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             Log::error("Error storing {$type}: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al guardar'], 500);
@@ -244,6 +251,7 @@ class MarketingToolsController extends Controller
     private function storeMasterclass(Request $request, int $userId): int
     {
         $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
             'title' => 'required|string|max:255',
             'category_id' => 'required|integer',
             'description' => 'required|string',
@@ -261,6 +269,7 @@ class MarketingToolsController extends Controller
 
         $data = [
             'user_id' => $userId,
+            'course_id' => $validated['course_id'],
             'title' => $validated['title'],
             'id_categories' => $validated['category_id'],
             'description' => $validated['description'],
@@ -300,6 +309,7 @@ class MarketingToolsController extends Controller
     private function storeEbook(Request $request, int $userId): int
     {
         $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
             'pages' => 'required|integer|min:1',
@@ -315,6 +325,7 @@ class MarketingToolsController extends Controller
 
         $data = [
             'user_id' => $userId,
+            'course_id' => $validated['course_id'],
             'title' => $validated['title'],
             'author' => $validated['author'],
             'pages' => $validated['pages'],
@@ -358,6 +369,7 @@ class MarketingToolsController extends Controller
     private function storeMiniCourse(Request $request, int $userId): int
     {
         $validated = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'duration' => 'required|integer|min:1',
@@ -368,6 +380,7 @@ class MarketingToolsController extends Controller
 
         $data = [
             'user_id' => $userId,
+            'course_id' => $validated['course_id'],
             'title' => $validated['title'],
             'description' => $validated['description'],
             'duration' => $validated['duration'],

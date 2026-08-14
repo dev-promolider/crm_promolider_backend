@@ -10,6 +10,7 @@ class Masterclass extends Model
 
     protected $fillable = [
         'user_id',
+        'course_id',
         'producer_id',
         'id_categories',
         'title',
@@ -34,6 +35,11 @@ class Masterclass extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'id_categories');
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(\App\Models\Infoproduct\Infoproduct::class, 'course_id');
     }
 
     public function images()

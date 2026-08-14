@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\Route;
 */
 
     // ==========================================
+    // Módulo: Preferencias
+    // ==========================================
+    Route::group(['prefix' => 'preferences', 'middleware' => 'auth:sanctum'], function () {
+        Route::get('show-preferences', [\Promolider\Infrastructure\Preferences\In\Http\Controllers\PreferencesController::class, 'myPreferences']);
+        Route::post('add', [\Promolider\Infrastructure\Preferences\In\Http\Controllers\PreferencesController::class, 'store']);
+        Route::post('delete-preferences', [\Promolider\Infrastructure\Preferences\In\Http\Controllers\PreferencesController::class, 'deleteUserPreferences']);
+    });
+
+    // ==========================================
     // Módulo: Autenticación
     // ==========================================
     Route::group(['prefix' => 'auth'], function () {
@@ -72,11 +81,60 @@ use Illuminate\Support\Facades\Route;
         });
 
         // ==========================================
+        // Módulo: Wishlist
+        // ==========================================
+        Route::group(['prefix' => 'wishlist'], function () {
+            Route::get('/', [\App\Http\Controllers\WishlistController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\WishlistController::class, 'store']);
+            Route::delete('/{course_id}', [\App\Http\Controllers\WishlistController::class, 'destroy']);
+        });
+
+        // ==========================================
         // VCR Backward Compatibility Routes
         // ==========================================
         Route::group(['prefix' => 'course'], function () {
             Route::get('last-courses-rep', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'lastPlayed']);
             Route::get('released-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'released']);
+            Route::get('related-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'recommendedCourses']);
+            Route::get('interesting-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'interestingCourses']);
+            Route::get('list-available-books', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'listAvailableBooks']);
+            // VCR backward compat: lista de cursos comprados por el usuario
+            Route::get('purchased-courses', function (\Illuminate\Http\Request $request) {
+                $userId = $request->user()->id;
+                $courses = \App\Models\PurchasedCourse::where('purchased_courses.user_id', $userId)
+                    ->join('courses', 'courses.id', '=', 'purchased_courses.course_id')
+                    ->leftJoin('users', 'courses.user_id', '=', 'users.id')
+                    ->select(
+                        'courses.id', 'courses.title', 'courses.url_portada', 'courses.slug', 
+                        'courses.ranking_by_user', 'courses.description', 'courses.price',
+                        'purchased_courses.progress', 'users.name as author_name', 'users.last_name as author_lastname'
+                    )
+                    ->get();
+                return response()->json(['data' => $courses]);
+            });
+            // VCR backward compat: inscripción directa a cursos (incluyendo gratuitos, sin pasarela de pago)
+            Route::post('buy-purchased-course', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\PurchasedCoursesController::class, 'store']);
+        });
+
+        // VCR backward compat: métodos de pago disponibles
+        Route::get('config/payment-method/list-array', function () {
+            if (\Illuminate\Support\Facades\Schema::hasTable('payment_method')) {
+                $methods = \Illuminate\Support\Facades\DB::table('payment_method')
+                    ->select('id', 'name')
+                    ->get();
+                return response()->json($methods);
+            }
+            return response()->json([]);
+        });
+
+        Route::group(['prefix' => 'category'], function () {
+            Route::get('list', function () {
+                if (\Illuminate\Support\Facades\Schema::hasTable('categories')) {
+                    $categories = \Illuminate\Support\Facades\DB::table('categories')->get();
+                    return response()->json(['data' => $categories]);
+                }
+                return response()->json(['data' => []]);
+            });
         });
 
         // ==========================================

@@ -340,11 +340,16 @@ class EloquentDinamicaRepository implements DinamicaRepositoryInterface
 
     // === Admin/Management methods ===
 
-    public function getAllByUser(int $userId): array
+    public function getAllByUser(int $userId, ?int $courseId = null): array
     {
-        $dinamicas = Dinamica::with(['premios', 'triviaConfig', 'category'])
-            ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
+        $query = Dinamica::with(['premios', 'triviaConfig', 'category'])
+            ->where('user_id', $userId);
+            
+        if ($courseId) {
+            $query->where('course_id', $courseId);
+        }
+            
+        $dinamicas = $query->orderBy('created_at', 'desc')
             ->get();
 
         return $dinamicas->map(function ($d) {

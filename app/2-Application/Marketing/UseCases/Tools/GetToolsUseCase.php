@@ -10,9 +10,9 @@ class GetToolsUseCase
         private ToolRepositoryInterface $toolRepository
     ) {}
 
-    public function execute(int $userId): array
+    public function execute(int $userId, ?int $courseId = null): array
     {
-        $grouped = $this->toolRepository->getToolsByUser($userId);
+        $grouped = $this->toolRepository->getToolsByUser($userId, $courseId);
 
         // Aplanar en un solo array con campo 'type' (el frontend espera un array plano)
         $tools = [];

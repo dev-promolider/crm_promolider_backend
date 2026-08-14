@@ -13,6 +13,7 @@ class Dinamica extends Model
 
     protected $fillable = [
         'user_id',
+        'course_id',
         'category_id',
         'nombre',
         'tipo_dinamica',
@@ -67,5 +68,10 @@ class Dinamica extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(\App\Models\Infoproduct\Infoproduct::class, 'course_id');
     }
 }

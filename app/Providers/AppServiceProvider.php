@@ -17,6 +17,11 @@ class AppServiceProvider extends ServiceProvider
             \Promolider\Domain\Requests\Repositories\WithdrawalRequestRepositoryInterface::class,
             \Promolider\Infrastructure\Requests\Out\Persistence\EloquentWithdrawalRequestRepository::class
         );
+
+        $this->app->bind(
+            \Promolider\Domain\Preferences\Contracts\PreferencesRepositoryInterface::class,
+            \Promolider\Infrastructure\Preferences\Out\Persistence\EloquentPreferencesRepository::class
+        );
     }
 
     /**

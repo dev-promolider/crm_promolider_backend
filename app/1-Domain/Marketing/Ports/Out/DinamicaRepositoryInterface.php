@@ -32,7 +32,7 @@ interface DinamicaRepositoryInterface
     public function getCategoryQuestions(int $categoryId, bool $onlyActive = true): array;
 
     // === Admin/Management methods ===
-    public function getAllByUser(int $userId): array;
+    public function getAllByUser(int $userId, ?int $courseId = null): array;
     public function findById(int $id, int $userId): ?array;
     public function create(array $data): array;
     public function update(int $id, array $data, int $userId): array;

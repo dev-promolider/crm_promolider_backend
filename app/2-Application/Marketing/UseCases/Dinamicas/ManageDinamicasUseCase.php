@@ -12,10 +12,10 @@ class ManageDinamicasUseCase
         private DinamicaRepositoryInterface $dinamicaRepository
     ) {}
 
-    public function getAll(int $userId): array
+    public function getAll(int $userId, ?int $courseId = null): array
     {
         try {
-            return $this->dinamicaRepository->getAllByUser($userId);
+            return $this->dinamicaRepository->getAllByUser($userId, $courseId);
         } catch (\Throwable $th) {
             Log::error('Error al obtener dinámicas del usuario', [
                 'user_id' => $userId,
@@ -44,6 +44,7 @@ class ManageDinamicasUseCase
         try {
             $dinamica = $this->dinamicaRepository->create([
                 'user_id' => $userId,
+                'course_id' => $data['course_id'],
                 'category_id' => $data['category_id'] ?? null,
                 'nombre' => $data['nombre'],
                 'tipo_dinamica' => $data['tipo_dinamica'] ?? 'ruleta',
