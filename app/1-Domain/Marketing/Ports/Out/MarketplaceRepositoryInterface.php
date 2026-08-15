@@ -22,6 +22,12 @@ interface MarketplaceRepositoryInterface
     public function toggleMarketplaceVisibility(int $courseId): bool;
 
     /** @return array */
+    public function getCourses(array $filters = []): array;
+
+    /** @return array */
+    public function getCourseResources(int $courseId): array;
+
+    /** @return array */
     public function getCourseSubscribers(int $courseId): int;
 
     /** @return array|null */

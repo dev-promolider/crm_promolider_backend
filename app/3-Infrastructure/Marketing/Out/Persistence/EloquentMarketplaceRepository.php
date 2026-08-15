@@ -16,6 +16,73 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
         };
     }
 
+    public function getCourses(array $filters = []): array
+    {
+        $query = \App\Models\Infoproduct\Infoproduct::where('status', 1);
+
+        if (!empty($filters['search'])) {
+            $query->where('title', 'like', '%' . $filters['search'] . '%');
+        }
+
+        $page = $filters['page'] ?? 1;
+        $perPage = $filters['per_page'] ?? 12;
+
+        $results = $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return $results->toArray();
+    }
+
+    public function getCourseResources(int $courseId): array
+    {
+        $course = \App\Models\Infoproduct\Infoproduct::find($courseId);
+
+        $masterclasses = \App\Models\Masterclass::with(['images', 'category'])
+            ->where('course_id', $courseId)
+            ->where('status', '!=', 0)
+            ->get()
+            ->map(function ($item) {
+                $data = $item->toArray();
+                $data['category_name'] = $item->category->name ?? null;
+                $firstImage = $item->images->first();
+                $data['image'] = $firstImage && $firstImage->image ? $this->normalizeMediaUrl($firstImage->image) : null;
+                return $data;
+            })->toArray();
+
+        $ebooks = \App\Models\Ebook::with(['images', 'category'])
+            ->where('course_id', $courseId)
+            ->where('status', '!=', 0)
+            ->get()
+            ->map(function ($item) {
+                $data = $item->toArray();
+                $data['category_name'] = $item->category->name ?? null;
+                $firstImage = $item->images->first();
+                $data['image'] = $firstImage && $firstImage->image ? $this->normalizeMediaUrl($firstImage->image) : null;
+                return $data;
+            })->toArray();
+
+        $minicourses = \App\Models\Minicourse::with(['images', 'category'])
+            ->where('course_id', $courseId)
+            ->where('status', '!=', 0)
+            ->get()
+            ->map(function ($item) {
+                $data = $item->toArray();
+                $data['category_name'] = $item->category->name ?? null;
+                $firstImage = $item->images->first();
+                $data['image'] = $firstImage && $firstImage->image ? $this->normalizeMediaUrl($firstImage->image) : null;
+                return $data;
+            })->toArray();
+
+        return [
+            'course' => $course ? $course->toArray() : null,
+            'masterclasses' => $masterclasses,
+            'ebooks' => $ebooks,
+            'minicourses' => $minicourses,
+            'promotional_materials' => []
+        ];
+    }
+
+
     public function getMasterclasses(array $filters = []): array
     {
         $query = \App\Models\Masterclass::with(['images', 'category'])

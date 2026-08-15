@@ -10,6 +10,16 @@ class GetMarketplaceItemsUseCase
         private MarketplaceRepositoryInterface $marketplaceRepository
     ) {}
 
+    public function getCourses(array $filters = []): array
+    {
+        return $this->marketplaceRepository->getCourses($filters);
+    }
+
+    public function getCourseResources(int $courseId): array
+    {
+        return $this->marketplaceRepository->getCourseResources($courseId);
+    }
+
     public function getMasterclasses(array $filters = []): array
     {
         return $this->marketplaceRepository->getMasterclasses($filters);

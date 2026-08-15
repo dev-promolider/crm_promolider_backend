@@ -17,6 +17,29 @@ class MarketplaceController extends Controller
         private MarketplaceRepositoryInterface $marketplaceRepository,
     ) {}
 
+    public function getCourses(Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $filters = $request->only(['category_id', 'search', 'page', 'per_page']);
+            $data = $this->getMarketplaceItemsUseCase->getCourses($filters);
+            return response()->json(['success' => true, 'data' => $data]);
+        } catch (\Exception $e) {
+            Log::error('Error getting courses: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al obtener cursos'], 500);
+        }
+    }
+
+    public function getCourseResources(int $courseId): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $data = $this->getMarketplaceItemsUseCase->getCourseResources($courseId);
+            return response()->json(['success' => true, 'data' => $data]);
+        } catch (\Exception $e) {
+            Log::error('Error getting course resources: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al obtener recursos del curso'], 500);
+        }
+    }
+
     public function getMasterclasses(Request $request): \Illuminate\Http\JsonResponse
     {
         try {
