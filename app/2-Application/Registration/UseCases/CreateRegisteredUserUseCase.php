@@ -62,14 +62,18 @@ class CreateRegisteredUserUseCase
 
         if ($referrer) {
             $referrerPosition = $referrer['position'] ?? 0;
-            $position = $referrerPosition == 0 ? 'user_position_left' : 'user_position_right';
+            
+            // Priorizar la posición guardada en el preregistro/registro sobre el ajuste actual del sponsor
+            $chosenPosition = ($user->position !== null) ? $user->position : $referrerPosition;
+            
+            $position = $chosenPosition == 0 ? 'user_position_left' : 'user_position_right';
             $userAbove = $this->registrationRepository->getLastUserBeforeEmpty($user->idReferrerSponsor, $position);
 
             $this->registrationRepository->createClassified([
                 'user_id'        => $userId,
                 'id_user_sponsor' => $user->idReferrerSponsor,
                 'binary_sponsor' => $referrer['username'] ?? 'unknown',
-                'position'       => $referrerPosition,
+                'position'       => $chosenPosition,
                 'classification' => 16,
                 'status'         => '0',
                 'authorized'     => $user->isFreeTier() ? '0' : '1',

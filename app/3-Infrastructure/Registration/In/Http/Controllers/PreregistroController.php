@@ -120,7 +120,7 @@ class PreregistroController extends Controller
                 'tipo_cuenta'       => 'required|string|max:50',
                 'metodo_pago'       => 'required|string|max:50',
                 'referidor'         => 'required|string|max:255',
-                'lado'              => 'required|in:izquierda,derecha',
+                'lado'              => 'required|in:izquierda,derecha,automatico',
                 'preregistro_id'    => 'nullable|integer|exists:preregistros,id',
             ], [
                 'usuario.required'         => 'El nombre de usuario es obligatorio.',
@@ -253,7 +253,7 @@ class PreregistroController extends Controller
     public function saveConfig(Request $request)
     {
         $data = $request->validate([
-            'lado' => 'required|in:izquierda,derecha',
+            'lado' => 'required|in:izquierda,derecha,automatico',
             'landing' => 'required|in:claro,oscuro',
         ]);
 

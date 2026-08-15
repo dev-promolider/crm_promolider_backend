@@ -826,6 +826,8 @@ Route::group(['prefix' => 'admin/requests', 'middleware' => ['auth:sanctum']], f
 
     // Revisión de Exámenes (Exam Reviews)
     Route::get('exam-reviews', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'list'])->name('admin.requests.exam.reviews.index');
+    Route::get('exam-reviews/courses', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'courses'])->name('admin.requests.exam.reviews.courses');
+    Route::get('exam-reviews/courses/{courseId}/exams', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'courseExams'])->name('admin.requests.exam.reviews.courseExams');
     Route::get('exam-reviews/{headerId}/details', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'detailList'])->name('admin.requests.exam.reviews.details');
     Route::post('exam-reviews/update', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'update'])->name('admin.requests.exam.reviews.update');
 });

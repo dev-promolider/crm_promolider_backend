@@ -57,7 +57,8 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
         int $page,
         int $perPage,
         ?string $search = null,
-        ?int $productTypeId = null
+        ?int $productTypeId = null,
+        ?int $status = null
     ): array
     {
         $query = EloquentInfoproduct::where('user_id', $userId);
@@ -70,6 +71,11 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
         // Filtro por tipo de producto si se proporciona
         $query->when($productTypeId, function ($q) use ($productTypeId) {
             $q->where('product_type_id', $productTypeId);
+        });
+
+        // Filtro por estado si se proporciona
+        $query->when($status !== null, function ($q) use ($status) {
+            $q->where('status', $status);
         });
 
         // Paginación

@@ -17,7 +17,8 @@ class GetMyCreatedInfoproductsUseCase
         int $page = 1,
         int $perPage = 10,
         ?string $search = null,
-        ?int $productTypeId = null
+        ?int $productTypeId = null,
+        ?int $status = null
     ): array
     {
         // 1. Obtener infoproductos creados por el usuario
@@ -26,7 +27,8 @@ class GetMyCreatedInfoproductsUseCase
             $page,
             $perPage,
             $search,
-            $productTypeId
+            $productTypeId,
+            $status
         );
 
         // 2. (Validación eliminada: se devuelve la estructura vacía correctamente en lugar de lanzar una excepción)

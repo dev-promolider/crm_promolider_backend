@@ -25,6 +25,7 @@ class GetMyProductsController extends Controller
         // Filtros
         $search = $request->query('search');
         $productTypeId = $request->query('product_type_id');
+        $status = $request->has('status') && $request->query('status') !== '' && $request->query('status') !== null ? (int)$request->query('status') : null;
 
         if ($request->query('origin') === 'purchased') {
             $products = $this->getPurchasedUseCase->execute($userId);
@@ -36,7 +37,8 @@ class GetMyProductsController extends Controller
             $page,
             $perPage,
             $search,
-            $productTypeId
+            $productTypeId,
+            $status
         );
 
         return response()->json($products);

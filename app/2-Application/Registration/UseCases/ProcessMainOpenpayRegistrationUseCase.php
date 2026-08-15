@@ -10,7 +10,8 @@ class ProcessMainOpenpayRegistrationUseCase
 {
     public function __construct(
         private PaymentGatewayInterface $paymentGateway,
-        private RegistrationRepositoryInterface $registrationRepository
+        private RegistrationRepositoryInterface $registrationRepository,
+        private \App\Services\MLM\BinaryTreeService $binaryTreeService
     ) {}
 
     /**
@@ -73,7 +74,11 @@ class ProcessMainOpenpayRegistrationUseCase
         $chargeResult = $this->paymentGateway->createCharge($chargeData);
 
         // 5. Preparar datos del usuario no verificado
-        $binaryPosition = $validatedData['lado'] === 'izquierda' ? 0 : 1;
+        if ($validatedData['lado'] === 'automatico') {
+            $binaryPosition = $this->binaryTreeService->getWeakerLeg($sponsor['id']);
+        } else {
+            $binaryPosition = $validatedData['lado'] === 'izquierda' ? 0 : 1;
+        }
 
         $unverifiedData = [
             'username'         => $validatedData['usuario'],

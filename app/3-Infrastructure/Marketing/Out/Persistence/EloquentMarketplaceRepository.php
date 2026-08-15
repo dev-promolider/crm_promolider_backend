@@ -136,7 +136,13 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
         $course = \App\Models\Course::find($courseId);
         if (!$course) return false;
 
-        $course->marketplace_listed = !$course->marketplace_listed;
+        if ($course->marketplace_listed) {
+            $course->marketplace_listed = 0;
+            $course->status = 0; // Se pasa a inactivo
+        } else {
+            $course->marketplace_listed = 1;
+            $course->status = 2; // Se pasa a activo
+        }
         return $course->save();
     }
 
@@ -147,7 +153,7 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
 
     public function getMasterclassDetail(int $id): ?array
     {
-        $item = \App\Models\Masterclass::with(['images', 'category', 'documents'])->find($id);
+        $item = \App\Models\Masterclass::with(['images', 'category', 'documents', 'user'])->find($id);
         if (!$item) return null;
         $data = $item->toArray();
         $data['category_name'] = $item->category->name ?? null;
@@ -175,7 +181,7 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
 
     public function getEbookDetail(int $id): ?array
     {
-        $item = \App\Models\Ebook::with(['images', 'category', 'chapters'])->find($id);
+        $item = \App\Models\Ebook::with(['images', 'category', 'chapters', 'user'])->find($id);
         if (!$item) return null;
         $data = $item->toArray();
         $data['category_name'] = $item->category->name ?? null;
@@ -208,6 +214,7 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
             'category',
             'modules.classes.documents',
             'classes.documents',
+            'user'
         ])->find($id);
         if (!$item) return null;
         $data = $item->toArray();

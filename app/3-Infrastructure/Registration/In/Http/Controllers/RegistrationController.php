@@ -192,7 +192,7 @@ class RegistrationController extends Controller
                 'tipo_cuenta'       => 'required|string|max:50',
                 'metodo_pago'       => 'required|string|max:50',
                 'referidor'         => 'required|string|max:255',
-                'lado'              => 'required|in:izquierda,derecha',
+                'lado'              => 'required|in:izquierda,derecha,automatico',
             ], [
                 'usuario.required'         => 'El nombre de usuario es obligatorio.',
                 'usuario.min'              => 'El usuario debe tener al menos 4 caracteres.',

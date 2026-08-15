@@ -188,4 +188,71 @@ class BinaryTreeService
         
         return null;
     }
+
+    /**
+     * Determina la pierna más débil (menor volumen de puntos o cantidad de miembros) de un patrocinador.
+     * Retorna: 0 para Izquierda, 1 para Derecha.
+     */
+    public function getWeakerLeg(int $sponsorId): int
+    {
+        // 1. Comparar los puntos acumulados activos en la tabla points
+        $points = DB::table('points')
+            ->select('side', DB::raw('SUM(points) as total'))
+            ->where('sponsor_id', $sponsorId)
+            ->where('status', 1)
+            ->groupBy('side')
+            ->pluck('total', 'side')
+            ->toArray();
+
+        $leftPoints = (float) ($points[0] ?? 0);
+        $rightPoints = (float) ($points[1] ?? 0);
+
+        if ($leftPoints < $rightPoints) {
+            return 0; // Izquierda es más débil
+        } elseif ($rightPoints < $leftPoints) {
+            return 1; // Derecha es más débil
+        }
+
+        // 2. Fallback: Si los puntos son iguales, contamos los miembros en cada subárbol
+        $leftCount = $this->countBranchMembers($sponsorId, 0);
+        $rightCount = $this->countBranchMembers($sponsorId, 1);
+
+        if ($leftCount <= $rightCount) {
+            return 0; // Izquierda por defecto o si es menor
+        }
+        return 1;
+    }
+
+    private function countBranchMembers(int $sponsorId, int $position): int
+    {
+        // Obtener el hijo directo en esa posición
+        $directChild = DB::table('classified')
+            ->where('user_above', $sponsorId)
+            ->where('position', $position)
+            ->value('user_id');
+
+        if (!$directChild) {
+            return 0;
+        }
+
+        // Carga rápida del mapa de relaciones en memoria
+        $relations = DB::table('classified')
+            ->select('user_id', 'user_above')
+            ->whereNotNull('user_above')
+            ->get()
+            ->groupBy('user_above');
+
+        return $this->traverseAndCount($directChild, $relations);
+    }
+
+    private function traverseAndCount(int $currentId, $relations): int
+    {
+        $count = 1;
+        if (isset($relations[$currentId])) {
+            foreach ($relations[$currentId] as $child) {
+                $count += $this->traverseAndCount((int)$child->user_id, $relations);
+            }
+        }
+        return $count;
+    }
 }

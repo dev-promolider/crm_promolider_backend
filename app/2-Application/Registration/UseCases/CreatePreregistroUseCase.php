@@ -9,7 +9,9 @@ class CreatePreregistroUseCase
 {
     public function __construct(
         private PreregistroRepositoryInterface $preregistroRepository,
-        private NotificationServiceInterface $notificationService
+        private NotificationServiceInterface $notificationService,
+        private \Promolider\Domain\Registration\Ports\Out\RegistrationRepositoryInterface $registrationRepository,
+        private \App\Services\MLM\BinaryTreeService $binaryTreeService
     ) {}
 
     /**
@@ -53,13 +55,24 @@ class CreatePreregistroUseCase
         }
 
         // 4. Crear nuevo preregistro
+        $lado = $data['lado'] ?? null;
+        if ($lado === 'automatico') {
+            $sponsor = $this->registrationRepository->findSponsorByUsername($username);
+            if ($sponsor) {
+                $weakerLeg = $this->binaryTreeService->getWeakerLeg($sponsor['id']);
+                $lado = $weakerLeg === 0 ? 'izquierda' : 'derecha';
+            } else {
+                $lado = 'izquierda';
+            }
+        }
+
         $preregistro = $this->preregistroRepository->create([
             'nombres'           => $data['nombres'],
             'apellidos'         => $data['apellidos'],
             'correo'            => $email,
             'whatsapp'          => $data['whatsapp'],
             'referrer_username' => $username,
-            'lado'              => $data['lado'] ?? null,
+            'lado'              => $lado,
             'referrer_nombre'   => $data['referrer_nombre'] ?? '',
             'referrer_apellido' => $data['referrer_apellido'] ?? '',
             'referrer_correo'   => $data['referrer_correo'] ?? '',

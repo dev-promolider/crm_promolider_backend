@@ -14,6 +14,7 @@ interface InfoproductRepositoryInterface
         int $perPage,
         ?string $search = null,
         ?int $productTypeId = null,
+        ?int $status = null,
     ): array;
 
     public function findCourseById(int $courseId): ?Infoproduct;

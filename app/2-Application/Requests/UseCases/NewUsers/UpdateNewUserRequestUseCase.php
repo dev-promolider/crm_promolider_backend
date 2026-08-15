@@ -63,8 +63,8 @@ class UpdateNewUserRequestUseCase
 
             if (!Classified::where('user_id', $id_user)->exists()) {
                 $user_referrer_position = User::select('username', 'position')->where('id', $id_referrer_sponsor)->first();
-                $user->position = $user->position == 0 ? 1 : 0;
-                $position = $user_referrer_position->position == 0 ? 'user_position_left' : 'user_position_right';
+                $referrerPosition = $user_referrer_position->position ?? 0;
+                $position = $referrerPosition == 0 ? 'user_position_left' : 'user_position_right';
                 
                 $user_above = $this->newUserService->getLastUserBeforeEmpty($id_referrer_sponsor, $position);
 
@@ -72,7 +72,7 @@ class UpdateNewUserRequestUseCase
                     'user_id' => $id_user,
                     'id_user_sponsor' => $id_referrer_sponsor,
                     'binary_sponsor' => $user_referrer_position->username,
-                    'position' => $user->position,
+                    'position' => $referrerPosition,
                     'classification' => 16,
                     'status' => '0',
                     'authorized' => '0',
