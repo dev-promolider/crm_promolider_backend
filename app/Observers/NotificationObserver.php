@@ -17,14 +17,18 @@ class NotificationObserver
     {
         // Enviar evento de WebSockets para notificar en tiempo real al usuario
         if ($notification->id_receiver) {
-            broadcast(new NewNotificationEvent([
-                'id' => $notification->id,
-                'title' => $notification->title,
-                'body' => $notification->body,
-                'type' => $notification->type,
-                'photo' => null,
-                'id_receiver' => $notification->id_receiver,
-            ]))->toOthers();
+            try {
+                broadcast(new NewNotificationEvent([
+                    'id' => $notification->id,
+                    'title' => $notification->title,
+                    'body' => $notification->body,
+                    'type' => $notification->type,
+                    'photo' => null,
+                    'id_receiver' => $notification->id_receiver,
+                ]))->toOthers();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not broadcast notification: " . $e->getMessage());
+            }
         }
     }
 

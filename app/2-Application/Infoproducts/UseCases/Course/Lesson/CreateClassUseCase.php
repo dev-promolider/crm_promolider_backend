@@ -85,6 +85,7 @@ class CreateClassUseCase
 
             return [
                 'status' => 'ok',
+                'id' => $class->id,
                 'classes' => Clas::where('id_modules', $moduleId)->orderBy('order', 'asc')->get()->toArray()
             ];
 

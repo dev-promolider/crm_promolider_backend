@@ -17,13 +17,16 @@ class Infoproduct extends Model
         "product_type_id",
         "id_categories",
         "title",
+        "language",
         "slug",
         "area",
         "description",
+        "includes",
         "image",
         "currency",
         "price",
         "price_base",
+        "old_price",
         "ranking_by_user",
         "status",
         "course_for",
@@ -38,5 +41,9 @@ class Infoproduct extends Model
         "certificate",
         "instructor_signature_path",
         "months"
+    ];
+
+    protected $casts = [
+        'includes' => 'array',
     ];
 }

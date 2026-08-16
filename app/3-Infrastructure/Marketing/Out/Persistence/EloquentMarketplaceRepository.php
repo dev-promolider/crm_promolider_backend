@@ -18,17 +18,28 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
 
     public function getCourses(array $filters = []): array
     {
-        $query = \App\Models\Infoproduct\Infoproduct::where('status', 1);
+        $query = \App\Models\Infoproduct\Infoproduct::query()
+            ->select('courses.*', 'users.name as creator_name', 'users.last_name as creator_last_name')
+            ->leftJoin('users', 'courses.user_id', '=', 'users.id')
+            ->where('courses.status', 2)
+            ->where('courses.price', '>', 0);
 
         if (!empty($filters['search'])) {
-            $query->where('title', 'like', '%' . $filters['search'] . '%');
+            $query->where('courses.title', 'like', '%' . $filters['search'] . '%');
         }
 
         $page = $filters['page'] ?? 1;
-        $perPage = $filters['per_page'] ?? 12;
+        $perPage = $filters['per_page'] ?? 50;
 
-        $results = $query->orderBy('created_at', 'desc')
+        $results = $query->orderBy('courses.id', 'asc')
             ->paginate($perPage, ['*'], 'page', $page);
+
+        $results->getCollection()->transform(function ($item) {
+            $data = $item->toArray();
+            $data['creator'] = trim(($item->creator_name ?? '') . ' ' . ($item->creator_last_name ?? ''));
+            $data['category_name'] = $item->category->name ?? null;
+            return $data;
+        });
 
         return $results->toArray();
     }

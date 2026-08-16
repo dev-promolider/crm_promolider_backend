@@ -190,6 +190,7 @@ use Illuminate\Support\Facades\Route;
             Route::get('categories', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'getCategories']);
             Route::get('levels', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'levelsIndex']);
             Route::get('certificate-templates', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'templatesIndex']);
+            Route::post('{infoproductId}/send-review-request', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'sendReviewRequest']);
         });
 
         // ==========================================
@@ -198,6 +199,7 @@ use Illuminate\Support\Facades\Route;
         Route::prefix('course')->group(function () {
             Route::get('{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
             Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
+            Route::get('{courseId}/observations', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'getObservations'])->name('course.observations');
 
             Route::prefix('module')->group(function () {
                 Route::post('/store', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleController::class, 'store'])->name('module.store');
@@ -267,6 +269,9 @@ Route::group(['prefix' => 'marketing'], function () {
 
     // Marketplace (specific routes first - avoid {type} collisions)
     Route::group(['prefix' => 'marketplace'], function () {
+        Route::get('courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getCourses'])->name('marketing.marketplace.courses');
+        Route::get('courses/{id}/resources', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getCourseResources'])->name('marketing.marketplace.course_resources');
+        
         Route::get('masterclasses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getMasterclasses'])->name('marketing.marketplace.masterclasses');
         Route::get('ebooks', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getEbooks'])->name('marketing.marketplace.ebooks');
         Route::get('mini-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketplaceController::class, 'getMiniCourses'])->name('marketing.marketplace.mini_courses');

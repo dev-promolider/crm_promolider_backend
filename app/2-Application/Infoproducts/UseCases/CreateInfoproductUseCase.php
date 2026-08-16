@@ -33,8 +33,8 @@ class CreateInfoproductUseCase
         }
 
         if ($data['product_type_id'] === '1') {
-            if (!isset($data['id_categories']) || !isset($data['course_level_id']) || !isset($data['months']) || !isset($data['certificate'])) {
-                throw new Exception('Faltan campos requeridos para curso (categoría, nivel, meses, certificado)');
+            if (!isset($data['id_categories']) || !isset($data['course_level_id']) || !isset($data['certificate'])) {
+                throw new Exception('Faltan campos requeridos para curso (categoría, nivel, certificado)');
             }
         }
 
@@ -48,16 +48,20 @@ class CreateInfoproductUseCase
             'slug' => Str::slug($data['title']),
             'description' => $data['description'],
             'price_base' => $data['price_base'],
+            'old_price' => $data['old_price'] ?? null,
             'price' => $data['price'],
             'course_level_id' => $data['product_type_id'] === '1' ? $data['course_level_id'] : null,
             'course_about' => $data['course_about'],
             'will_learn' => $data['will_learn'],
             'prev_knowledge' => $data['prev_knowledge'],
             'course_for' => $data['course_for'],
+            'language' => $data['language'] ?? 'Español',
             'currency' => 'soles',
-            'months' => $data['product_type_id'] === '1' ? $data['months'] : null,
+            'course_time' => $data['product_type_id'] === '1' ? ($data['course_time'] ?? 0) : null,
+            'months' => null, // Deleting months
+            'includes' => isset($data['includes']) ? json_decode($data['includes'], true) : [],
             'certificate' => isset($data['certificate']) && ($data['certificate'] === 'true' || $data['certificate'] == 1) ? 1 : 0,
-            'status' => 0,
+            'status' => null,
             'marketplace_listed' => 1
         ];
 

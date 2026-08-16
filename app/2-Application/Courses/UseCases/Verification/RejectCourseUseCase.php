@@ -6,11 +6,11 @@ use App\Models\Course;
 use App\Models\CourseObservation;
 use App\Models\Notifications;
 use App\Models\User;
-use App\Services\PHPMailerService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Module;
 use App\Models\Clas;
+use Promolider\Infrastructure\Marketing\Out\Services\PHPMailerService;
 
 class RejectCourseUseCase
 {
@@ -45,7 +45,7 @@ class RejectCourseUseCase
                 }
 
                 $courseObservation = new CourseObservation();
-                $courseObservation->id_course = $courseId;
+                $courseObservation->id_courses = $courseId;
                 $courseObservation->id_analyst = $analystId;
                 $courseObservation->id_class = $idClass;
                 $courseObservation->observation = $observationText;
@@ -83,7 +83,7 @@ class RejectCourseUseCase
         try {
             $phpMailerService = new PHPMailerService();
             $category = \App\Models\Category::find($course->id_categories);
-            $level = \App\Models\CourseLevel::find($course->course_level_id);
+            $level = DB::table('course_level')->where('id', $course->course_level_id)->first();
 
             $courseData = [
                 'id' => $course->id,
