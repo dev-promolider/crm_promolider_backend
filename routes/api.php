@@ -107,9 +107,18 @@ use Illuminate\Support\Facades\Route;
                     ->select(
                         'courses.id', 'courses.title', 'courses.url_portada', 'courses.slug', 
                         'courses.ranking_by_user', 'courses.description', 'courses.price',
-                        'purchased_courses.progress', 'users.name as author_name', 'users.last_name as author_lastname'
+                        'purchased_courses.progress', 'users.id as author_id',
+                        'users.name as author_name', 'users.last_name as author_lastname',
+                        'users.photo as author_photo'
                     )
-                    ->get();
+                    ->get()
+                    ->map(function ($course) {
+                        $photo = $course->author_photo;
+                        if ($photo && !str_starts_with($photo, 'http')) {
+                            $course->author_photo = "https://promolider-storage-user.s3.sa-east-1.amazonaws.com/{$photo}";
+                        }
+                        return $course;
+                    });
                 return response()->json(['data' => $courses]);
             });
             // VCR backward compat: inscripción directa a cursos (incluyendo gratuitos, sin pasarela de pago)
@@ -831,3 +840,18 @@ Route::group(['prefix' => 'admin/requests', 'middleware' => ['auth:sanctum']], f
     Route::get('exam-reviews/{headerId}/details', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'detailList'])->name('admin.requests.exam.reviews.details');
     Route::post('exam-reviews/update', [\Promolider\Infrastructure\ExamReviews\In\Http\Controllers\ExamReviewController::class, 'update'])->name('admin.requests.exam.reviews.update');
 });
+
+// ==========================================
+// Módulo: Chat (Conversaciones y Mensajes)
+// ==========================================
+Route::group(['prefix' => 'conversations', 'middleware' => ['auth:sanctum']], function () {
+    Route::get('/', [\App\Http\Controllers\ConversationController::class, 'index'])->name('chat.conversations.index');
+    Route::post('/', [\App\Http\Controllers\ConversationController::class, 'store'])->name('chat.conversations.store');
+    Route::get('{conversationId}/messages', [\App\Http\Controllers\MessageController::class, 'index'])->name('chat.messages.index');
+    Route::post('{conversationId}/messages', [\App\Http\Controllers\MessageController::class, 'store'])->name('chat.messages.store');
+});
+
+// Autenticación de canales privados (tiempo real) con token de Sanctum
+Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+    return \Illuminate\Support\Facades\Broadcast::auth($request);
+})->middleware('auth:sanctum')->name('broadcasting.auth');
