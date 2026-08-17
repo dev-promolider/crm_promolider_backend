@@ -184,6 +184,7 @@ use Illuminate\Support\Facades\Route;
         Route::prefix('me')->group(function () {
             Route::get('infoproducts', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\GetMyProductsController::class)->name('profile.infoproducts');
             Route::post('infoproducts', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\CreateInfoproductController::class)->name('profile.infoproducts.create');
+            Route::post('infoproducts/{id}', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\UpdateInfoproductController::class);
         });
 
         Route::prefix('infoproducts')->group(function () {
@@ -191,6 +192,7 @@ use Illuminate\Support\Facades\Route;
             Route::get('levels', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\GamificationController::class, 'levelsIndex']);
             Route::get('certificate-templates', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'templatesIndex']);
             Route::post('{infoproductId}/send-review-request', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'sendReviewRequest']);
+            Route::delete('{id}', \Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Me\DeleteInfoproductController::class);
         });
 
         // ==========================================

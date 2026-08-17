@@ -1096,7 +1096,6 @@ class CoursesController extends Controller
                 ->whereNotIn('courses.id', $purchasedIds)
                 ->where('courses.status', 2)
                 ->where('courses.marketplace_listed', 1)
-                ->where('courses.user_id', '!=', $userId)
                 ->select(
                     'courses.id', 'courses.product_type_id', 'courses.title', 'courses.slug',
                     'courses.description', 'courses.path_url', 'courses.url_portada',
@@ -1117,7 +1116,6 @@ class CoursesController extends Controller
                     ->whereNotIn('courses.id', $purchasedIds)
                     ->where('courses.status', 2)
                     ->where('courses.marketplace_listed', 1)
-                    ->where('courses.user_id', '!=', $userId)
                     ->select(
                         'courses.id', 'courses.product_type_id', 'courses.title', 'courses.slug',
                         'courses.description', 'courses.path_url', 'courses.url_portada',

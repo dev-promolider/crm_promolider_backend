@@ -6,8 +6,7 @@ use App\Models\Course;
 use App\Models\User;
 use App\Models\Notifications;
 use App\Models\Category;
-use App\Models\CourseLevel;
-use App\Services\PHPMailerService;
+use Promolider\Infrastructure\Marketing\Out\Services\PHPMailerService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,6 +18,7 @@ class ApproveCourseUseCase
             DB::beginTransaction();
             $course = Course::findOrFail($courseId);
             $course->status = 2;
+            $course->marketplace_listed = 1;
             $course->update();
 
             $title = 'Infoproducto aprobado';
@@ -55,7 +55,7 @@ class ApproveCourseUseCase
         try {
             $phpMailerService = new PHPMailerService();
             $category = Category::find($course->id_categories);
-            $level = CourseLevel::find($course->course_level_id);
+            $level = DB::table('course_level')->where('id', $course->course_level_id)->first();
 
             $courseData = [
                 'id' => $course->id,

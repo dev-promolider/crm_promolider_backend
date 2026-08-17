@@ -479,7 +479,6 @@ class EloquentCourseRepository implements CourseRepositoryInterface
             )
             ->where('courses.status', 2)
             ->where('courses.marketplace_listed', 1)
-            ->where('courses.user_id', '!=', $userId)
             ->orderBy('courses.created_at', 'DESC');
 
         if (!empty($purchasedIds)) {
@@ -544,7 +543,7 @@ class EloquentCourseRepository implements CourseRepositoryInterface
         // Preserve order from the subquery
         $ordered = implode(',', $courseIds);
         return Course::whereIn('id', $courseIds)
-            ->orderByRaw(\DB::raw("FIELD(id, {$ordered})"))
+            ->orderByRaw(DB::raw("FIELD(id, {$ordered})"))
             ->get()
             ->toArray();
     }
@@ -576,9 +575,9 @@ class EloquentCourseRepository implements CourseRepositoryInterface
             'users.last_name',
             'users.photo',
             'users.username',
-            \DB::raw('SUM(classroom_point_details.increment_points) as total_points'),
-            \DB::raw('AVG(classroom_point_details.completion_time) as avg_time'),
-            \DB::raw('MAX(classroom_point_details.created_at) as last_played')
+            DB::raw('SUM(classroom_point_details.increment_points) as total_points'),
+            DB::raw('AVG(classroom_point_details.completion_time) as avg_time'),
+            DB::raw('MAX(classroom_point_details.created_at) as last_played')
         )
         ->groupBy('users.id', 'users.name', 'users.last_name', 'users.photo', 'users.username')
         ->orderBy('total_points', 'DESC')

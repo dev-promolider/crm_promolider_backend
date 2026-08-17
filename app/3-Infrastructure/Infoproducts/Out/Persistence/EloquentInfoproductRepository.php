@@ -46,6 +46,8 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
                 $infoproduct->certificate,
                 $infoproduct->certificate_template_id,
                 $infoproduct->marketplace_listed,
+                $infoproduct->old_price,
+                $infoproduct->language,
                 $infoproduct->created_at ? (string) $infoproduct->created_at : null,
                 $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
             );
@@ -111,6 +113,8 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
                 $infoproduct->certificate,
                 $infoproduct->certificate_template_id,
                 $infoproduct->marketplace_listed,
+                $infoproduct->old_price,
+                $infoproduct->language,
                 $infoproduct->created_at ? (string) $infoproduct->created_at : null,
                 $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
             );
@@ -166,6 +170,8 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
             $infoproduct->certificate,
             $infoproduct->certificate_template_id,
             $infoproduct->marketplace_listed,
+            $infoproduct->old_price,
+            $infoproduct->language,
             $infoproduct->created_at ? (string) $infoproduct->created_at : null,
             $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
         );
@@ -184,5 +190,35 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
     {
         $infoproduct = EloquentInfoproduct::create($data);
         return $infoproduct->toArray();
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        try {
+            $infoproduct = EloquentInfoproduct::find($id);
+            if (!$infoproduct) {
+                return false;
+            }
+            return $infoproduct->update($data);
+        } catch (\Exception $e) {
+            Log::error('Error actualizando el infoproducto: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function delete(int $id): bool
+    {
+        try {
+            $infoproduct = EloquentInfoproduct::find($id);
+            if (!$infoproduct) {
+                return false;
+            }
+            // Soft delete - set status to 0 (inactive)
+            $infoproduct->status = 0;
+            return $infoproduct->save();
+        } catch (\Exception $e) {
+            Log::error('Error eliminando (inactivando) el infoproducto: ' . $e->getMessage());
+            return false;
+        }
     }
 }

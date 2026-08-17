@@ -34,6 +34,8 @@ class Infoproduct implements JsonSerializable
         private ?string $certificate,
         private ?string $certificate_template_id,
         private ?string $marketplace_listed,
+        private ?float $old_price = null,
+        private ?string $language = null,
         private ?string $created_at = null,
         private ?string $updated_at = null
     ) {}
@@ -68,6 +70,8 @@ class Infoproduct implements JsonSerializable
             'certificate' => $this->certificate,
             'certificate_template_id' => $this->certificate_template_id,
             'marketplace_listed' => $this->marketplace_listed,
+            'old_price' => $this->old_price,
+            'language' => $this->language,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at
         ];
@@ -101,6 +105,8 @@ class Infoproduct implements JsonSerializable
     public function getCertificate(): ?string { return $this->certificate; }
     public function getCertificateTemplateId(): ?string { return $this->certificate_template_id; }
     public function getMarketplaceListed(): ?string { return $this->marketplace_listed; }
+    public function getOldPrice(): ?float { return $this->old_price; }
+    public function getLanguage(): ?string { return $this->language; }
     public function getCreatedAt(): ?string { return $this->created_at; }
     public function getUpdatedAt(): ?string { return $this->updated_at; }
 
