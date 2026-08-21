@@ -199,6 +199,11 @@ use Illuminate\Support\Facades\Route;
         // Módulo: Cursos
         // ==========================================
         Route::prefix('course')->group(function () {
+            // Archivos del libro (Gestionar contenido) — literales antes que {courseId}
+            Route::delete('book-files/{bookFileId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'destroy'])->name('course.book_files.destroy');
+            Route::get('{courseId}/book-files', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'index'])->name('course.book_files.index');
+            Route::post('{courseId}/book-files', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'store'])->name('course.book_files.store');
+
             Route::get('{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');
             Route::get('/{courseId}/modulesList', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'modulesList'])->name('course.modulesList');
             Route::get('{courseId}/observations', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'getObservations'])->name('course.observations');

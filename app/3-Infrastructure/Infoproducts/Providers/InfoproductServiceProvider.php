@@ -3,10 +3,12 @@
 namespace Promolider\Infrastructure\Infoproducts\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Promolider\Domain\Infoproducts\Ports\Out\BookFileRepositoryInterface;
 use Promolider\Domain\Infoproducts\Ports\Out\InfoproductRepositoryInterface;
 use Promolider\Domain\Infoproducts\Ports\Out\CourseRepositoryInterface;
 use Promolider\Domain\Infoproducts\Ports\Out\ModuleClassRepositoryInterface;
 use Promolider\Domain\Infoproducts\Ports\Out\ModuleRepositoryInterface;
+use Promolider\Infrastructure\Infoproducts\Out\Persistence\EloquentBookFileRepository;
 use Promolider\Infrastructure\Infoproducts\Out\Persistence\EloquentInfoproductRepository;
 use Promolider\Infrastructure\Infoproducts\Out\Persistence\EloquentCourseRepository;
 use Promolider\Infrastructure\Infoproducts\Out\Persistence\EloquentModuleClassRepository;
@@ -20,6 +22,7 @@ class InfoproductServiceProvider extends ServiceProvider
         $this->app->bind(CourseRepositoryInterface::class, EloquentCourseRepository::class);
         $this->app->bind(ModuleClassRepositoryInterface::class, EloquentModuleClassRepository::class);
         $this->app->bind(ModuleRepositoryInterface::class, EloquentModuleRepository::class);
+        $this->app->bind(BookFileRepositoryInterface::class, EloquentBookFileRepository::class);
     }
 
     public function boot()

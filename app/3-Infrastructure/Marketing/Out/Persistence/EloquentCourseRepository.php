@@ -303,7 +303,7 @@ class EloquentCourseRepository implements CourseRepositoryInterface
 
     public function listRatings(int $courseId): array
     {
-        return CourseRate::where('id_courses', $courseId)
+        return CourseRate::where('course_id', $courseId)
             ->with('user:id,name')
             ->orderBy('created_at', 'desc')
             ->get()
@@ -313,14 +313,14 @@ class EloquentCourseRepository implements CourseRepositoryInterface
     public function createRating(int $userId, int $courseId, int $points, ?string $commentary): array
     {
         $rating = CourseRate::create([
-            'id_user' => $userId,
-            'id_courses' => $courseId,
-            'points' => $points,
+            'user_id' => $userId,
+            'course_id' => $courseId,
+            'rate' => $points,
             'commentary' => $commentary,
         ]);
 
         // Update average rating on course
-        $avg = CourseRate::where('id_courses', $courseId)->avg('points');
+        $avg = CourseRate::where('course_id', $courseId)->avg('rate');
         Course::where('id', $courseId)->update(['ranking_by_user' => round($avg, 1)]);
 
         return $rating->toArray();

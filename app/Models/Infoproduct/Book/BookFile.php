@@ -1,31 +1,29 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Infoproduct\Book;
 
+use App\Models\Course;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class CourseRate extends Model
+class BookFile extends Model
 {
     use HasFactory;
 
-    protected $table = 'course_rates';
+    protected $table = 'book_files';
 
     protected $fillable = [
-        'user_id',
         'course_id',
-        'rate',
-        'commentary',
+        'file_type',
+        'file_name',
+        'file_path',
+        'mime_type',
+        'size',
     ];
 
     protected $casts = [
-        'rate' => 'float',
+        'size' => 'integer',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
 
     public function course()
     {
