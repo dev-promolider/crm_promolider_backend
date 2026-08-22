@@ -19,10 +19,12 @@ class BookFile extends Model
         'file_path',
         'mime_type',
         'size',
+        'is_preview',
     ];
 
     protected $casts = [
         'size' => 'integer',
+        'is_preview' => 'boolean',
     ];
 
     public function course()

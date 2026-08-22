@@ -7,6 +7,8 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Log;
 use Promolider\Application\Infoproducts\UseCases\Book\DeleteBookFileUseCase;
 use Promolider\Application\Infoproducts\UseCases\Book\GetBookFilesUseCase;
+use Promolider\Application\Infoproducts\UseCases\Book\GetBookPreviewUseCase;
+use Promolider\Application\Infoproducts\UseCases\Book\SetBookPreviewUseCase;
 use Promolider\Application\Infoproducts\UseCases\Book\StoreBookFileUseCase;
 use Throwable;
 
@@ -15,7 +17,9 @@ class BookFileController extends BaseController
     public function __construct(
         private GetBookFilesUseCase $getBookFilesUseCase,
         private StoreBookFileUseCase $storeBookFileUseCase,
-        private DeleteBookFileUseCase $deleteBookFileUseCase
+        private DeleteBookFileUseCase $deleteBookFileUseCase,
+        private SetBookPreviewUseCase $setBookPreviewUseCase,
+        private GetBookPreviewUseCase $getBookPreviewUseCase
     ) {}
 
     public function index(Request $request, int $courseId)
@@ -61,7 +65,8 @@ class BookFileController extends BaseController
             $bookFile = $this->storeBookFileUseCase->execute(
                 $courseId,
                 $request->file('file'),
-                $request->user()
+                $request->user(),
+                $request->boolean('is_preview')
             );
 
             return response()->json([
@@ -80,6 +85,62 @@ class BookFileController extends BaseController
                 'success' => false,
                 'message' => $th->getMessage(),
             ], 422);
+        }
+    }
+
+    /**
+     * Marca o desmarca el archivo como muestra gratuita del libro.
+     */
+    public function togglePreview(Request $request, int $bookFileId)
+    {
+        try {
+            $activo = $this->setBookPreviewUseCase->execute($bookFileId, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'is_preview' => $activo,
+                'message' => $activo
+                    ? 'El archivo se ofrece ahora como vista previa.'
+                    : 'El libro ya no tiene vista previa.',
+            ], 200);
+
+        } catch (Throwable $th) {
+            Log::error('Error marcando la vista previa del libro', [
+                'book_file_id' => $bookFileId,
+                'error' => $th->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $th->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Muestra gratuita para la ficha de venta del marketplace.
+     */
+    public function preview(int $courseId)
+    {
+        try {
+            $preview = $this->getBookPreviewUseCase->execute($courseId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $preview,
+            ], 200);
+
+        } catch (Throwable $th) {
+            Log::error('Error obteniendo la vista previa del libro', [
+                'course_id' => $courseId,
+                'error' => $th->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => $th->getMessage(),
+            ], 400);
         }
     }
 

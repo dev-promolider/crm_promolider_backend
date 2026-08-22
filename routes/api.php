@@ -201,6 +201,7 @@ use Illuminate\Support\Facades\Route;
         Route::prefix('course')->group(function () {
             // Archivos del libro (Gestionar contenido) — literales antes que {courseId}
             Route::delete('book-files/{bookFileId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'destroy'])->name('course.book_files.destroy');
+            Route::patch('book-files/{bookFileId}/preview', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'togglePreview'])->name('course.book_files.preview');
             Route::get('{courseId}/book-files', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'index'])->name('course.book_files.index');
             Route::post('{courseId}/book-files', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'store'])->name('course.book_files.store');
 
@@ -465,6 +466,8 @@ Route::group(['prefix' => 'marketing'], function () {
         Route::get('producer/{producerId}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'listProducer'])->name('marketing.courses.producer');
         Route::get('student-dashboard', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'studentDashboard'])->name('marketing.courses.student_dashboard')->middleware('auth:sanctum');
         Route::get('congratulations', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\ExamsController::class, 'getCongratulations'])->name('marketing.courses.congratulations')->middleware('auth:sanctum');
+        // Muestra gratuita del libro para la ficha de venta (público, como el resto de la ficha)
+        Route::get('{courseId}/book-preview', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'preview'])->name('marketing.courses.book_preview');
         Route::get('{courseId}/related', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'relatedCourses'])->name('marketing.courses.related');
         Route::get('{courseId}/expiration', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'expiration'])->name('marketing.courses.expiration')->middleware('auth:sanctum');
         Route::get('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'show'])->name('marketing.courses.show')->whereNumber('id');

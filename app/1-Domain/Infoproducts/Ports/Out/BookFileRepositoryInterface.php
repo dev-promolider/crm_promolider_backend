@@ -21,4 +21,15 @@ interface BookFileRepositoryInterface
     public function findById(int $bookFileId): ?array;
 
     public function delete(int $bookFileId): bool;
+
+    /**
+     * Archivo ofrecido como muestra gratuita del libro, si lo hay.
+     */
+    public function findPreviewByCourseId(int $courseId): ?array;
+
+    /**
+     * Marca un archivo como muestra gratuita y desmarca cualquier otro del
+     * mismo libro. Con $bookFileId nulo, el libro se queda sin muestra.
+     */
+    public function setPreview(int $courseId, ?int $bookFileId): void;
 }

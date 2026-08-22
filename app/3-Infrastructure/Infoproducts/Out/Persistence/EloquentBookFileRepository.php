@@ -3,6 +3,7 @@
 namespace Promolider\Infrastructure\Infoproducts\Out\Persistence;
 
 use App\Models\Infoproduct\Book\BookFile;
+use Illuminate\Support\Facades\Log;
 use Promolider\Domain\Infoproducts\Ports\Out\BookFileRepositoryInterface;
 
 class EloquentBookFileRepository implements BookFileRepositoryInterface
@@ -49,6 +50,34 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
         return (bool) $file->delete();
     }
 
+    public function findPreviewByCourseId(int $courseId): ?array
+    {
+        $file = BookFile::where('course_id', $courseId)
+            ->where('is_preview', true)
+            ->first();
+
+        if (!$file) {
+            return null;
+        }
+
+        return array_merge($this->toArray($file), [
+            'url' => $this->inlinePreviewUrl($file->file_path),
+        ]);
+    }
+
+    public function setPreview(int $courseId, ?int $bookFileId): void
+    {
+        BookFile::where('course_id', $courseId)
+            ->where('is_preview', true)
+            ->update(['is_preview' => false]);
+
+        if ($bookFileId !== null) {
+            BookFile::where('course_id', $courseId)
+                ->where('id', $bookFileId)
+                ->update(['is_preview' => true]);
+        }
+    }
+
     private function toArray(BookFile $file): array
     {
         return [
@@ -59,6 +88,7 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
             'file_path' => $file->file_path,
             'mime_type' => $file->mime_type,
             'size' => (int) $file->size,
+            'is_preview' => (bool) $file->is_preview,
             'url' => $this->normalizeMediaUrl($file->file_path),
             'created_at' => $file->created_at,
         ];
@@ -81,12 +111,59 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
         $path = preg_replace('#(?<!:)//+#', '/', $path);
         $path = ltrim($path, '/');
 
+        // Los nombres de archivo suelen traer espacios y tildes; sin codificar,
+        // la URL no resuelve.
+        $encoded = implode('/', array_map('rawurlencode', explode('/', $path)));
+
         $storageDomain = rtrim(config('app.storage_domain', env('STORAGE_DOMAIN', '')), '/');
 
         if ($storageDomain) {
-            return $storageDomain . '/' . $path;
+            return $storageDomain . '/' . $encoded;
         }
 
-        return asset($path);
+        return asset($encoded);
+    }
+
+    /**
+     * URL firmada que obliga a S3 a devolver el archivo como PDF incrustable.
+     *
+     * Los archivos subidos antes de corregir el ContentType están guardados
+     * como application/octet-stream, y con ese tipo el navegador los descarga
+     * en lugar de mostrarlos: el visor de la muestra saldría en blanco. Los
+     * parámetros response-* solo los respeta S3 en peticiones firmadas.
+     */
+    private function inlinePreviewUrl(?string $path): ?string
+    {
+        if (!$path || str_starts_with($path, 'http')) {
+            return $this->normalizeMediaUrl($path);
+        }
+
+        try {
+            $s3Client = new \Aws\S3\S3Client([
+                'version' => 'latest',
+                'region' => config('filesystems.disks.s3.region'),
+                'credentials' => [
+                    'key' => config('filesystems.disks.s3.key'),
+                    'secret' => config('filesystems.disks.s3.secret'),
+                ],
+            ]);
+
+            $command = $s3Client->getCommand('GetObject', [
+                'Bucket' => config('filesystems.disks.s3.bucket'),
+                'Key' => ltrim($path, '/'),
+                'ResponseContentType' => 'application/pdf',
+                'ResponseContentDisposition' => 'inline',
+            ]);
+
+            return (string) $s3Client->createPresignedRequest($command, '+60 minutes')->getUri();
+
+        } catch (\Throwable $th) {
+            Log::warning('No se pudo firmar la URL de la muestra del libro', [
+                'path' => $path,
+                'error' => $th->getMessage(),
+            ]);
+
+            return $this->normalizeMediaUrl($path);
+        }
     }
 }

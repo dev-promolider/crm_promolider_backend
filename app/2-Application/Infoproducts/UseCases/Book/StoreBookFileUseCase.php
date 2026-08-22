@@ -23,7 +23,10 @@ class StoreBookFileUseCase
         private InfoproductRepositoryInterface $infoproductRepository
     ) {}
 
-    public function execute(int $courseId, UploadedFile $file, User $user): array
+    /**
+     * @param bool $asPreview El archivo se sube como muestra gratuita del libro.
+     */
+    public function execute(int $courseId, UploadedFile $file, User $user, bool $asPreview = false): array
     {
         $infoproduct = $this->infoproductRepository->findCourseById($courseId);
 
@@ -45,6 +48,10 @@ class StoreBookFileUseCase
             throw new Exception('El formato ' . strtoupper($extension) . ' no está permitido.');
         }
 
+        if ($asPreview && !in_array($extension, SetBookPreviewUseCase::PREVIEWABLE_FORMATS, true)) {
+            throw new Exception('La muestra gratuita debe ser un archivo PDF.');
+        }
+
         if ($this->bookFileRepository->countByCourseId($courseId) >= self::MAX_FILES) {
             throw new Exception('Este libro ya alcanzó el máximo de ' . self::MAX_FILES . ' archivos.');
         }
@@ -61,9 +68,9 @@ class StoreBookFileUseCase
         $filename = $file->getClientOriginalName();
         $path = 'books/' . $ownerId . '/' . $courseId . '/' . Str::uuid()->toString();
 
-        $this->uploadToS3($file, $path . '/' . $filename);
+        $this->uploadToS3($file, $path . '/' . $filename, $file->getMimeType());
 
-        return $this->bookFileRepository->create([
+        $bookFile = $this->bookFileRepository->create([
             'course_id' => $courseId,
             'file_type' => $extension,
             'file_name' => $filename,
@@ -71,9 +78,22 @@ class StoreBookFileUseCase
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
         ]);
+
+        if ($asPreview) {
+            // Solo puede haber una muestra: la nueva sustituye a la anterior.
+            $this->bookFileRepository->setPreview($courseId, $bookFile['id']);
+            $bookFile['is_preview'] = true;
+        }
+
+        return $bookFile;
     }
 
-    private function uploadToS3(UploadedFile $file, string $key): void
+    /**
+     * Sin ContentType explícito S3 guarda el objeto como
+     * application/octet-stream y el navegador lo descarga en vez de mostrarlo,
+     * con lo que la vista previa incrustada sale en blanco.
+     */
+    private function uploadToS3(UploadedFile $file, string $key, ?string $mimeType): void
     {
         $s3Client = new \Aws\S3\S3Client([
             'version' => 'latest',
@@ -87,7 +107,11 @@ class StoreBookFileUseCase
         $uploader = new \Aws\S3\MultipartUploader($s3Client, $file->getRealPath(), [
             'bucket' => config('filesystems.disks.s3.bucket'),
             'key' => $key,
-            'ACL' => 'public-read',
+            'before_initiate' => function (\Aws\Command $command) use ($mimeType) {
+                $command['ACL'] = 'public-read';
+                $command['ContentType'] = $mimeType ?: 'application/octet-stream';
+                $command['ContentDisposition'] = 'inline';
+            },
         ]);
 
         $uploader->upload();
