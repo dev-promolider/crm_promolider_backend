@@ -10,10 +10,16 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
 {
     public function findByCourseId(int $courseId): array
     {
+        // El dueño siempre puede descargar sus propios archivos, así que aquí
+        // la URL va firmada como descarga (los objetos nuevos son privados).
         return BookFile::where('course_id', $courseId)
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(fn (BookFile $file) => $this->toArray($file))
+            ->map(function (BookFile $file) {
+                return array_merge($this->toArray($file), [
+                    'url' => $this->temporaryUrl($file->file_path, $file->file_name, true),
+                ]);
+            })
             ->all();
     }
 
@@ -124,6 +130,21 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
         return asset($encoded);
     }
 
+    public function temporaryUrl(string $path, string $fileName, bool $descargable): ?string
+    {
+        if (str_starts_with($path, 'http')) {
+            return $this->normalizeMediaUrl($path);
+        }
+
+        $disposicion = $descargable
+            ? 'attachment; filename="' . addslashes($fileName) . '"'
+            : 'inline';
+
+        return $this->signedUrl($path, [
+            'ResponseContentDisposition' => $disposicion,
+        ]);
+    }
+
     /**
      * URL firmada que obliga a S3 a devolver el archivo como PDF incrustable.
      *
@@ -138,6 +159,21 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
             return $this->normalizeMediaUrl($path);
         }
 
+        return $this->signedUrl($path, [
+            'ResponseContentType' => 'application/pdf',
+            'ResponseContentDisposition' => 'inline',
+        ]);
+    }
+
+    /**
+     * Firma una URL de S3 durante 60 minutos.
+     *
+     * Los parámetros Response* solo los respeta S3 en peticiones firmadas, y
+     * son los que permiten servir el archivo como PDF incrustable o como
+     * descarga según convenga.
+     */
+    private function signedUrl(string $path, array $responseHeaders): ?string
+    {
         try {
             $s3Client = new \Aws\S3\S3Client([
                 'version' => 'latest',
@@ -148,17 +184,15 @@ class EloquentBookFileRepository implements BookFileRepositoryInterface
                 ],
             ]);
 
-            $command = $s3Client->getCommand('GetObject', [
+            $command = $s3Client->getCommand('GetObject', array_merge([
                 'Bucket' => config('filesystems.disks.s3.bucket'),
                 'Key' => ltrim($path, '/'),
-                'ResponseContentType' => 'application/pdf',
-                'ResponseContentDisposition' => 'inline',
-            ]);
+            ], $responseHeaders));
 
             return (string) $s3Client->createPresignedRequest($command, '+60 minutes')->getUri();
 
         } catch (\Throwable $th) {
-            Log::warning('No se pudo firmar la URL de la muestra del libro', [
+            Log::warning('No se pudo firmar la URL del archivo del libro', [
                 'path' => $path,
                 'error' => $th->getMessage(),
             ]);
