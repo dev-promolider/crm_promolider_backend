@@ -23,12 +23,18 @@ class NewNotificationEvent implements ShouldBroadcastNow
     public $id_receiver;
 
     /**
+     * Datos originales (incluye extras como id_generator / conversation_id).
+     */
+    public array $data;
+
+    /**
      * Create a new event instance.
      *
      * @return void
      */
     public function __construct(array $data)
     {
+        $this->data = $data;
         $this->id = $data['id'] ?? null;
         $this->title = $data['title'];
         $this->body = $data['body'];
@@ -60,6 +66,8 @@ class NewNotificationEvent implements ShouldBroadcastNow
             'body' => $this->body,
             'type' => $this->type,
             'photo' => $this->photo,
+            'id_generator' => $this->data['id_generator'] ?? null,
+            'conversation_id' => $this->data['conversation_id'] ?? null,
             'created_at' => now()->toISOString(),
         ];
     }

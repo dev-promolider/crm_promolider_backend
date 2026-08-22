@@ -15,10 +15,17 @@ class NotificationController extends Controller
     {
         $userId = $request->user()->id;
 
-        // Fetch notifications from the custom 'notifications' table
-        $notifications = DB::table('notifications')
-            ->where('id_receiver', $userId)
-            ->orderBy('created_at', 'desc')
+        // Fetch notifications from the custom 'notifications' table.
+        // Las notificaciones de chat (type chat_message) son exclusivas del Aula
+        // Virtual: se excluyen por defecto y solo se incluyen con ?with_chat=1.
+        $query = DB::table('notifications')
+            ->where('id_receiver', $userId);
+
+        if ($request->query('with_chat') !== '1') {
+            $query->where('type', '!=', \App\Models\Notifications::TYPE_CHAT_MESSAGE);
+        }
+
+        $notifications = $query->orderBy('created_at', 'desc')
             ->take(50)
             ->get();
 
@@ -46,6 +53,7 @@ class NotificationController extends Controller
 
             return [
                 'id' => $notif->id,
+                'id_generator' => $notif->id_generator,
                 'title' => $notif->title,
                 'body' => $notif->body,
                 'type' => $notif->type,

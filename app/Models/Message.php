@@ -17,6 +17,11 @@ class Message extends Model
         'transmitter_id',
         'receiver_id',
         'message',
+        'read_at',
+    ];
+
+    protected $casts = [
+        'read_at' => 'datetime',
     ];
 
     public function conversation(): BelongsTo

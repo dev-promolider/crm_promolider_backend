@@ -846,9 +846,11 @@ Route::group(['prefix' => 'admin/requests', 'middleware' => ['auth:sanctum']], f
 // ==========================================
 Route::group(['prefix' => 'conversations', 'middleware' => ['auth:sanctum']], function () {
     Route::get('/', [\App\Http\Controllers\ConversationController::class, 'index'])->name('chat.conversations.index');
+    Route::get('unread-count', [\App\Http\Controllers\ConversationController::class, 'unreadCount'])->name('chat.conversations.unreadCount');
     Route::post('/', [\App\Http\Controllers\ConversationController::class, 'store'])->name('chat.conversations.store');
     Route::get('{conversationId}/messages', [\App\Http\Controllers\MessageController::class, 'index'])->name('chat.messages.index');
     Route::post('{conversationId}/messages', [\App\Http\Controllers\MessageController::class, 'store'])->name('chat.messages.store');
+    Route::post('{conversationId}/read', [\App\Http\Controllers\MessageController::class, 'markAsRead'])->name('chat.messages.markAsRead');
 });
 
 // Autenticación de canales privados (tiempo real) con token de Sanctum

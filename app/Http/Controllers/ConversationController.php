@@ -16,8 +16,11 @@ class ConversationController extends Controller
             'course:id,title,slug,url_portada',
             'teacher:id,name,last_name,photo',
             'student:id,name,last_name,photo',
-            'latestMessage:id,conversation_id,transmitter_id,receiver_id,message,created_at',
+            'latestMessage:id,conversation_id,transmitter_id,receiver_id,message,created_at,read_at',
         ])
+            ->withCount(['messages as unread_messages_count' => function ($query) use ($userId) {
+                $query->where('receiver_id', $userId)->whereNull('read_at');
+            }])
             ->where('student_id', $userId)
             ->orWhere('teacher_id', $userId)
             ->latest()
@@ -34,6 +37,26 @@ class ConversationController extends Controller
 
         return response()->json([
             'data' => $conversations,
+        ]);
+    }
+
+    /**
+     * Total de mensajes sin leer del usuario en todas sus conversaciones.
+     */
+    public function unreadCount(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $unreadCount = \App\Models\Message::where('receiver_id', $userId)
+            ->whereNull('read_at')
+            ->whereIn('conversation_id', Conversation::query()
+                ->where('student_id', $userId)
+                ->orWhere('teacher_id', $userId)
+                ->select('id'))
+            ->count();
+
+        return response()->json([
+            'data' => ['unread_count' => $unreadCount],
         ]);
     }
 

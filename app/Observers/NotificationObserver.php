@@ -15,16 +15,23 @@ class NotificationObserver
      */
     public function created(Notifications $notification)
     {
-        // Enviar evento de WebSockets para notificar en tiempo real al usuario
+        // Enviar evento de WebSockets para notificar en tiempo real al usuario.
+        // Es best-effort: si el servidor de WebSockets no está disponible,
+        // la notificación se guarda igual y no rompe el flujo de negocio.
         if ($notification->id_receiver) {
-            broadcast(new NewNotificationEvent([
-                'id' => $notification->id,
-                'title' => $notification->title,
-                'body' => $notification->body,
-                'type' => $notification->type,
-                'photo' => null,
-                'id_receiver' => $notification->id_receiver,
-            ]))->toOthers();
+            try {
+                broadcast(new NewNotificationEvent([
+                    'id' => $notification->id,
+                    'title' => $notification->title,
+                    'body' => $notification->body,
+                    'type' => $notification->type,
+                    'photo' => null,
+                    'id_generator' => $notification->id_generator,
+                    'id_receiver' => $notification->id_receiver,
+                ]))->toOthers();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('No se pudo emitir NewNotificationEvent: ' . $e->getMessage());
+            }
         }
     }
 
