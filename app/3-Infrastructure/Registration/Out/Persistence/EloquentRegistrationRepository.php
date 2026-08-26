@@ -397,6 +397,15 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 
         // Ventas por curso, de mayor a menor: al agrupar después por autor, el primero de
         // cada grupo es su curso más vendido. Una sola consulta para todos los directos.
+        /**
+         * Pierna real de cada directo. Antes se leía de `$u->binary_position`, una columna que
+         * NO existe en `users`: el valor era siempre null y `null == 0` da true, así que el
+         * listado mostraba «izquierda» para todo el mundo. La posición vive en `classified`.
+         */
+        $posiciones = DB::table('classified')
+            ->whereIn('user_id', $ids)
+            ->pluck('position', 'user_id');
+
         // A cuánta gente ha invitado cada directo con su propio enlace.
         $invitados = DB::table('users')
             ->select('id_referrer_sponsor', DB::raw('COUNT(*) as total'))
@@ -414,7 +423,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
             ->groupBy('user_id')
             ->map(fn($cursos) => $cursos->first());
 
-        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados) {
+        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados, $posiciones) {
             $top = $masVendidos->get($u->id);
 
             return [
@@ -423,7 +432,9 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
                 'nombres'           => $u->name ?? '',
                 'apellidos'         => $u->last_name ?? '',
                 'roles'             => $u->roles->pluck('name')->all(),
-                'lado'              => $u->binary_position == 0 ? 'izquierda' : 'derecha',
+                'lado'              => isset($posiciones[$u->id])
+                    ? ((int) $posiciones[$u->id] === 1 ? 'derecha' : 'izquierda')
+                    : null,
                 'whatsapp'          => $u->phone ?? '',
                 'correo'            => $u->email ?? '',
                 'invitados'         => (int) ($invitados[$u->id] ?? 0),
