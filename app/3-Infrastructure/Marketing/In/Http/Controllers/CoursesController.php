@@ -1099,7 +1099,7 @@ class CoursesController extends Controller
                 ->select(
                     'courses.id', 'courses.product_type_id', 'courses.title', 'courses.slug',
                     'courses.description', 'courses.path_url', 'courses.url_portada',
-                    'courses.price', 'courses.user_id', 'courses.id_categories',
+                    'courses.price', 'courses.ranking_by_user', 'courses.user_id', 'courses.id_categories',
                     'courses.course_level_id', 'courses.status', 'courses.marketplace_listed',
                     'courses.created_at', 'courses.updated_at', 'courses.course_about',
                     'courses.will_learn', 'courses.prev_knowledge', 'courses.course_for',
@@ -1119,7 +1119,7 @@ class CoursesController extends Controller
                     ->select(
                         'courses.id', 'courses.product_type_id', 'courses.title', 'courses.slug',
                         'courses.description', 'courses.path_url', 'courses.url_portada',
-                        'courses.price', 'courses.user_id', 'courses.id_categories',
+                        'courses.price', 'courses.ranking_by_user', 'courses.user_id', 'courses.id_categories',
                         'courses.course_level_id', 'courses.status', 'courses.marketplace_listed',
                         'courses.created_at', 'courses.updated_at', 'courses.course_about',
                         'courses.will_learn', 'courses.prev_knowledge', 'courses.course_for',
