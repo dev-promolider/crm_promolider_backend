@@ -662,6 +662,15 @@ Route::group(['prefix' => 'marketing'], function () {
     Route::get('categories', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'getCategories'])->name('marketing.categories');
     Route::post('categories', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'createCategory'])->name('marketing.categories.create')->middleware('auth:sanctum');
 
+    // Marketing Materials (Material Publicitario)
+    Route::group(['prefix' => 'marketing-materials', 'middleware' => 'auth:sanctum'], function () {
+        Route::get('course/{courseId}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingMaterialController::class, 'index']);
+        Route::post('course/{courseId}/description', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingMaterialController::class, 'storeDescription']);
+        Route::post('course/{courseId}/presigned-url', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingMaterialController::class, 'getPresignedUrl']);
+        Route::post('course/{courseId}/confirm-upload', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingMaterialController::class, 'confirmUpload']);
+        Route::delete('{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingMaterialController::class, 'destroy']);
+    });
+
     // Tools CRUD (generic routes, literals FIRST, parameterized LAST)
     // IMPORTANTE: order específico para evitar que rutas con {type} capturen otras rutas
     Route::post('{type}/store', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'store'])->name('marketing.tools.store')->middleware('auth:sanctum,can:marketing.tools')->where('type', 'masterclass|ebook|mini-course|minicourse');
@@ -669,6 +678,7 @@ Route::group(['prefix' => 'marketing'], function () {
     Route::delete('{type}/{toolId}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'delete'])->name('marketing.tools.delete')->middleware('auth:sanctum,can:marketing.tools')->where('type', 'masterclass|ebook|mini-course|minicourse');
     Route::get('{type}/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'getTool'])->name('marketing.tools.get')->middleware('auth:sanctum,can:marketing.tools')->where('type', 'masterclass|ebook|mini-course|minicourse');
     Route::put('{type}/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'updateTool'])->name('marketing.tools.update')->middleware('auth:sanctum,can:marketing.tools')->where('type', 'masterclass|ebook|mini-course|minicourse');
+    Route::post('{type}/{id}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\MarketingToolsController::class, 'updateTool'])->name('marketing.tools.update.post')->middleware('auth:sanctum,can:marketing.tools')->where('type', 'masterclass|ebook|mini-course|minicourse');
 });
 
 // ==========================================

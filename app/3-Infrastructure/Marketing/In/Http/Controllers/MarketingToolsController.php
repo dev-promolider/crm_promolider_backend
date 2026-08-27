@@ -85,11 +85,68 @@ class MarketingToolsController extends Controller
                 ], 403);
             }
 
-            $data = $request->except(['_method', '_token']);
+            $data = $request->except(['_method', '_token', 'images', 'documents', 'cover', 'pdf', 'image']);
+            
+            Log::info("UpdateTool [{$type}] id={$id}", [
+                'has_images' => $request->hasFile('images'),
+                'all_files' => array_keys($request->allFiles()),
+                'method' => $request->method(),
+                'content_type' => $request->header('Content-Type'),
+            ]);
+            
             $result = $this->updateToolUseCase->execute($type, $id, $data);
 
-            if (!$result) {
-                return response()->json(['success' => false, 'message' => 'No se pudo actualizar'], 400);
+            // Procesar archivos para Masterclass
+            if ($type === 'masterclass') {
+                if ($request->hasFile('images')) {
+                    // Borrar imágenes previas para mantener solo 1 imagen
+                    \App\Models\MasterclassImage::where('masterclass_id', $id)->delete();
+                    foreach ($request->file('images') as $image) {
+                        $imagePath = $image->store('masterclass_images', ['disk' => 's3', 'visibility' => 'public']);
+                        \App\Models\MasterclassImage::create([
+                            'masterclass_id' => $id,
+                            'image' => $imagePath,
+                        ]);
+                    }
+                }
+                if ($request->hasFile('documents')) {
+                    foreach ($request->file('documents') as $doc) {
+                        $docPath = $doc->store('masterclass_documents', ['disk' => 's3', 'visibility' => 'public']);
+                        \App\Models\MasterclassDocument::create([
+                            'masterclass_id' => $id,
+                            'document' => $docPath,
+                        ]);
+                    }
+                }
+            }
+
+            // Procesar archivos para Ebook
+            if ($type === 'ebook') {
+                if ($request->hasFile('cover')) {
+                    $coverPath = $request->file('cover')->store('ebook_covers', ['disk' => 's3', 'visibility' => 'public']);
+                    $ebook = \App\Models\Ebook::find($id);
+                    if ($ebook) {
+                        $ebook->update(['portada' => $coverPath]);
+                    }
+                }
+                if ($request->hasFile('pdf')) {
+                    $pdfPath = $request->file('pdf')->store('ebook_pdfs', ['disk' => 's3', 'visibility' => 'public']);
+                    $ebook = \App\Models\Ebook::find($id);
+                    if ($ebook) {
+                        $ebook->update(['archivo_pdf' => $pdfPath]);
+                    }
+                }
+            }
+
+            // Procesar archivos para Mini-Curso
+            if (in_array($type, ['mini-course', 'minicourse'])) {
+                if ($request->hasFile('image')) {
+                    $imagePath = $request->file('image')->store('minicourse_images', ['disk' => 's3', 'visibility' => 'public']);
+                    $minicourse = \App\Models\Minicourse::find($id);
+                    if ($minicourse) {
+                        $minicourse->update(['image' => $imagePath]);
+                    }
+                }
             }
 
             return response()->json(['success' => true, 'message' => 'Herramienta actualizada correctamente']);

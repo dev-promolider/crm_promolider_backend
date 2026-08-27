@@ -84,12 +84,14 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
                 return $data;
             })->toArray();
 
+        $promotionalMaterials = \App\Models\MarketingMaterial::where('course_id', $courseId)->get()->toArray();
+
         return [
             'course' => $course ? $course->toArray() : null,
             'masterclasses' => $masterclasses,
             'ebooks' => $ebooks,
             'minicourses' => $minicourses,
-            'promotional_materials' => []
+            'promotional_materials' => $promotionalMaterials
         ];
     }
 

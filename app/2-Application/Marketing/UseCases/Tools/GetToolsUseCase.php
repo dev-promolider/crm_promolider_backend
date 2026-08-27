@@ -30,6 +30,25 @@ class GetToolsUseCase
             $tools[] = $item;
         }
 
+        // Si hay un courseId, verificamos si tiene material publicitario
+        if ($courseId) {
+            $materialCount = \App\Models\MarketingMaterial::where('course_id', $courseId)->count();
+            if ($materialCount > 0) {
+                // Obtenemos el ltimo material para tener la fecha de registro
+                $lastMaterial = \App\Models\MarketingMaterial::where('course_id', $courseId)->latest()->first();
+                $tools[] = [
+                    'id' => $courseId, // Usamos courseId como ID para que el frontend pueda navegar
+                    'type' => 'material-publicitario',
+                    'title' => 'Material Publicitario del Curso',
+                    'nombre' => 'Material Publicitario del Curso',
+                    'category_name' => 'Promoción',
+                    'created_at' => $lastMaterial->created_at,
+                    'distributors_count' => '-', // No aplica directamente
+                    'status' => 1, // Siempre activo si existe
+                ];
+            }
+        }
+
         return $tools;
     }
 }
