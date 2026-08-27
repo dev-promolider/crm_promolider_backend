@@ -15,6 +15,7 @@ use App\Models\UserClassroomPoint;
 use App\Models\AccountType;
 use App\Models\Country;
 use App\Models\DocumentType;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class EloquentRegistrationRepository implements RegistrationRepositoryInterface
@@ -253,6 +254,9 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
             'username' => $user->username,
             'name' => $user->name,
             'link_id' => $userLink->id,
+            // Pierna que el patrocinador eligió al generar el enlace. El formulario la manda
+            // de vuelta al registrar por pasarela, donde antes iba 'izquierda' fija.
+            'position' => (int) ($user->position ?? 0),
         ];
     }
 
@@ -364,22 +368,84 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
             ->delete();
     }
 
+    /**
+     * Directos del patrocinador.
+     *
+     * El panel de Registro los separa por perfil (productor / distribuidor) y, para los
+     * productores, muestra cuántos infoproductos publicaron y cuál es el más vendido. Por eso
+     * la respuesta lleva el rol, el nombre y el apellido por separado y los datos de cursos.
+     * Se conserva `nombre` con el nombre completo para no romper a quien ya lo consumía.
+     */
     public function getRegisteredDirects(int $userId): array
     {
-        $directs = User::where('id_referrer_sponsor', $userId)
+        $users = User::where('id_referrer_sponsor', $userId)
+            ->with('roles:id,name')
             ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($users->isEmpty()) {
+            return [];
+        }
+
+        $ids = $users->pluck('id')->all();
+
+        $publicados = DB::table('courses')
+            ->select('user_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('user_id', $ids)
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+
+        // Ventas por curso, de mayor a menor: al agrupar después por autor, el primero de
+        // cada grupo es su curso más vendido. Una sola consulta para todos los directos.
+        /**
+         * Pierna real de cada directo. Antes se leía de `$u->binary_position`, una columna que
+         * NO existe en `users`: el valor era siempre null y `null == 0` da true, así que el
+         * listado mostraba «izquierda» para todo el mundo. La posición vive en `classified`.
+         */
+        $posiciones = DB::table('classified')
+            ->whereIn('user_id', $ids)
+            ->pluck('position', 'user_id');
+
+        // A cuánta gente ha invitado cada directo con su propio enlace.
+        $invitados = DB::table('users')
+            ->select('id_referrer_sponsor', DB::raw('COUNT(*) as total'))
+            ->whereIn('id_referrer_sponsor', $ids)
+            ->groupBy('id_referrer_sponsor')
+            ->pluck('total', 'id_referrer_sponsor');
+
+        $masVendidos = DB::table('purchased_courses as pc')
+            ->join('courses as c', 'c.id', '=', 'pc.course_id')
+            ->select('c.user_id', 'c.title', DB::raw('COUNT(pc.id) as ventas'))
+            ->whereIn('c.user_id', $ids)
+            ->groupBy('c.user_id', 'c.id', 'c.title')
+            ->orderByDesc('ventas')
             ->get()
-            ->map(fn($u) => [
-                'id'             => $u->id,
-                'nombre'         => trim(($u->name ?? '') . ' ' . ($u->last_name ?? '')),
-                'lado'           => $u->binary_position == 0 ? 'izquierda' : 'derecha',
-                'whatsapp'       => $u->phone ?? '',
-                'correo'         => $u->email ?? '',
-                'fecha_registro' => $u->created_at ? $u->created_at->toDateTimeString() : null,
-                'origen'         => 'registro',
-                'pago_estado'    => 'pagado',
-            ]);
-            
+            ->groupBy('user_id')
+            ->map(fn($cursos) => $cursos->first());
+
+        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados, $posiciones) {
+            $top = $masVendidos->get($u->id);
+
+            return [
+                'id'                => $u->id,
+                'nombre'            => trim(($u->name ?? '') . ' ' . ($u->last_name ?? '')),
+                'nombres'           => $u->name ?? '',
+                'apellidos'         => $u->last_name ?? '',
+                'roles'             => $u->roles->pluck('name')->all(),
+                'lado'              => isset($posiciones[$u->id])
+                    ? ((int) $posiciones[$u->id] === 1 ? 'derecha' : 'izquierda')
+                    : null,
+                'whatsapp'          => $u->phone ?? '',
+                'correo'            => $u->email ?? '',
+                'invitados'         => (int) ($invitados[$u->id] ?? 0),
+                'cursos_publicados' => (int) ($publicados[$u->id] ?? 0),
+                'curso_mas_vendido' => $top ? ['titulo' => $top->title, 'ventas' => (int) $top->ventas] : null,
+                'fecha_registro'    => $u->created_at ? $u->created_at->toDateTimeString() : null,
+                'origen'            => 'registro',
+                'pago_estado'       => 'pagado',
+            ];
+        });
+
         return $directs->toArray();
     }
 }
