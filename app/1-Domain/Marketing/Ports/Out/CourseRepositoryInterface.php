@@ -37,7 +37,9 @@ interface CourseRepositoryInterface
 
     // === Ratings ===
     public function listRatings(int $courseId): array;
+    public function getUserRating(int $userId, int $courseId): ?array;
     public function createRating(int $userId, int $courseId, int $points, ?string $commentary): array;
+    public function updateUserRating(int $userId, int $courseId, int $points, ?string $commentary): array;
 
     // === Observations ===
     public function createObservation(array $data): array;

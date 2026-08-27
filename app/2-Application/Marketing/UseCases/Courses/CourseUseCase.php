@@ -120,9 +120,19 @@ class CourseUseCase
         return $this->repository->listRatings($courseId);
     }
 
+    public function getUserRating(int $userId, int $courseId): ?array
+    {
+        return $this->repository->getUserRating($userId, $courseId);
+    }
+
     public function createRating(int $userId, int $courseId, int $points, ?string $commentary): array
     {
         return $this->repository->createRating($userId, $courseId, $points, $commentary);
+    }
+
+    public function updateUserRating(int $userId, int $courseId, int $points, ?string $commentary): array
+    {
+        return $this->repository->updateUserRating($userId, $courseId, $points, $commentary);
     }
 
     // ==================== OBSERVATIONS ====================

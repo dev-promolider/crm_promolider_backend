@@ -16,6 +16,10 @@ use App\Models\PurchasedCourse;
 use App\Models\User;
 use App\Models\UserClassroomPoint;
 use App\Models\UserLessonProgress;
+use Promolider\Application\Marketing\Exceptions\CourseRatingAlreadyExistsException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingCourseNotFoundException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingNotAllowedException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingNotFoundException;
 use Promolider\Domain\Marketing\Ports\Out\CourseRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -310,20 +314,92 @@ class EloquentCourseRepository implements CourseRepositoryInterface
             ->toArray();
     }
 
+    public function getUserRating(int $userId, int $courseId): ?array
+    {
+        $this->getCourseForRating($userId, $courseId);
+
+        $rating = CourseRate::where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->first();
+
+        return $rating ? $rating->toArray() : null;
+    }
+
     public function createRating(int $userId, int $courseId, int $points, ?string $commentary): array
     {
-        $rating = CourseRate::create([
-            'user_id' => $userId,
-            'course_id' => $courseId,
-            'rate' => $points,
-            'commentary' => $commentary,
-        ]);
+        return DB::transaction(function () use ($userId, $courseId, $points, $commentary) {
+            $course = $this->getCourseForRating($userId, $courseId, true);
 
-        // Update average rating on course
-        $avg = CourseRate::where('course_id', $courseId)->avg('rate');
-        Course::where('id', $courseId)->update(['ranking_by_user' => round($avg, 1)]);
+            if (CourseRate::where('user_id', $userId)->where('course_id', $courseId)->exists()) {
+                throw new CourseRatingAlreadyExistsException();
+            }
 
-        return $rating->toArray();
+            $rating = CourseRate::create([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'rate' => $points,
+                'commentary' => $commentary,
+            ]);
+
+            $average = CourseRate::where('course_id', $courseId)->avg('rate');
+            $course->update(['ranking_by_user' => round($average, 1)]);
+
+            return $rating->toArray();
+        });
+    }
+
+    public function updateUserRating(int $userId, int $courseId, int $points, ?string $commentary): array
+    {
+        return DB::transaction(function () use ($userId, $courseId, $points, $commentary) {
+            $course = $this->getCourseForRating($userId, $courseId, true);
+
+            $rating = CourseRate::where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->first();
+
+            if (!$rating) {
+                throw new CourseRatingNotFoundException();
+            }
+
+            $rating->update([
+                'rate' => $points,
+                'commentary' => $commentary,
+            ]);
+
+            $average = CourseRate::where('course_id', $courseId)->avg('rate');
+            $course->update(['ranking_by_user' => round($average, 1)]);
+
+            return $rating->fresh()->toArray();
+        });
+    }
+
+    private function getCourseForRating(int $userId, int $courseId, bool $lock = false): Course
+    {
+        $query = Course::select('id', 'user_id');
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        $course = $query->find($courseId);
+
+        if (!$course) {
+            throw new CourseRatingCourseNotFoundException();
+        }
+
+        if ((int) $course->user_id === $userId) {
+            throw new CourseRatingNotAllowedException('El autor del curso no puede valorarlo.');
+        }
+
+        $hasCourse = PurchasedCourse::where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->exists();
+
+        if (!$hasCourse) {
+            throw new CourseRatingNotAllowedException('Solo puedes gestionar valoraciones de cursos que tienes disponibles.');
+        }
+
+        return $course;
     }
 
     // ==================== OBSERVATIONS ====================

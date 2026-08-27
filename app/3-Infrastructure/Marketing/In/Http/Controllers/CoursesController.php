@@ -17,6 +17,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingAlreadyExistsException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingCourseNotFoundException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingNotAllowedException;
+use Promolider\Application\Marketing\Exceptions\CourseRatingNotFoundException;
 use Promolider\Application\Marketing\UseCases\Courses\CourseUseCase;
 use Promolider\Application\Marketing\UseCases\Courses\SearchCoursesUseCase;
 use Promolider\Application\Marketing\UseCases\Courses\GetRelatedCoursesUseCase;
@@ -398,14 +403,65 @@ class CoursesController extends Controller
         try {
             $validated = $request->validate([
                 'points' => 'required|integer|min:1|max:5',
-                'commentary' => 'nullable|string|max:500',
+                'commentary' => 'nullable|string|max:255',
             ]);
 
             $result = $this->courseUseCase->createRating($request->user()->id, $courseId, $validated['points'], $validated['commentary'] ?? null);
             return response()->json(['success' => true, 'data' => $result], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Datos inválidos', 'errors' => $e->errors()], 422);
+        } catch (CourseRatingCourseNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        } catch (CourseRatingNotAllowedException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
+        } catch (CourseRatingAlreadyExistsException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 409);
         } catch (\Exception $e) {
             Log::error('Error creating rating: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al crear valoración'], 500);
+        }
+    }
+
+    public function myRating(Request $request, int $courseId): JsonResponse
+    {
+        try {
+            $rating = $this->courseUseCase->getUserRating($request->user()->id, $courseId);
+            return response()->json(['success' => true, 'data' => $rating]);
+        } catch (CourseRatingCourseNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        } catch (CourseRatingNotAllowedException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
+        } catch (\Exception $e) {
+            Log::error('Error getting user rating: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al obtener tu valoración'], 500);
+        }
+    }
+
+    public function myRatingUpdate(Request $request, int $courseId): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'points' => 'required|integer|min:1|max:5',
+                'commentary' => 'nullable|string|max:255',
+            ]);
+
+            $rating = $this->courseUseCase->updateUserRating(
+                $request->user()->id,
+                $courseId,
+                $validated['points'],
+                $validated['commentary'] ?? null
+            );
+
+            return response()->json(['success' => true, 'data' => $rating]);
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Datos inválidos', 'errors' => $e->errors()], 422);
+        } catch (CourseRatingCourseNotFoundException | CourseRatingNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        } catch (CourseRatingNotAllowedException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
+        } catch (\Exception $e) {
+            Log::error('Error updating user rating: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al actualizar tu valoración'], 500);
         }
     }
 

@@ -495,6 +495,8 @@ Route::group(['prefix' => 'marketing'], function () {
         // Valoraciones
         Route::get('{courseId}/ratings', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'ratingsIndex'])->name('marketing.courses.ratings');
         Route::post('{courseId}/ratings', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'ratingsStore'])->name('marketing.courses.ratings.store')->middleware('auth:sanctum');
+        Route::get('{courseId}/ratings/mine', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'myRating'])->name('marketing.courses.ratings.mine')->middleware('auth:sanctum');
+        Route::put('{courseId}/ratings/mine', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'myRatingUpdate'])->name('marketing.courses.ratings.mine.update')->middleware('auth:sanctum');
 
         // Observaciones
         Route::post('observations', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'observationsStore'])->name('marketing.courses.observations.store')->middleware('auth:sanctum');
