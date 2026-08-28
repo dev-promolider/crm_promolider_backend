@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Promolider\Application\Infoproducts\UseCases\Course\Lesson\GetModuleClassDataUseCase;
 use Promolider\Application\Infoproducts\UseCases\Course\Lesson\CreateClassUseCase;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Aws\S3\S3Client;
 use App\Models\Clas;
 use App\Models\Video;
@@ -28,10 +29,112 @@ class ModuleClassController extends Controller
         return response()->json($lessonData, 200);
     }
 
+    /**
+     * GET class/show-class/{courseId}?name=...
+     * Devuelve la clase activa para el reproductor del VCR.
+     * Si se pasa ?name=slug, busca esa clase; si no, retorna la primera del curso.
+     */
+    public function showClass(Request $request, int $courseId)
+    {
+        try {
+            $name = $request->query('name');
+
+            // Buscar la clase por slug/name dentro del curso
+            $class = null;
+            if (!empty($name)) {
+                $class = Clas::whereHas('module', function ($q) use ($courseId) {
+                        $q->where('id_courses', $courseId);
+                    })
+                    ->where(function ($q) use ($name) {
+                        $q->where('slug', $name)
+                          ->orWhere('name', $name);
+                    })
+                    ->with('video')
+                    ->first();
+            }
+
+            // Si no se encontró por nombre, tomar la primera (orden ascendente)
+            if (!$class) {
+                $class = Clas::whereHas('module', function ($q) use ($courseId) {
+                        $q->where('id_courses', $courseId);
+                    })
+                    ->orderBy('order', 'asc')
+                    ->with('video')
+                    ->first();
+            }
+
+            if (!$class) {
+                return response()->json(['message' => 'No se encontró ninguna clase para este curso.'], 404);
+            }
+
+            $data = $class->toArray();
+
+            // Incluir URL del video si existe
+            if ($class->video) {
+                $data['video_path'] = $class->video->path ?? null;
+                $data['video_url']  = $class->video->path ? 
+                    'https://' . config('filesystems.disks.s3.bucket') . '.s3.amazonaws.com/' . $class->video->path 
+                    : null;
+            }
+
+            return response()->json($data, 200);
+
+        } catch (\Throwable $th) {
+            Log::error('showClass error: ' . $th->getMessage());
+            return response()->json(['message' => 'Error al obtener la clase'], 500);
+        }
+    }
+
+    /**
+     * GET course/details/{courseId}
+     * Devuelve los detalles bA!sicos del curso para el estudiante en el VCR.
+     */
+    public function getCourseDetails(Request $request, int $courseId)
+    {
+        try {
+            $course = \App\Models\Course::with('instructor')->find($courseId);
+            if (!$course) {
+                return response()->json(['message' => 'Curso no encontrado'], 404);
+            }
+            return response()->json(['data' => $course], 200);
+        } catch (\Throwable $th) {
+            Log::error('getCourseDetails error: ' . $th->getMessage());
+            return response()->json(['message' => 'Error al obtener los detalles del curso'], 500);
+        }
+    }
+
+    /**
+     * GET course/temary/get-all-class/{courseId}
+     * Devuelve el temario completo del curso para el estudiante en el VCR.
+     */
+    public function getCourseTemary(Request $request, int $courseId)
+    {
+        try {
+            $course = \App\Models\Course::with(['modules.classes' => function ($query) {
+                $query->orderBy('order', 'asc');
+            }])->find($courseId);
+
+            if (!$course) {
+                return response()->json(['message' => 'Curso no encontrado'], 404);
+            }
+
+            // Mapear "classes" a "lessons" porque asA- lo espera el frontend (VCR)
+            $courseData = $course->toArray();
+            foreach ($courseData['modules'] as &$module) {
+                $module['lessons'] = $module['classes'];
+                unset($module['classes']);
+            }
+
+            return response()->json(['data' => $courseData], 200);
+        } catch (\Throwable $th) {
+            Log::error('getCourseTemary error: ' . $th->getMessage());
+            return response()->json(['message' => 'Error al obtener el temario del curso'], 500);
+        }
+    }
+
     public function store(Request $request)
     {
         try {
-            $moduleId = (int) $request->module_id;
             $data = [
                 'title' => $request->title,
                 'description' => $request->description

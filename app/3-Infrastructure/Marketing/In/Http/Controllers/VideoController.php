@@ -35,7 +35,10 @@ class VideoController extends Controller
                 return response()->json(['message' => 'Video no encontrado para esta clase'], 404);
             }
 
-            $path = "https://promolider-storage-user.s3-accelerate.amazonaws.com/" . $video->path;
+            $path = \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl(
+                $video->path,
+                now()->addHours(2)
+            );
 
             return response()->json([
                 'data' => $path,

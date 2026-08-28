@@ -87,6 +87,14 @@ class MarketingToolsController extends Controller
 
             $data = $request->except(['_method', '_token', 'images', 'documents', 'cover', 'pdf', 'image']);
             
+            // Decode JSON-encoded testimonials and faqs sent from FormData
+            if (isset($data['testimonials']) && is_string($data['testimonials'])) {
+                $data['testimonials'] = json_decode($data['testimonials'], true) ?? [];
+            }
+            if (isset($data['faqs']) && is_string($data['faqs'])) {
+                $data['faqs'] = json_decode($data['faqs'], true) ?? [];
+            }
+            
             Log::info("UpdateTool [{$type}] id={$id}", [
                 'has_images' => $request->hasFile('images'),
                 'all_files' => array_keys($request->allFiles()),

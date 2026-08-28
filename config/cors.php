@@ -22,6 +22,7 @@ return [
     'allowed_origins' => [
         env('FRONTEND_CRM_URL', 'http://localhost:5173'),
         env('FRONTEND_VCR_URL', 'http://localhost:8080'),
+        'http://127.0.0.1:8080',
         'https://crm.promolider.email',
         'https://vcr.promolider.email'
     ],

@@ -244,6 +244,21 @@ use Illuminate\Support\Facades\Route;
     });
 
     // ==========================================
+    // VCR: Endpoint para reproducir clase (legacy)
+    // ==========================================
+    Route::get('class/show-class/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'showClass'])
+        ->name('class.show')
+        ->middleware('auth:sanctum');
+
+    Route::get('course/details/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getCourseDetails'])
+        ->name('vcr.course.details')
+        ->middleware('auth:sanctum');
+
+    Route::get('course/temary/get-all-class/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getCourseTemary'])
+        ->name('vcr.course.temary')
+        ->middleware('auth:sanctum');
+
+    // ==========================================
     // Módulo: Billetera y Pagos (Wallet)
     // ==========================================
     Route::group(['prefix' => 'opc', 'middleware' => ['auth:sanctum']], function () {
@@ -552,6 +567,7 @@ Route::group(['prefix' => 'marketing'], function () {
         // Video Streaming
         Route::group(['prefix' => 'video'], function () {
             Route::get('stream', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'streamVideo'])->name('marketing.courses.video.stream')->middleware('auth:sanctum');
+            Route::get('stream-video', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'streamVideo'])->name('marketing.courses.video.stream-video')->middleware('auth:sanctum');
             Route::post('save-time', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'saveTime'])->name('marketing.courses.video.save_time')->middleware('auth:sanctum');
             Route::get('show-time', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'showTime'])->name('marketing.courses.video.show_time')->middleware('auth:sanctum');
             Route::patch('update-status', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\VideoController::class, 'updateStatus'])->name('marketing.courses.video.update_status')->middleware('auth:sanctum');
@@ -803,6 +819,14 @@ Route::group(['prefix' => 'd', 'middleware' => [
     Route::get('{slug}/pregunta/{numero}', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DinamicaPublicController::class, 'triviaQuestion'])->name('dinamica.public.trivia.question');
     Route::post('{slug}/pregunta/{numero}/respuesta', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DinamicaPublicController::class, 'submitAnswer'])->name('dinamica.public.trivia.answer');
     Route::get('{slug}/resultados', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\DinamicaPublicController::class, 'triviaResults'])->name('dinamica.public.trivia.results');
+});
+
+// ==========================================
+// Modulo: Compra de Cursos (Virtual Classroom)
+// ==========================================
+Route::group(['middleware' => ['auth:sanctum'], 'prefix' => 'pay'], function () {
+    Route::post('course-openpay', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursePaymentController::class, 'openpay'])->name('marketing.course.openpay');
+    Route::post('course-confirm-openpay', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursePaymentController::class, 'confirmOpenpay'])->name('marketing.course.confirm_openpay');
 });
 
 // ==========================================

@@ -189,8 +189,18 @@ class EloquentToolRepository implements ToolRepositoryInterface
 
         if (!$modelClass) throw new \InvalidArgumentException("Invalid tool type: {$type}");
 
+        $testimonials = $data['testimonials'] ?? null;
+        $faqs = $data['faqs'] ?? null;
+        unset($data['testimonials'], $data['faqs']);
+
         $model = $modelClass::create($data);
-        return $model->id;
+        $toolId = $model->id;
+
+        $normalizedType = match ($type) { 'mini-course' => 'minicourse', default => $type };
+
+        $this->syncTestimonialsAndFaqs($normalizedType, $toolId, $testimonials, $faqs);
+
+        return $toolId;
     }
 
     public function getToolById(string $type, int $toolId): ?array
@@ -209,6 +219,24 @@ class EloquentToolRepository implements ToolRepositoryInterface
 
         $data = $model->toArray();
         $data['type'] = $type;
+
+        $normalizedType = match ($type) {
+            'mini-course' => 'minicourse',
+            default => $type,
+        };
+
+        $data['testimonials'] = \App\Models\ToolTestimonial::where('tool_type', $normalizedType)
+            ->where('tool_id', $toolId)
+            ->orderBy('order')
+            ->get()
+            ->toArray();
+
+        $data['faqs'] = \App\Models\ToolFaq::where('tool_type', $normalizedType)
+            ->where('tool_id', $toolId)
+            ->orderBy('order')
+            ->get()
+            ->toArray();
+
         return $data;
     }
 
@@ -226,6 +254,46 @@ class EloquentToolRepository implements ToolRepositoryInterface
         $model = $modelClass::find($toolId);
         if (!$model) return false;
 
-        return $model->update($data);
+        $testimonials = $data['testimonials'] ?? null;
+        $faqs = $data['faqs'] ?? null;
+        unset($data['testimonials'], $data['faqs']);
+
+        $result = $model->update($data);
+
+        $normalizedType = match ($type) { 'mini-course' => 'minicourse', default => $type };
+        $this->syncTestimonialsAndFaqs($normalizedType, $toolId, $testimonials, $faqs);
+
+        return $result;
+    }
+
+    private function syncTestimonialsAndFaqs(string $type, int $toolId, ?array $testimonials, ?array $faqs): void
+    {
+        if ($testimonials !== null) {
+            \App\Models\ToolTestimonial::where('tool_type', $type)->where('tool_id', $toolId)->delete();
+            foreach ($testimonials as $i => $t) {
+                if (empty($t['author_name']) && empty($t['content'])) continue;
+                \App\Models\ToolTestimonial::create([
+                    'tool_type'   => $type,
+                    'tool_id'     => $toolId,
+                    'author_name' => $t['author_name'] ?? '',
+                    'content'     => $t['content'] ?? '',
+                    'order'       => $i,
+                ]);
+            }
+        }
+
+        if ($faqs !== null) {
+            \App\Models\ToolFaq::where('tool_type', $type)->where('tool_id', $toolId)->delete();
+            foreach ($faqs as $i => $f) {
+                if (empty($f['question'])) continue;
+                \App\Models\ToolFaq::create([
+                    'tool_type' => $type,
+                    'tool_id'   => $toolId,
+                    'question'  => $f['question'],
+                    'answer'    => $f['answer'] ?? '',
+                    'order'     => $i,
+                ]);
+            }
+        }
     }
 }
