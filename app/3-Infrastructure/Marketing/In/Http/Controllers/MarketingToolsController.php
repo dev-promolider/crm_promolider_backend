@@ -59,8 +59,47 @@ class MarketingToolsController extends Controller
             }
             return response()->json(['success' => true, 'data' => $tool]);
         } catch (\Exception $e) {
-            Log::error("Error getting {$type} {$id}: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al obtener herramienta'], 500);
+        }
+    }
+
+    public function getToolUsages(string $type, int $id): JsonResponse
+    {
+        try {
+            $modelClass = match($type) {
+                'masterclass' => \App\Models\Masterclass::class,
+                'ebook' => \App\Models\Ebook::class,
+                'minicourse', 'mini-course' => \App\Models\Minicourse::class,
+                'material', 'material-publicitario' => \App\Models\MarketingMaterial::class,
+                default => null,
+            };
+
+            if (!$modelClass) {
+                return response()->json(['success' => false, 'message' => 'Tipo de herramienta inválido'], 400);
+            }
+
+            if ($type === 'material-publicitario') {
+                $usages = \App\Models\DistributorToolUsage::where('usageable_type', $modelClass)
+                    ->whereHasMorph('usageable', [$modelClass], function ($query) use ($id) {
+                        $query->where('course_id', $id);
+                    })
+                    ->with('user:id,name,email')
+                    ->latest()
+                    ->get()
+                    ->unique('user_id')
+                    ->values();
+            } else {
+                $usages = \App\Models\DistributorToolUsage::where('usageable_type', $modelClass)
+                    ->where('usageable_id', $id)
+                    ->with('user:id,name,email')
+                    ->latest()
+                    ->get();
+            }
+            
+            return response()->json(['success' => true, 'data' => $usages]);
+        } catch (\Exception $e) {
+            Log::error('Error getting tool usages: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al obtener usos'], 500);
         }
     }
 
@@ -85,7 +124,7 @@ class MarketingToolsController extends Controller
                 ], 403);
             }
 
-            $data = $request->except(['_method', '_token', 'images', 'documents', 'cover', 'pdf', 'image']);
+            $data = $request->except(['_method', '_token', 'images', 'documents', 'cover', 'pdf', 'image', 'landing_banner']);
             
             // Decode JSON-encoded testimonials and faqs sent from FormData
             if (isset($data['testimonials']) && is_string($data['testimonials'])) {
@@ -103,6 +142,23 @@ class MarketingToolsController extends Controller
             ]);
             
             $result = $this->updateToolUseCase->execute($type, $id, $data);
+
+            // Procesar landing_banner para cualquier herramienta
+            if ($request->hasFile('landing_banner')) {
+                $bannerPath = $request->file('landing_banner')->store('landing_banners', ['disk' => 's3', 'visibility' => 'public']);
+                
+                if ($type === 'masterclass') {
+                    $tool = \App\Models\Masterclass::find($id);
+                } elseif ($type === 'ebook') {
+                    $tool = \App\Models\Ebook::find($id);
+                } elseif (in_array($type, ['mini-course', 'minicourse'])) {
+                    $tool = \App\Models\Minicourse::find($id);
+                }
+                
+                if (isset($tool) && $tool) {
+                    $tool->update(['landing_banner' => $bannerPath]);
+                }
+            }
 
             // Procesar archivos para Masterclass
             if ($type === 'masterclass') {

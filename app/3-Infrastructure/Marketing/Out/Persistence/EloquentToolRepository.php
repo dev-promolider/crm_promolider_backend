@@ -15,18 +15,21 @@ class EloquentToolRepository implements ToolRepositoryInterface
         // del usuario sin importar su estado (0=No publicado, 1=Publicado, 2=Privado).
         $masterclasses = \App\Models\Masterclass::where('user_id', $userId)
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
+            ->withCount('usages')
             ->orderBy('created_at', 'desc')
             ->get()
             ->toArray();
 
         $ebooks = \App\Models\Ebook::where('user_id', $userId)
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
+            ->withCount('usages')
             ->orderBy('created_at', 'desc')
             ->get()
             ->toArray();
 
         $miniCourses = \App\Models\Minicourse::where('user_id', $userId)
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
+            ->withCount('usages')
             ->orderBy('created_at', 'desc')
             ->get()
             ->toArray();

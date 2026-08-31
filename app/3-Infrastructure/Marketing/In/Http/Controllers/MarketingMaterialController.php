@@ -89,15 +89,12 @@ class MarketingMaterialController extends Controller
         ]);
     }
 
-    /**
-     * Generate a presigned URL to upload a file directly to S3
-     */
     public function getPresignedUrl(Request $request, $courseId)
     {
         $request->validate([
             'file_name' => 'required|string',
             'file_type' => 'required|string', // e.g. image/png or video/mp4
-            'type' => 'required|in:banner,video' // our internal type
+            'type' => 'required|in:banner,video,landing_banner' // our internal type
         ]);
 
         $extension = pathinfo($request->file_name, PATHINFO_EXTENSION) ?: 'tmp';

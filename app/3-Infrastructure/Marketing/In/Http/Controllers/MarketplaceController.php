@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Promolider\Application\Marketing\UseCases\Marketplace\GetMarketplaceItemsUseCase;
 use Promolider\Application\Marketing\UseCases\Marketplace\ToggleMarketplaceVisibilityUseCase;
 use Promolider\Domain\Marketing\Ports\Out\MarketplaceRepositoryInterface;
+use App\Models\DistributorToolUsage;
 
 class MarketplaceController extends Controller
 {
@@ -137,6 +138,88 @@ class MarketplaceController extends Controller
         } catch (\Exception $e) {
             Log::error('Error getting mini course detail: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al obtener detalle del mini curso'], 500);
+        }
+    }
+
+    public function activateToolUsage(Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $request->validate([
+                'type' => 'required|string',
+                'id' => 'required|integer',
+            ]);
+
+            $type = $request->type;
+            $id = $request->id;
+            
+            $modelClass = match($type) {
+                'masterclass' => \App\Models\Masterclass::class,
+                'ebook' => \App\Models\Ebook::class,
+                'minicourse' => \App\Models\Minicourse::class,
+                'material', 'promotional' => \App\Models\MarketingMaterial::class,
+                default => null,
+            };
+
+            if (!$modelClass) {
+                return response()->json(['success' => false, 'message' => 'Tipo de herramienta inválido'], 400);
+            }
+
+            $usage = DistributorToolUsage::firstOrCreate([
+                'user_id' => $request->user()->id,
+                'usageable_type' => $modelClass,
+                'usageable_id' => $id,
+            ]);
+
+            if ($request->has('url')) {
+                $usage->generated_link = $request->url;
+                $usage->save();
+            }
+
+            $affiliateLink = $usage->generated_link ?: url("/ref/" . $request->user()->code . "/$type/$id");
+
+            return response()->json([
+                'success' => true,
+                'affiliate_link' => $affiliateLink,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error activating tool usage: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al activar la herramienta'], 500);
+        }
+    }
+
+    public function getMyUsages(Request $request, $courseId): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $usages = DistributorToolUsage::where('user_id', $user->id)
+                ->get();
+
+            $links = [];
+            foreach ($usages as $usage) {
+                $type = match($usage->usageable_type) {
+                    \App\Models\Masterclass::class => 'masterclass',
+                    \App\Models\Ebook::class => 'ebook',
+                    \App\Models\Minicourse::class => 'minicourse',
+                    \App\Models\MarketingMaterial::class => 'material',
+                    default => null,
+                };
+
+                if ($type) {
+                    $links[$usage->usageable_id] = [
+                        'type' => $type,
+                        'id' => $usage->usageable_id,
+                        'affiliate_link' => $usage->generated_link ?: url("/ref/" . $user->code . "/$type/" . $usage->usageable_id),
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $links,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting my usages: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al obtener usos'], 500);
         }
     }
 }

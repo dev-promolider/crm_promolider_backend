@@ -44,6 +44,7 @@ class GetToolsUseCase
                     'category_name' => 'Promoción',
                     'created_at' => $lastMaterial->created_at,
                     'distributors_count' => '-', // No aplica directamente
+                    'usages_count' => \App\Models\MarketingMaterial::where('course_id', $courseId)->withCount('usages')->get()->sum('usages_count'),
                     'status' => 1, // Siempre activo si existe
                 ];
             }

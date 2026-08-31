@@ -17,4 +17,9 @@ class MarketingMaterial extends Model
         'file_name',
         'status',
     ];
+
+    public function usages()
+    {
+        return $this->morphMany(DistributorToolUsage::class, 'usageable');
+    }
 }

@@ -23,9 +23,15 @@ class Masterclass extends Model
         'phone_contact',
         'status',
         'meeting_link',
+        'landing_banner',
         'marketplace_listed',
         'is_private',
     ];
+
+    public function usages()
+    {
+        return $this->morphMany(DistributorToolUsage::class, 'usageable');
+    }
 
     public function user()
     {

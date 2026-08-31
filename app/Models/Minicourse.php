@@ -20,7 +20,13 @@ class Minicourse extends Model
         'status',
         'marketplace_listed',
         'is_private',
+        'landing_banner',
     ];
+
+    public function usages()
+    {
+        return $this->morphMany(DistributorToolUsage::class, 'usageable');
+    }
 
     public function user()
     {
