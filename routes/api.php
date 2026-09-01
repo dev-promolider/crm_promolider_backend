@@ -203,6 +203,8 @@ use Illuminate\Support\Facades\Route;
             Route::delete('book-files/{bookFileId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'destroy'])->name('course.book_files.destroy');
             Route::patch('book-files/{bookFileId}/preview', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'togglePreview'])->name('course.book_files.preview');
             Route::get('{courseId}/book-files', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'index'])->name('course.book_files.index');
+            Route::patch('{courseId}/reading-mode', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'setReadingMode'])->name('course.book.reading_mode');
+            Route::get('{courseId}/book-access', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'access'])->name('course.book.access');
             Route::post('{courseId}/book-files', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Book\BookFileController::class, 'store'])->name('course.book_files.store');
 
             Route::get('{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\CourseController::class, 'show'])->name('course.show');

@@ -37,7 +37,8 @@ class Infoproduct implements JsonSerializable
         private ?float $old_price = null,
         private ?string $language = null,
         private ?string $created_at = null,
-        private ?string $updated_at = null
+        private ?string $updated_at = null,
+        private ?string $reading_mode = null
     ) {}
 
     public function jsonSerialize(): array
@@ -72,6 +73,7 @@ class Infoproduct implements JsonSerializable
             'marketplace_listed' => $this->marketplace_listed,
             'old_price' => $this->old_price,
             'language' => $this->language,
+            'reading_mode' => $this->readingMode(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at
         ];
@@ -109,6 +111,24 @@ class Infoproduct implements JsonSerializable
     public function getLanguage(): ?string { return $this->language; }
     public function getCreatedAt(): ?string { return $this->created_at; }
     public function getUpdatedAt(): ?string { return $this->updated_at; }
+
+    /**
+     * Modo de entrega del libro. Si no está definido se asume 'download', que
+     * es como se comportaba el sistema antes de existir esta opción.
+     */
+    public function readingMode(): string
+    {
+        return $this->reading_mode === 'online' ? 'online' : 'download';
+    }
+
+    /**
+     * Regla de negocio: el comprador solo puede descargar los archivos si el
+     * productor eligió ese modo de entrega.
+     */
+    public function allowsDownload(): bool
+    {
+        return $this->readingMode() === 'download';
+    }
 
     // Lógica de negocio: Verificar si el infoproducto está pendiente de aprobación
     public function pendingApproval(): bool
