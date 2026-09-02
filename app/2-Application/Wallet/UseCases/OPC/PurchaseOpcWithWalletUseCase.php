@@ -8,8 +8,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\Payment;
 use Carbon\Carbon;
-use App\Models\Classified;
-use App\Models\Point;
+use App\Services\MLM\AffiliationRewardsService;
 
 class PurchaseOpcWithWalletUseCase
 {
@@ -101,8 +100,8 @@ class PurchaseOpcWithWalletUseCase
             ]);
             $payment->save();
 
-            // Distribuir Puntos (Lógica de la antigua aplicación)
-            $this->distributePoints($user, $product);
+            // Puntos de la recompra para la red, con la misma regla que una afiliación.
+            app(AffiliationRewardsService::class)->distributeRepurchasePoints($user->id, (float) $product->points * $cuotasRequested);
 
             DB::commit();
 
@@ -117,50 +116,6 @@ class PurchaseOpcWithWalletUseCase
             DB::rollBack();
             Log::error("Error al procesar pago OPC con Billetera", ['error' => $e->getMessage()]);
             throw $e;
-        }
-    }
-
-    private function distributePoints(User $user, Product $product)
-    {
-        $id = $user->id;
-        $fullName = $user->name;
-        $membersip = $user->id_account_type;
-        $action_user = Classified::where('user_id', $id)->first();
-
-        if (!$action_user) return; // Si no está en el árbol, no hacer nada
-
-        $save_position_branch = $action_user->position;
-        $aux = false;
-
-        if ($membersip != 5 && $membersip != 6) {
-            $ancestor_id = $action_user->user_above;
-            $ancestor_data = $ancestor_id ? Classified::where('user_id', $ancestor_id)->first() : null;
-            $aux = (!$ancestor_data || $ancestor_data->user_above == null) ? true : false;
-
-            $iterations = 0;
-            while ($aux == false && $iterations < 100) {
-                $ancestor_data = Classified::where('user_id', $ancestor_id)->first();
-                if (!$ancestor_data) { break; }
-                
-                $aux = $ancestor_data->user_above == null ? true : false;
-                $ancestor_status = User::find($ancestor_id);
-                
-                if ($ancestor_status && $ancestor_status->active && $ancestor_status->membershipActive) {
-                    if ($ancestor_status->qualified || $action_user->id_user_sponsor == $ancestor_data->user_id) {
-                        Point::create([
-                            'user_id' => $user->id,
-                            'sponsor_id' => $ancestor_data->user_id,
-                            'points' => $product->points,
-                            'side' => $save_position_branch,
-                            'reason' => "OPC points, " . $fullName
-                        ]);
-                    }
-                }
-
-                $save_position_branch = $ancestor_data->position;
-                $ancestor_id = $ancestor_data->user_above;
-                $iterations++;
-            }
         }
     }
 }

@@ -5,10 +5,26 @@ namespace App\Services\MLM;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BinaryTreeService
 {
     private const CACHE_KEY = 'mlm_global_binary_tree';
+
+    /**
+     * Invalida el arbol cacheado y encola su reconstruccion.
+     *
+     * Primero se borra la clave y despues se encola: si la cola no tiene worker, la
+     * siguiente lectura reconstruye el arbol sobre la marcha en vez de seguir sirviendo
+     * uno viejo. Antes la caché era Cache::forever y solo se reconstruia al crear un
+     * usuario, es decir, antes de que existiera su fila en 'classified': el recien
+     * registrado nunca aparecia en su propio arbol.
+     */
+    public static function invalidateCache(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+        \App\Jobs\RebuildBinaryTreeCache::dispatch();
+    }
 
     /**
      * Extrae todos los usuarios de la base de datos y construye el árbol binario en memoria.
@@ -61,19 +77,33 @@ class BinaryTreeService
             $nodes[$id] = new BinaryNode($userData);
         }
         
-        // Fase 1.5 ELIMINADA. La calificación se hará en la Fase 3 con DFS Post-Order para revisar toda la profundidad.
-        
         // Fase 2: Enlazar los punteros padre-hijo (O(n)) usando 'classified'
         foreach ($users as $id => $userData) {
-            
+
             // Buscar la clasificación del usuario actual
             $classification = $classifications[$id] ?? null;
-            
+
             if ($classification && $classification->user_above && $classification->user_above !== 'top') {
                 $parentId = (int) $classification->user_above;
                 $position = (int) $classification->position; // 0 = Izquierda, 1 = Derecha
-                
+
                 if (isset($nodes[$parentId])) {
+                    // Un nodo binario admite un hijo por pierna. Bajo el nodo raiz hay
+                    // seis en la misma, herencia del monolito: solo uno se dibuja y los
+                    // demas desaparecen con todo su subarbol. No se cambia cual gana
+                    // —eso movería ramas enteras de sitio— pero al menos deja de pasar
+                    // en silencio: hay que repararlo en los datos.
+                    $ocupado = $position === 0 ? $nodes[$parentId]->left : $nodes[$parentId]->right;
+
+                    if ($ocupado !== null) {
+                        Log::warning('[ARBOL BINARIO] Dos usuarios en la misma pierna del mismo padre', [
+                            'padre'       => $parentId,
+                            'posicion'    => $position,
+                            'desplazado'  => $ocupado->userId,
+                            'se_queda'    => $id,
+                        ]);
+                    }
+
                     if ($position === 0) {
                         $nodes[$parentId]->left = $nodes[$id];
                     } elseif ($position === 1) {
@@ -90,10 +120,14 @@ class BinaryTreeService
             }
         }
         
-        // Fase 3: Calcular Calificación Automática Real (Profundidad infinita)
+        // Fase 3: Calificación, con la misma regla que usan el panel y el corte.
         if ($rootId && isset($nodes[$rootId])) {
-            $this->calculateQualifications($nodes[$rootId], $users);
-            
+            $calificados = app(QualificationService::class)->qualifiedMap();
+
+            foreach ($nodes as $id => $node) {
+                $node->rawUserData['qualified'] = $calificados[$id] ?? false;
+            }
+
             $treeData = $nodes[$rootId]->toArray();
             
             // Guardar en caché serializado como JSON (Sin expiración)
@@ -105,43 +139,6 @@ class BinaryTreeService
         return null;
     }
 
-    /**
-     * Búsqueda Post-Order (DFS) para encontrar qué patrocinadores tienen directos activos
-     * en el subárbol izquierdo y derecho, habilitando la calificación sin importar la profundidad.
-     */
-    private function calculateQualifications($node, &$users)
-    {
-        if (!$node) return [];
-
-        $leftActiveSponsors = $this->calculateQualifications($node->left, $users);
-        $rightActiveSponsors = $this->calculateQualifications($node->right, $users);
-
-        // ¿El usuario actual está calificado? (Tiene al menos 1 directo activo a la izq y 1 a la der)
-        $isQualified = isset($leftActiveSponsors[$node->userId]) && isset($rightActiveSponsors[$node->userId]);
-        $node->rawUserData['qualified'] = $isQualified;
-
-        // Combinar los conjuntos para retornar al padre
-        $activeSponsors = $leftActiveSponsors + $rightActiveSponsors;
-
-        // Si este nodo (usuario) es un socio activo, agregamos a SU patrocinador al conjunto
-        $userData = $users[$node->userId] ?? null;
-        if ($userData) {
-            $now = now();
-            $isRequestApproved = isset($userData['request']) && $userData['request'] == 2;
-            $isActive = $isRequestApproved && (empty($userData['expiration_date']) || \Carbon\Carbon::parse($userData['expiration_date']) > $now);
-            $isMembershipActive = $isRequestApproved && (!empty($userData['expiration_membership_date']) && \Carbon\Carbon::parse($userData['expiration_membership_date']) > $now);
-            $idAccountType = $userData['id_account_type'] ?? null;
-
-            if ($isActive && $isMembershipActive && $idAccountType != 5 && $idAccountType != 6) {
-                $sponsorId = $userData['id_referrer_sponsor'] ?? null;
-                if ($sponsorId) {
-                    $activeSponsors[(int)$sponsorId] = true;
-                }
-            }
-        }
-
-        return $activeSponsors;
-    }
 
     /**
      * Obtiene el árbol global, idealmente desde Redis para velocidad extrema.

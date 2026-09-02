@@ -19,6 +19,41 @@ class OpcController extends Controller
     ) {}
 
     /**
+     * Precio de la cuota de OPC para la membresía del usuario.
+     *
+     * La ventana de pago no mostraba en ningún momento cuánto se iba a cobrar: se
+     * elegían cuotas y método y se confirmaba a ciegas.
+     */
+    public function summary()
+    {
+        $user = auth()->user();
+
+        $product = \App\Models\Product::where('name', 'opc')
+            ->where('account_type_id', $user->id_account_type)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tu membresía no tiene un producto OPC configurado. Contacta con soporte.',
+            ], 404);
+        }
+
+        $precio = (float) $product->price;
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'price_per_quota' => round($precio, 2),
+                'currency'        => 'USD',
+                'points_per_quota' => (float) $product->points,
+                'membership'      => $user->accountType->account ?? null,
+                'payable'         => $precio > 0,
+            ],
+        ]);
+    }
+
+    /**
      * Inicia el proceso de pago con Openpay para la recompra de OPC.
      */
     public function initPayment(Request $request)

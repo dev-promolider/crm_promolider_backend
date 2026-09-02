@@ -70,31 +70,13 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
     {
         $user = User::find($userId);
 
-        $isMembershipActive = ($user->expiration_membership_date > now()) && ($user->request == 2);
-        $isActive = (is_null($user->expiration_date) || $user->expiration_date > now()) && ($user->request == 2);
-        
-        // Obtener los hijos inmediatos en el árbol binario (las dos patas)
-        $sponsored = \Illuminate\Support\Facades\DB::table('classified')
-            ->join('users', 'classified.user_id', '=', 'users.id')
-            ->where('classified.user_above', (string) $userId)
-            ->select('classified.position', 'users.expiration_date', 'users.expiration_membership_date', 'users.request', 'users.id_account_type')
-            ->get();
-
-        $left = false;
-        $right = false;
-
-        foreach ($sponsored as $sponsor) {
-            $isSponsorMembershipActive = ($sponsor->expiration_membership_date > now()) && ($sponsor->request == 2);
-            $isSponsorActive = (is_null($sponsor->expiration_date) || $sponsor->expiration_date > now()) && ($sponsor->request == 2);
-            
-            if ($isSponsorActive && $isSponsorMembershipActive && $sponsor->id_account_type != 5 && $sponsor->id_account_type != 6) {
-                if ($sponsor->position == 0) $left = true;
-                if ($sponsor->position == 1) $right = true;
-            }
-            if ($left && $right) break;
-        }
-
-        $isQualified = $left && $right;
+        // Las tres condiciones salen de los accesores del modelo, que son los mismos
+        // que usan el corte y el árbol. Antes el panel las calculaba por su cuenta:
+        // miraba los hijos inmediatos del árbol en vez de los patrocinados directos,
+        // así que podía mostrar "Calificado" en verde mientras el corte pagaba cero.
+        $isMembershipActive = $user->membershipActive;
+        $isActive = $user->active;
+        $isQualified = $user->qualified;
 
         $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('user_id', $userId)->first();
         $walletId = $wallet ? $wallet->id : 0;
@@ -113,6 +95,14 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
 
         $expansionMonthly = $monthlyQuery(function ($query) {
             $query->where('reason', 'LIKE', '%Bono de expansión%');
+        })->sum('amount');
+
+        // El bono de inicio rápido es este, no el de expansión. El panel enseñaba el de
+        // expansión bajo la etiqueta «Inicio Rápido», y como no se generaba nunca,
+        // marcaba siempre $0.00.
+        $fastCashMonthly = $monthlyQuery(function ($query) {
+            $query->where('reason', 'LIKE', '%Bono de efectivo rápido%')
+                  ->orWhere('reason', 'LIKE', '%Bono de efectivo rapido%');
         })->sum('amount');
 
         $binaryMonthly = $monthlyQuery(function ($query) {
@@ -163,6 +153,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
             ],
             'last_cut_date' => $lastCutDate ? \Carbon\Carbon::parse($lastCutDate)->format('d/m/Y, H:i') : null,
             'monthly_bonuses' => [
+                'fast_cash' => round((float)$fastCashMonthly, 2),
                 'expansion' => round((float)$expansionMonthly, 2),
                 'binary' => round((float)$binaryMonthly, 2),
                 'generational' => round((float)$generationalMonthly, 2)

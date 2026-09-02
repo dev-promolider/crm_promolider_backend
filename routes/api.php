@@ -262,6 +262,7 @@ use Illuminate\Support\Facades\Route;
     // Módulo: Billetera y Pagos (Wallet)
     // ==========================================
     Route::group(['prefix' => 'opc', 'middleware' => ['auth:sanctum']], function () {
+        Route::get('summary', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'summary']);
         Route::post('init-payment', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'initPayment']);
         Route::post('confirm-payment', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'confirmPayment']);
         Route::post('purchase-wallet', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\OpcController::class, 'purchaseWithWallet']);

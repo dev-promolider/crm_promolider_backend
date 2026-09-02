@@ -17,6 +17,12 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('binarycut:process')->everyMinute()->withoutOverlapping();
+
+        // Bono de expansión: el día 1 de cada mes, como en el sistema anterior.
+        $schedule->command('deliver:expansion-bonus')
+            ->monthlyOn(1, '02:00')
+            ->timezone('America/Lima')
+            ->withoutOverlapping();
     }
 
     /**
