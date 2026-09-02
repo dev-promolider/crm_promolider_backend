@@ -32,6 +32,9 @@ class UpdateClassUseCase
             if (isset($data['description'])) {
                 $class->description = $data['description'];
             }
+            if (isset($data['module_id'])) {
+                $class->id_modules = $data['module_id'];
+            }
             
             if (!$class->save()) {
                 throw new Exception("Error al actualizar la clase");

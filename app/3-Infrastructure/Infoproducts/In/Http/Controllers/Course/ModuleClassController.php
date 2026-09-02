@@ -163,7 +163,7 @@ class ModuleClassController extends Controller
     public function update(Request $request, $id, \Promolider\Application\Infoproducts\UseCases\Course\Lesson\UpdateClassUseCase $updateClassUseCase)
     {
         try {
-            $data = $request->only(['title', 'description']);
+            $data = $request->only(['title', 'description', 'module_id']);
             $files = $request->hasFile('resources') ? $request->file('resources') : null;
             $user = $request->user();
 
