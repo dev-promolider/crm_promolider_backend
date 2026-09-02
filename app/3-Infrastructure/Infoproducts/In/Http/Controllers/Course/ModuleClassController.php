@@ -142,6 +142,7 @@ class ModuleClassController extends Controller
             
             $files = $request->hasFile('resources') ? $request->file('resources') : null;
             $user = $request->user();
+            $moduleId = $request->module_id;
 
             $result = $this->createClassUseCase->execute($moduleId, $data, $user, $files);
 

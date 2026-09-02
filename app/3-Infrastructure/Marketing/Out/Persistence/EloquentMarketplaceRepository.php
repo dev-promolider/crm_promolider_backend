@@ -256,6 +256,18 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
             }
         }
 
+        $data['testimonials'] = \App\Models\ToolTestimonial::where('tool_type', 'masterclass')
+            ->where('tool_id', $id)
+            ->orderBy('order')
+            ->get()
+            ->toArray();
+
+        $data['faqs'] = \App\Models\ToolFaq::where('tool_type', 'masterclass')
+            ->where('tool_id', $id)
+            ->orderBy('order')
+            ->get()
+            ->toArray();
+
         return $data;
     }
 
@@ -283,6 +295,18 @@ class EloquentMarketplaceRepository implements MarketplaceRepositoryInterface
                 }
             }
         }
+
+        $data['testimonials'] = \App\Models\ToolTestimonial::where('tool_type', 'ebook')
+            ->where('tool_id', $id)
+            ->orderBy('order')
+            ->get()
+            ->toArray();
+
+        $data['faqs'] = \App\Models\ToolFaq::where('tool_type', 'ebook')
+            ->where('tool_id', $id)
+            ->orderBy('order')
+            ->get()
+            ->toArray();
 
         return $data;
     }
