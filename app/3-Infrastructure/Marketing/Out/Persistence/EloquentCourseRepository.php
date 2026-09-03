@@ -542,10 +542,25 @@ class EloquentCourseRepository implements CourseRepositoryInterface
 
         // Preserve order from the subquery
         $ordered = implode(',', $courseIds);
-        return Course::whereIn('id', $courseIds)
+        $courses = Course::whereIn('id', $courseIds)
             ->orderByRaw(DB::raw("FIELD(id, {$ordered})"))
+            ->get();
+            
+        $purchasedCourses = PurchasedCourse::where('user_id', $userId)
+            ->whereIn('course_id', $courseIds)
             ->get()
-            ->toArray();
+            ->keyBy('course_id');
+            
+        return $courses->map(function ($course) use ($purchasedCourses) {
+            $data = $course->toArray();
+            if (isset($purchasedCourses[$course->id])) {
+                $pc = $purchasedCourses[$course->id];
+                $data['display_time'] = $pc->display_time;
+                $data['last_class_reprod'] = $pc->last_class_reprod;
+                $data['progress'] = $pc->progress;
+            }
+            return $data;
+        })->toArray();
     }
 
     public function getGamesTop(int $courseId, int $userId): array
