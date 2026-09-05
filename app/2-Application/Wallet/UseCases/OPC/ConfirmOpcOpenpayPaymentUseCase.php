@@ -9,9 +9,8 @@ use App\Models\User;
 use App\Models\Payment;
 use Carbon\Carbon;
 use Promolider\Domain\Registration\Ports\Out\PaymentGatewayInterface;
-use App\Http\Controllers\Api\CartController;
-use App\Models\Classified;
-use App\Models\Point;
+use App\Models\Product;
+use App\Services\MLM\AffiliationRewardsService;
 
 class ConfirmOpcOpenpayPaymentUseCase
 {
@@ -64,7 +63,23 @@ class ConfirmOpcOpenpayPaymentUseCase
         if (!$intent && $orderId && preg_match('/^opc-(\d+)-(\d+)$/', $orderId, $matches)) {
             $userIdFromOrder = (int) $matches[1];
             $amountFromOpenpay = (float) $chargeInfo['amount'];
-            $cuotasFromAmount  = (int) round($amountFromOpenpay / 30);
+
+            // El precio de la cuota es el del producto OPC de su membresía, no $30 fijos.
+            $usuarioOrden = User::find($userIdFromOrder);
+            $productoOrden = $usuarioOrden
+                ? Product::where('name', 'opc')->where('account_type_id', $usuarioOrden->id_account_type)->first()
+                : null;
+            $precioCuota = $productoOrden ? (float) $productoOrden->price : 0.0;
+
+            if ($precioCuota <= 0) {
+                Log::error('[CONFIRM OPC] No se puede reconstruir la intención: sin precio de OPC', [
+                    'order_id' => $orderId,
+                    'user_id'  => $userIdFromOrder,
+                ]);
+                throw new Exception("No se pudo determinar el precio del OPC para la orden: {$orderId}", 422);
+            }
+
+            $cuotasFromAmount = (int) round($amountFromOpenpay / $precioCuota);
 
             Log::warning('[CONFIRM OPC] Cache de intención no encontrado. Reconstruyendo desde order_id.', [
                 'order_id'     => $orderId,
@@ -171,12 +186,35 @@ class ConfirmOpcOpenpayPaymentUseCase
         }
     }
 
+    /**
+     * Reparte los puntos de la recompra por la red.
+     *
+     * Esto era un esbozo que solo dejaba una línea en el log: quien pagaba su OPC con
+     * tarjeta no alimentaba la red, mientras que pagándolo con billetera sí. Ahora las
+     * dos vías usan el mismo servicio y el mismo valor en puntos del producto.
+     */
     private function distributePoints(User $user, int $cuotas)
     {
-        // Esta función replica la lógica de recorrer la rama de Classified
-        // repartiendo puntos. Se asume que el volumen (puntos) se obtiene del producto.
-        // Simplificado para el ejemplo:
-        Log::info("Distribuyendo puntos OPC para el usuario {$user->id}, Cuotas: {$cuotas}");
-        // Implementar lógica de bucle limitando iteraciones a 50 como se discutió.
+        $product = Product::where('name', 'opc')
+            ->where('account_type_id', $user->id_account_type)
+            ->first();
+
+        if (!$product) {
+            Log::warning('[CONFIRM OPC] Sin producto OPC para la membresía, no se reparten puntos', [
+                'user_id'         => $user->id,
+                'id_account_type' => $user->id_account_type,
+            ]);
+            return;
+        }
+
+        $puntos = (float) $product->points * $cuotas;
+        $filas = app(AffiliationRewardsService::class)->distributeRepurchasePoints($user->id, $puntos);
+
+        Log::info('[CONFIRM OPC] Puntos de recompra repartidos', [
+            'user_id' => $user->id,
+            'cuotas'  => $cuotas,
+            'puntos'  => $puntos,
+            'filas'   => $filas,
+        ]);
     }
 }

@@ -43,8 +43,18 @@ class InitOpcOpenpayPaymentUseCase
             throw new Exception("No existe un producto OPC asociado a tu membresía.", 404);
         }
 
-        // 3. Calcular monto fijo de $30.00 por cuota (regla de negocio solicitada)
-        $amountPerQuota = 30.00;
+        // 3. El precio de la cuota es el del producto OPC de su membresía, el mismo que
+        //    se cobra al pagar con billetera. Antes aquí había $30.00 fijos para todos,
+        //    así que la misma cuota costaba distinto según el método de pago.
+        $amountPerQuota = (float) $product->price;
+
+        if ($amountPerQuota <= 0) {
+            throw new Exception(
+                "El OPC de tu membresía no tiene precio configurado. Contacta con soporte.",
+                422
+            );
+        }
+
         $totalAmount = $amountPerQuota * $cuotasRequested;
         $totalAmountFormatted = number_format($totalAmount, 2, '.', '');
 
