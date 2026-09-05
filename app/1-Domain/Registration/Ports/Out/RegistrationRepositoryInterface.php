@@ -148,6 +148,12 @@ interface RegistrationRepositoryInterface
     public function getRegisteredDirects(int $userId): array;
 
     /**
+     * Pierna con menos volumen de un patrocinador: 0 izquierda, 1 derecha.
+     * Es donde se coloca al consumidor, que entra sin que nadie elija lado.
+     */
+    public function getWeakerLeg(int $sponsorId): int;
+
+    /**
      * Reparte lo que genera una afiliacion ya activa: los puntos binarios que suben por
      * el arbol y el bono de inicio rapido del patrocinador directo.
      */
