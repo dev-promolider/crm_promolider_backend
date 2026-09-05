@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Hash;
 
 class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 {
+    /** Tipo de cuenta con el que entra quien se registra gratis desde el marketplace. */
+    private const CUENTA_CONSUMIDOR = 7;
+
     public function createUser(RegistrationUser $userData): int
     {
         $user = new User();
@@ -380,7 +383,7 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
     public function getRegisteredDirects(int $userId): array
     {
         $users = User::where('id_referrer_sponsor', $userId)
-            ->with('roles:id,name')
+            ->with(['roles:id,name', 'accountType'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -428,7 +431,19 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
         // gratuitas de productor, que por definicion no han pagado nada.
         $conPago = DB::table('payments')->whereIn('user_id', $ids)->distinct()->pluck('user_id')->flip();
 
-        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados, $posiciones, $conPago) {
+        // Curso comprado por cada uno, el mas reciente. Es la columna que pide el
+        // listado de consumidores: llegan al sistema comprando un curso del marketplace.
+        $cursosComprados = DB::table('purchased_courses as pc')
+            ->join('courses as c', 'c.id', '=', 'pc.course_id')
+            ->whereIn('pc.user_id', $ids)
+            ->select('pc.user_id', 'c.id as curso_id', 'c.title', 'pc.created_at')
+            ->orderByDesc('pc.created_at')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($filas) => $filas->first());
+
+        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados, $posiciones, $conPago, $cursosComprados) {
+            $compra = $cursosComprados->get($u->id);
             $top = $masVendidos->get($u->id);
 
             return [
@@ -448,10 +463,36 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
                 'fecha_registro'    => $u->created_at ? $u->created_at->toDateTimeString() : null,
                 'origen'            => 'registro',
                 'pago_estado'       => $this->estadoDePago($u, $conPago->has($u->id)),
+                'perfil'            => $this->perfilDelDirecto($u),
+                'membresia'         => $u->accountType->account ?? null,
+                'membresia_activa'  => $u->membershipActive,
+                'curso_comprado'    => $compra
+                    ? ['id' => (int) $compra->curso_id, 'titulo' => $compra->title]
+                    : null,
             ];
         });
 
         return $directs->toArray();
+    }
+
+    /**
+     * Perfil del directo: consumidor, distribuidor o productor.
+     *
+     * El tipo de cuenta manda sobre el rol. Los consumidores que hay en la base tienen
+     * el rol 'Producer' asignado, asi que filtrando por rol saldrian mezclados con los
+     * productores; lo que de verdad los identifica es la cuenta 'Consumidor Invitado'.
+     */
+    private function perfilDelDirecto(User $user): string
+    {
+        if ((int) $user->id_account_type === self::CUENTA_CONSUMIDOR) {
+            return 'consumidor';
+        }
+
+        if ($user->roles->contains('name', 'Distributor')) {
+            return 'distribuidor';
+        }
+
+        return 'productor';
     }
 
     /**
@@ -472,6 +513,11 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
         }
 
         return 'pendiente';
+    }
+
+    public function getWeakerLeg(int $sponsorId): int
+    {
+        return app(\App\Services\MLM\BinaryTreeService::class)->getWeakerLeg($sponsorId);
     }
 
     public function distributeAffiliationRewards(int $userId): array

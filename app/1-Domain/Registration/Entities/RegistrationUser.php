@@ -43,9 +43,22 @@ class RegistrationUser
      */
     public const TIPOS_GRATUITOS = [6, 7];
 
+    /** Cuenta con la que entra quien se registra desde el marketplace. */
+    public const CUENTA_CONSUMIDOR = 7;
+
     public function isFreeTier(): bool
     {
         return in_array($this->idAccountType, self::TIPOS_GRATUITOS, true);
+    }
+
+    /**
+     * El consumidor llega comprando un curso del marketplace, no por un enlace de
+     * patrocinio, asi que su patrocinador no elige pierna: se le coloca en la mas
+     * debil para que la estructura se compense sola.
+     */
+    public function isConsumer(): bool
+    {
+        return $this->idAccountType === self::CUENTA_CONSUMIDOR;
     }
 
     /**

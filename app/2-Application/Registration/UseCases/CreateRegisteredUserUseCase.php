@@ -62,9 +62,16 @@ class CreateRegisteredUserUseCase
 
         if ($referrer) {
             $referrerPosition = $referrer['position'] ?? 0;
-            
-            // Priorizar la posición guardada en el preregistro/registro sobre el ajuste actual del sponsor
-            $chosenPosition = ($user->position !== null) ? $user->position : $referrerPosition;
+
+            if ($user->isConsumer()) {
+                // El consumidor entra por el marketplace, sin que su patrocinador elija
+                // lado: se le coloca en la pierna con menos volumen para que la
+                // estructura se compense sola.
+                $chosenPosition = $this->registrationRepository->getWeakerLeg($user->idReferrerSponsor);
+            } else {
+                // Priorizar la posición guardada en el preregistro/registro sobre el ajuste actual del sponsor
+                $chosenPosition = ($user->position !== null) ? $user->position : $referrerPosition;
+            }
             
             $position = $chosenPosition == 0 ? 'user_position_left' : 'user_position_right';
             $userAbove = $this->registrationRepository->getLastUserBeforeEmpty($user->idReferrerSponsor, $position);
