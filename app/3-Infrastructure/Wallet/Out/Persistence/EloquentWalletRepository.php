@@ -314,12 +314,19 @@ class EloquentWalletRepository implements WalletRepositoryInterface
         Option::where('description', 'binary_cut_scheduled_at')->delete();
     }
 
-    public function executeBinaryCut(): void
+    /**
+     * Todo el corte va en una sola transaccion, incluida la fila de binary_cut_runs
+     * que reserva el periodo: si algo falla no queda ni el rastro de la reserva, y
+     * el corte se puede repetir sin tener que desbloquear nada a mano.
+     */
+    public function executeBinaryCut(bool $forzar = false, ?int $ejecutadoPor = null): array
     {
         DB::beginTransaction();
         try {
-            app(\App\Services\MLM\BinaryCutService::class)->execute();
+            $resumen = app(\App\Services\MLM\BinaryCutService::class)->execute($forzar, $ejecutadoPor);
             DB::commit();
+
+            return $resumen;
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error executing binary cut: ' . $e->getMessage());

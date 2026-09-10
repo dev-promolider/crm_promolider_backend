@@ -59,7 +59,13 @@ use Illuminate\Support\Facades\Route;
         Route::put('opc-products/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateOpcProduct'])->name('admin.compensation.opc.update');
 
         // Rangos (Solo edición)
+        Route::put('ranks-order', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'reorderRanks'])->name('admin.compensation.ranks.reorder');
+        Route::post('ranks', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'storeRank'])->name('admin.compensation.ranks.store');
         Route::put('ranks/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateRank'])->name('admin.compensation.ranks.update');
+        Route::delete('ranks/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'destroyRank'])->name('admin.compensation.ranks.destroy');
+
+        // Contraste con el documento del plan que se le entrega al afiliado.
+        Route::get('verificacion', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'verification'])->name('admin.compensation.verification');
 
         // Bonos Generacionales (Solo edición)
         Route::put('generational-bonuses/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateGenerationalBonus'])->name('admin.compensation.generational.update');
@@ -398,6 +404,14 @@ Route::group(['prefix' => 'marketing'], function () {
             Route::post('binary-cut/schedule', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'schedule'])->name('admin.binary_cut.schedule.post');
             Route::delete('binary-cut/schedule', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'cancel'])->name('admin.binary_cut.schedule.cancel');
             Route::post('binary-cut/execute', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'executeNow'])->name('admin.binary_cut.execute');
+
+            // Calendario del corte: en qué periodo estamos, si ya se cortó y cuándo toca el siguiente.
+            Route::get('binary-cut/status', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'status'])->name('admin.binary_cut.status');
+            Route::put('binary-cut/settings', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'updateSettings'])->name('admin.binary_cut.settings');
+
+            // Los bonos que no van dentro del corte, cada uno con su propio periodo.
+            Route::post('binary-cut/generational', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'payGenerational'])->name('admin.binary_cut.generational');
+            Route::post('binary-cut/rank-bonus', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'payRankBonus'])->name('admin.binary_cut.rank_bonus');
         });
     });
 
