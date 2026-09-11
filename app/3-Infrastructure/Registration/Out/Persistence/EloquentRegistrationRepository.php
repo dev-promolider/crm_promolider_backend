@@ -15,6 +15,7 @@ use App\Models\UserClassroomPoint;
 use App\Models\AccountType;
 use App\Models\Country;
 use App\Models\DocumentType;
+use App\Services\MLM\AffiliationRewardsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -423,7 +424,11 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
             ->groupBy('user_id')
             ->map(fn($cursos) => $cursos->first());
 
-        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados, $posiciones) {
+        // Estado de pago real. Antes salia 'pagado' fijo para todos, incluidas las altas
+        // gratuitas de productor, que por definicion no han pagado nada.
+        $conPago = DB::table('payments')->whereIn('user_id', $ids)->distinct()->pluck('user_id')->flip();
+
+        $directs = $users->map(function ($u) use ($publicados, $masVendidos, $invitados, $posiciones, $conPago) {
             $top = $masVendidos->get($u->id);
 
             return [
@@ -442,10 +447,35 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
                 'curso_mas_vendido' => $top ? ['titulo' => $top->title, 'ventas' => (int) $top->ventas] : null,
                 'fecha_registro'    => $u->created_at ? $u->created_at->toDateTimeString() : null,
                 'origen'            => 'registro',
-                'pago_estado'       => 'pagado',
+                'pago_estado'       => $this->estadoDePago($u, $conPago->has($u->id)),
             ];
         });
 
         return $directs->toArray();
+    }
+
+    /**
+     * gratuito: la cuenta no cuesta nada, no hay pago que esperar.
+     * pagado:   hay al menos un pago registrado.
+     * pendiente: cuenta de pago sin pago registrado o solicitud sin aprobar.
+     */
+    private function estadoDePago(User $user, bool $tienePago): string
+    {
+        $precio = (float) (AccountType::find($user->id_account_type)->price ?? 0);
+
+        if ($precio <= 0) {
+            return 'gratuito';
+        }
+
+        if ($tienePago && (string) $user->request === '2') {
+            return 'pagado';
+        }
+
+        return 'pendiente';
+    }
+
+    public function distributeAffiliationRewards(int $userId): array
+    {
+        return app(AffiliationRewardsService::class)->distribute($userId);
     }
 }

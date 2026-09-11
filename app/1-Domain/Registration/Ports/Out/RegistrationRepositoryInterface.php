@@ -146,4 +146,10 @@ interface RegistrationRepositoryInterface
      * Obtiene la lista de usuarios directos que completaron su registro (origen registro, pagado).
      */
     public function getRegisteredDirects(int $userId): array;
+
+    /**
+     * Reparte lo que genera una afiliacion ya activa: los puntos binarios que suben por
+     * el arbol y el bono de inicio rapido del patrocinador directo.
+     */
+    public function distributeAffiliationRewards(int $userId): array;
 }

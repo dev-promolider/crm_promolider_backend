@@ -33,12 +33,19 @@ class RegistrationUser
     }
 
     /**
-     * Regla de negocio: Las cuentas tipo 5 (free) y 9 (free) son gratuitas.
+     * Tipos de cuenta gratuitos: 6 (Productor Invitado) y 7 (Consumidor Invitado).
      * No requieren pago y se aprueban inmediatamente (request = 2).
+     *
+     * Antes esta lista era [5, 9], que estaba mal por los dos lados: el 5 es
+     * "Socio Fundador" y cuesta 1313.56, y el 9 no existe. La consecuencia era doble:
+     * el productor gratuito quedaba pendiente de aprobacion y no contaba para nada en
+     * la red, y un alta por API con tipo 5 se daba por gratuita, aprobada y sin pago.
      */
+    public const TIPOS_GRATUITOS = [6, 7];
+
     public function isFreeTier(): bool
     {
-        return in_array($this->idAccountType, [5, 9]);
+        return in_array($this->idAccountType, self::TIPOS_GRATUITOS, true);
     }
 
     /**

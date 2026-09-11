@@ -81,6 +81,14 @@ class CreateRegisteredUserUseCase
             ]);
         }
 
+        // 9.b Puntos binarios y bono de inicio rápido.
+        // Solo si el alta queda aprobada (pago confirmado o cuenta libre de verificación).
+        // Si queda pendiente, los reparte la aprobación de la solicitud, para no pagar
+        // dos veces por el mismo afiliado.
+        if ($user->getRequestStatus() === 2) {
+            $this->registrationRepository->distributeAffiliationRewards($userId);
+        }
+
         // 10. Notificación al patrocinador
         $this->registrationRepository->createNotification([
             'id_generator' => $userId,

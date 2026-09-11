@@ -34,7 +34,7 @@ class RegistrationController extends Controller
         if (!$result) {
             return response()->json([
                 'success' => false,
-                'message' => 'Enlace expirado o invÃ¡lido',
+                'message' => 'Enlace expirado o inválido',
             ], 404);
         }
 
