@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Log;
 use Promolider\Application\Infoproducts\UseCases\Book\DeleteBookFileUseCase;
+use Promolider\Application\Infoproducts\UseCases\Book\GetBookAccessUseCase;
+use Promolider\Application\Infoproducts\UseCases\Book\SetReadingModeUseCase;
 use Promolider\Application\Infoproducts\UseCases\Book\GetBookFilesUseCase;
 use Promolider\Application\Infoproducts\UseCases\Book\GetBookPreviewUseCase;
 use Promolider\Application\Infoproducts\UseCases\Book\SetBookPreviewUseCase;
@@ -19,8 +21,72 @@ class BookFileController extends BaseController
         private StoreBookFileUseCase $storeBookFileUseCase,
         private DeleteBookFileUseCase $deleteBookFileUseCase,
         private SetBookPreviewUseCase $setBookPreviewUseCase,
-        private GetBookPreviewUseCase $getBookPreviewUseCase
+        private GetBookPreviewUseCase $getBookPreviewUseCase,
+        private SetReadingModeUseCase $setReadingModeUseCase,
+        private GetBookAccessUseCase $getBookAccessUseCase
     ) {}
+
+    /**
+     * El productor elige si su libro solo se lee en línea o además se descarga.
+     */
+    public function setReadingMode(Request $request, int $courseId)
+    {
+        try {
+            $mode = $this->setReadingModeUseCase->execute(
+                $courseId,
+                (string) $request->input('reading_mode'),
+                $request->user()
+            );
+
+            return response()->json([
+                'success' => true,
+                'reading_mode' => $mode,
+                'message' => $mode === 'online'
+                    ? 'El libro solo podrá leerse dentro de la plataforma.'
+                    : 'El comprador podrá descargar el libro.',
+            ], 200);
+
+        } catch (Throwable $th) {
+            Log::error('Error cambiando el modo de entrega del libro', [
+                'course_id' => $courseId,
+                'error' => $th->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $th->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Contenido del libro para quien lo compró.
+     */
+    public function access(Request $request, int $courseId)
+    {
+        try {
+            $result = $this->getBookAccessUseCase->execute($courseId, $request->user());
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ], 200);
+
+        } catch (Throwable $th) {
+            $code = $th->getCode() === 403 ? 403 : 400;
+
+            Log::error('Error entregando el contenido del libro', [
+                'course_id' => $courseId,
+                'error' => $th->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => $th->getMessage(),
+            ], $code);
+        }
+    }
 
     public function index(Request $request, int $courseId)
     {

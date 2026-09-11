@@ -18,6 +18,7 @@ class Infoproduct extends Model
         "id_categories",
         "title",
         "language",
+        "reading_mode",
         "slug",
         "area",
         "description",

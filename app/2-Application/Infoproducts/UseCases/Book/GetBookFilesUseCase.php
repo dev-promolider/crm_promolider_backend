@@ -45,6 +45,7 @@ class GetBookFilesUseCase
                 'id' => $infoproduct->getId(),
                 'title' => $infoproduct->getTitle(),
                 'status' => $infoproduct->getStatus(),
+                'reading_mode' => $infoproduct->readingMode(),
             ],
         ];
     }

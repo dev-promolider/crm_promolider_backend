@@ -108,7 +108,10 @@ class StoreBookFileUseCase
             'bucket' => config('filesystems.disks.s3.bucket'),
             'key' => $key,
             'before_initiate' => function (\Aws\Command $command) use ($mimeType) {
-                $command['ACL'] = 'public-read';
+                // Sin ACL pública: el contenido del libro solo se entrega
+                // mediante URLs firmadas a quien lo compró. Si el objeto fuera
+                // public-read, el modo "solo lectura en línea" no serviría de
+                // nada, porque bastaría con conocer la URL para descargarlo.
                 $command['ContentType'] = $mimeType ?: 'application/octet-stream';
                 $command['ContentDisposition'] = 'inline';
             },

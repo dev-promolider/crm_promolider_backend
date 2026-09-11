@@ -173,7 +173,8 @@ class EloquentInfoproductRepository implements InfoproductRepositoryInterface
             $infoproduct->old_price,
             $infoproduct->language,
             $infoproduct->created_at ? (string) $infoproduct->created_at : null,
-            $infoproduct->updated_at ? (string) $infoproduct->updated_at : null
+            $infoproduct->updated_at ? (string) $infoproduct->updated_at : null,
+            $infoproduct->reading_mode
         );
     }
 

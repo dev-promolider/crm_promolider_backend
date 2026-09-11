@@ -32,4 +32,12 @@ interface BookFileRepositoryInterface
      * mismo libro. Con $bookFileId nulo, el libro se queda sin muestra.
      */
     public function setPreview(int $courseId, ?int $bookFileId): void;
+
+    /**
+     * URL de acceso temporal a un archivo del libro.
+     *
+     * @param bool $descargable true entrega el archivo como descarga; false lo
+     *                          fuerza a abrirse dentro del navegador.
+     */
+    public function temporaryUrl(string $path, string $fileName, bool $descargable): ?string;
 }
