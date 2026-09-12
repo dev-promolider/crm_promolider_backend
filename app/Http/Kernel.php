@@ -63,5 +63,14 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+
+        // Faltaban desde siempre. Hay 18 rutas protegidas con 'role:Admin' —todo el
+        // panel de solicitudes y toda la configuracion del plan de compensacion— y
+        // sin este alias Laravel no encuentra la clase y responde 500 a cada una:
+        // "Target class [role] does not exist". No es que denegara el acceso, es que
+        // la ruta no llegaba nunca a ejecutarse.
+        'role'               => \Spatie\Permission\Middleware\RoleMiddleware::class,
+        'permission'         => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
     ];
 }

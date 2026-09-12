@@ -13,11 +13,18 @@ class RankBonus extends Model
 
     protected $fillable = [
         'name',
+        'sort_order',
         'vol_min',
         'pack_max',
         'active_direct',
         'max_pay',
-        'monthly_bonus'
+        'monthly_bonus',
+        'monthly_bonus_months',
+        'monthly_bonus_frequency',
+        'extra_bonus',
+        'limit_generation',
+        'icon',
+        'status',
     ];
 
     public static function getPhotoAttribute($value)

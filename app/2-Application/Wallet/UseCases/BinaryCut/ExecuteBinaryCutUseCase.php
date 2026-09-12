@@ -10,8 +10,14 @@ class ExecuteBinaryCutUseCase
         private WalletRepositoryInterface $walletRepository
     ) {}
 
-    public function execute(): void
+    /**
+     * @param  bool      $forzar        Repetir un periodo ya cortado. Solo administrador.
+     * @param  int|null  $ejecutadoPor  Quien lo lanza; nulo si viene del programador.
+     *
+     * @return array{lote: int, periodo: string, pagados: int, total_binario: float, total_generacional: float}
+     */
+    public function execute(bool $forzar = false, ?int $ejecutadoPor = null): array
     {
-        $this->walletRepository->executeBinaryCut();
+        return $this->walletRepository->executeBinaryCut($forzar, $ejecutadoPor);
     }
 }
