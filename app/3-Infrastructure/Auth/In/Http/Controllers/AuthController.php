@@ -4,6 +4,7 @@ namespace Promolider\Infrastructure\Auth\In\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Promolider\Application\Auth\UseCases\LoginUseCase;
+use Promolider\Domain\Auth\Exceptions\TooManyLoginAttemptsException;
 use Exception;
 
 class AuthController extends Controller
@@ -23,7 +24,8 @@ class AuthController extends Controller
             // Pasamos el control a la capa de Aplicación (UseCase)
             $result = $this->loginUseCase->execute(
                 $request->username, 
-                $request->password
+                $request->password,
+                (string) $request->ip()
             );
             
             return response()->json([
@@ -31,6 +33,16 @@ class AuthController extends Controller
                 'message' => __('auth.correct_login'),
                 'data' => $result
             ], 200);
+
+        } catch (TooManyLoginAttemptsException $e) {
+
+            $retryAfter = $e->retryAfterSeconds();
+
+            return response()->json([
+                'success'     => false,
+                'message'     => __('auth.throttle', ['seconds' => $retryAfter]),
+                'retry_after' => $retryAfter
+            ], 429)->header('Retry-After', $retryAfter);
 
         } catch (Exception $e) {
             $code = $e->getCode();
