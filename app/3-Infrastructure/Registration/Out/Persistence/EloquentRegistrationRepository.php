@@ -45,9 +45,14 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
         $user->expiration_date       = date('Y-m-d H:i:s', $userData->getExpirationTimestamp());
         $user->photo                 = $userData->photo;
 
+        // La duración sale de la membresía (meses de vigencia, o sin vencimiento si es
+        // de pago único). Antes eran 365 días fijos para todas, así que lo configurado
+        // en «meses de vigencia» no se aplicaba nunca.
         $membershipExp = $userData->getMembershipExpirationTimestamp();
         if ($membershipExp) {
-            $user->expiration_membership_date = date('Y-m-d H:i:s', $membershipExp);
+            $user->expiration_membership_date = app(\App\Services\MLM\MembershipRules::class)
+                ->vencimientoMembresia((int) $userData->idAccountType)
+                ->format('Y-m-d H:i:s');
         }
 
         $user->save();

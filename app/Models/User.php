@@ -143,6 +143,13 @@ class User extends Authenticatable
             return false;
         }
 
+        // Hay membresias que no llevan OPC (en el plan nuevo, START). Para ellas estar
+        // activo es tener la membresia vigente: exigirles un OPC que no pueden pagar
+        // las dejaria inactivas para siempre a los 30 dias del alta.
+        if (!app(\App\Services\MLM\MembershipRules::class)->requiereOpc((int) $this->id_account_type)) {
+            return $this->membershipActive;
+        }
+
         $expiration = self::parseExpiration($this->expiration_date);
         $vigente = $expiration === null ? true : $expiration->isFuture();
 

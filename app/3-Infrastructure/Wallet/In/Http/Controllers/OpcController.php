@@ -28,8 +28,17 @@ class OpcController extends Controller
     {
         $user = auth()->user();
 
+        if (!app(\App\Services\MLM\MembershipRules::class)->requiereOpc((int) $user->id_account_type)) {
+            return response()->json([
+                'success'      => false,
+                'requires_opc' => false,
+                'message'      => 'Tu membresía no lleva OPC.',
+            ], 422);
+        }
+
         $product = \App\Models\Product::where('name', 'opc')
             ->where('account_type_id', $user->id_account_type)
+            ->where('status', '1')
             ->first();
 
         if (!$product) {

@@ -50,25 +50,64 @@ use Illuminate\Support\Facades\Route;
     // Panel Admin: Plan de Compensación (Solo Admin)
     // ==========================================
     Route::prefix('admin/compensation')->middleware(['auth:sanctum', 'role:Admin'])->group(function () {
-        // Membresías
+        // Membresías y sus categorías. El OPC va dentro de cada membresía.
         Route::get('memberships', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getMemberships'])->name('admin.compensation.memberships.index');
+        Route::post('memberships', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'storeMembership'])->name('admin.compensation.memberships.store');
         Route::put('memberships/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateMembership'])->name('admin.compensation.memberships.update');
+        Route::delete('memberships/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'destroyMembership'])->name('admin.compensation.memberships.destroy');
+        Route::get('membership-categories', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getMembershipCategories'])->name('admin.compensation.membership_categories.index');
+        Route::post('membership-categories', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'storeMembershipCategory'])->name('admin.compensation.membership_categories.store');
+        Route::put('membership-categories/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateMembershipCategory'])->name('admin.compensation.membership_categories.update');
+        Route::delete('membership-categories/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'destroyMembershipCategory'])->name('admin.compensation.membership_categories.destroy');
 
-        // Productos OPC
-        Route::get('opc-products', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getOpcProducts'])->name('admin.compensation.opc.index');
-        Route::put('opc-products/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateOpcProduct'])->name('admin.compensation.opc.update');
-
-        // Rangos (Solo edición)
+        // Rangos, sus insignias y sus porcentajes generacionales.
         Route::put('ranks-order', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'reorderRanks'])->name('admin.compensation.ranks.reorder');
         Route::post('ranks', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'storeRank'])->name('admin.compensation.ranks.store');
         Route::put('ranks/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateRank'])->name('admin.compensation.ranks.update');
         Route::delete('ranks/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'destroyRank'])->name('admin.compensation.ranks.destroy');
+        Route::post('ranks/{id}/icon', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'uploadRankIcon'])->name('admin.compensation.ranks.icon');
+        Route::put('ranks/{id}/generations', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateRankGenerations'])->name('admin.compensation.ranks.generations');
 
-        // Contraste con el documento del plan que se le entrega al afiliado.
-        Route::get('verificacion', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'verification'])->name('admin.compensation.verification');
+        // Ajustes del plan (generaciones, nivel alto, PV de cursos, IVA).
+        Route::get('settings', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'getPlanSettings'])->name('admin.compensation.settings.index');
+        Route::put('settings', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updatePlanSettings'])->name('admin.compensation.settings.update');
 
-        // Bonos Generacionales (Solo edición)
-        Route::put('generational-bonuses/{id}', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'updateGenerationalBonus'])->name('admin.compensation.generational.update');
+        // Versiones guardadas del plan: sustituyen al contraste con el documento.
+        Route::get('versions', [\App\Http\Controllers\Admin\CompensationPlanVersionController::class, 'index'])->name('admin.compensation.versions.index');
+        Route::post('versions', [\App\Http\Controllers\Admin\CompensationPlanVersionController::class, 'store'])->name('admin.compensation.versions.store');
+        Route::get('versions/{id}', [\App\Http\Controllers\Admin\CompensationPlanVersionController::class, 'show'])->name('admin.compensation.versions.show');
+        Route::post('versions/{id}/restore', [\App\Http\Controllers\Admin\CompensationPlanVersionController::class, 'restore'])->name('admin.compensation.versions.restore');
+        Route::delete('versions/{id}', [\App\Http\Controllers\Admin\CompensationPlanVersionController::class, 'destroy'])->name('admin.compensation.versions.destroy');
+    });
+
+    // ==========================================
+    // Panel Admin: Opciones Generales (traídas de promolider.info)
+    // ==========================================
+    Route::prefix('admin/general-options')->middleware(['auth:sanctum', 'role:Admin'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'getOptions'])->name('admin.general_options.index');
+        Route::put('/', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'updateOptions'])->name('admin.general_options.update');
+
+        Route::get('categories', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'getCategories'])->name('admin.general_options.categories.index');
+        Route::post('categories', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'storeCategory'])->name('admin.general_options.categories.store');
+        Route::put('categories/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'updateCategory'])->name('admin.general_options.categories.update');
+        Route::delete('categories/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'destroyCategory'])->name('admin.general_options.categories.destroy');
+
+        Route::get('banks', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'getBanks'])->name('admin.general_options.banks.index');
+        Route::post('banks', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'storeBank'])->name('admin.general_options.banks.store');
+        Route::put('banks/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'updateBank'])->name('admin.general_options.banks.update');
+        Route::delete('banks/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'destroyBank'])->name('admin.general_options.banks.destroy');
+
+        Route::get('payment-methods', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'getPaymentMethods'])->name('admin.general_options.payment_methods.index');
+        Route::post('payment-methods', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'storePaymentMethod'])->name('admin.general_options.payment_methods.store');
+        Route::put('payment-methods/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'updatePaymentMethod'])->name('admin.general_options.payment_methods.update');
+        Route::delete('payment-methods/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'destroyPaymentMethod'])->name('admin.general_options.payment_methods.destroy');
+
+        Route::get('roles', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'getRoles'])->name('admin.general_options.roles.index');
+        Route::post('roles', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'storeRole'])->name('admin.general_options.roles.store');
+        Route::delete('roles/{id}', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'destroyRole'])->name('admin.general_options.roles.destroy');
+
+        Route::get('certificate-templates', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'getCertificateTemplates'])->name('admin.general_options.certificates.index');
+        Route::patch('certificate-templates/{id}/toggle', [\App\Http\Controllers\Admin\GeneralOptionsController::class, 'toggleCertificateTemplate'])->name('admin.general_options.certificates.toggle');
     });
 
     // ==========================================
@@ -412,6 +451,11 @@ Route::group(['prefix' => 'marketing'], function () {
             // Los bonos que no van dentro del corte, cada uno con su propio periodo.
             Route::post('binary-cut/generational', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'payGenerational'])->name('admin.binary_cut.generational');
             Route::post('binary-cut/rank-bonus', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'payRankBonus'])->name('admin.binary_cut.rank_bonus');
+
+            // Simular antes de confirmar, y quién ganó en cada corte.
+            Route::post('binary-cut/simulate', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'simulate'])->name('admin.binary_cut.simulate');
+            Route::get('binary-cut/runs', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'runs'])->name('admin.binary_cut.runs');
+            Route::get('binary-cut/runs/{batch}/winners', [\Promolider\Infrastructure\Wallet\In\Http\Controllers\BinaryCutScheduleController::class, 'winners'])->name('admin.binary_cut.winners');
         });
     });
 

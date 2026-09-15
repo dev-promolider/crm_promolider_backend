@@ -34,9 +34,15 @@ class InitOpcOpenpayPaymentUseCase
             throw new Exception("Tu membresía anual ha vencido. Por favor renueva tu membresía para reintegrarte al sistema.", 403);
         }
 
-        // 2. Obtener producto OPC según la membresía del usuario
+        if (!app(\App\Services\MLM\MembershipRules::class)->requiereOpc((int) $user->id_account_type)) {
+            throw new Exception("Tu membresía no lleva OPC: no hay cuotas que pagar.", 422);
+        }
+
+        // 2. Obtener producto OPC según la membresía del usuario. Solo el activo: cuando
+        //    una membresía deja de llevar OPC su producto se desactiva, no se borra.
         $product = Product::where('name', 'opc')
             ->where('account_type_id', $user->id_account_type)
+            ->where('status', '1')
             ->first();
 
         if (!$product) {

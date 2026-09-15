@@ -30,8 +30,13 @@ class PurchaseOpcWithWalletUseCase
                 throw new Exception("Tu membresía anual ha vencido. Por favor renueva tu membresía para reintegrarte al sistema.", 403);
             }
 
+            if (!app(\App\Services\MLM\MembershipRules::class)->requiereOpc((int) $user->id_account_type)) {
+                throw new Exception("Tu membresía no lleva OPC: no hay cuotas que pagar.", 422);
+            }
+
             $product = Product::where('name', 'opc')
                 ->where('account_type_id', $user->id_account_type)
+                ->where('status', '1')
                 ->first();
 
             if (!$product) {

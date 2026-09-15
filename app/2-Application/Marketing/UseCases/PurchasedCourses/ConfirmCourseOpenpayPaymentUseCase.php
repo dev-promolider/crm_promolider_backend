@@ -48,6 +48,23 @@ class ConfirmCourseOpenpayPaymentUseCase
             // Registrar la compra llamando al caso de uso existente
             $result = $this->storePurchasedCourseUseCase->execute($userId, $courseId);
 
+            // Lo que genera la venta: comisión del creador, comisión de quien recomendó y
+            // PV para la red. Hasta ahora comprar un curso no generaba nada de esto. Si el
+            // reparto falla, la compra ya está hecha: se registra el error y no se le
+            // quita el curso al comprador.
+            try {
+                app(\App\Services\MLM\CoursePurchaseRewardsService::class)->repartir(
+                    (int) $userId,
+                    (int) $courseId,
+                    (float) ($charge['amount'] ?? $intentData['amount'] ?? 0)
+                );
+            } catch (\Throwable $e) {
+                Log::error('[COMPRA DE CURSO] No se pudieron repartir los premios: ' . $e->getMessage(), [
+                    'user_id'   => $userId,
+                    'course_id' => $courseId,
+                ]);
+            }
+
             // Eliminar la intención de caché para evitar doble procesamiento
             Cache::forget($intentKey);
 

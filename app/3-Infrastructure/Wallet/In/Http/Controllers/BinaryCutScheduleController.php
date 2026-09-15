@@ -34,12 +34,8 @@ class BinaryCutScheduleController extends Controller
     }
 
     /**
-     * El calendario completo del corte: como esta configurado, en que periodo
-     * estamos, si ese periodo ya se corto y cuando toca el siguiente.
-     *
-     * Es lo que hacia falta para que desde el panel se vea de un vistazo que el mes
-     * ya esta cerrado, en vez de tener que fiarse de que nadie haya pulsado el boton
-     * dos veces.
+     * El calendario completo del corte: cómo está configurado, en qué periodo estamos,
+     * si ese periodo ya se cortó y cuándo toca el siguiente.
      */
     public function status()
     {
@@ -77,17 +73,33 @@ class BinaryCutScheduleController extends Controller
     }
 
     /**
+     * Simula el corte del periodo en curso sin pagar nada.
+     *
+     * Devuelve a quién le pagaría, cuánto y por qué, y quién se queda fuera teniendo
+     * puntos en las dos piernas. Es el paso que faltaba antes de confirmar: el primer
+     * corte real se lanzó con un solo clic.
+     */
+    public function simulate(BinaryCutService $corte)
+    {
+        try {
+            return response()->json(['data' => $corte->simular()]);
+        } catch (\Exception $e) {
+            Log::error('Error al simular el corte binario: ' . $e->getMessage());
+
+            return response()->json(['error' => 'No se pudo simular el corte: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Lanza el corte del periodo en curso.
      *
-     * Si ese periodo ya se corto responde 409 y no toca nada: los rangos son
-     * mensuales y el volumen ya se consumio, asi que repetirlo pagaria dos veces.
-     * Repetirlo a proposito exige dos cosas a la vez —forzar y confirmar— para que
-     * no salga de un clic de mas.
+     * Si ese periodo ya se cortó responde 409 y no toca nada. Repetirlo a propósito
+     * exige dos cosas a la vez —forzar y confirmar— para que no salga de un clic de más.
      */
     public function executeNow(Request $request)
     {
         $request->validate([
-            'forzar'   => 'sometimes|boolean',
+            'forzar'    => 'sometimes|boolean',
             'confirmar' => 'sometimes|boolean',
         ]);
 
@@ -119,10 +131,96 @@ class BinaryCutScheduleController extends Controller
     }
 
     /**
-     * Bono generacional de un lote, por separado del corte.
+     * Todos los cortes registrados, del más reciente al más antiguo.
+     */
+    public function runs()
+    {
+        $cortes = DB::table('binary_cut_runs as c')
+            ->leftJoin('users as u', 'u.id', '=', 'c.executed_by')
+            ->whereNotNull('c.executed_at')
+            ->orderByDesc('c.executed_at')
+            ->orderByDesc('c.id')
+            ->get(['c.*', 'u.username as ejecutado_por']);
+
+        return response()->json(['data' => $cortes]);
+    }
+
+    /**
+     * Quién ganó en un corte y por qué.
      *
-     * Solo hace falta si en la configuracion se ha desacoplado del corte, o si un
-     * lote antiguo se quedo sin el. Si el lote ya lo tiene pagado, no se repite.
+     * Los cortes registrados desde esta versión guardan el porcentaje, lo calculado y
+     * si se topó. Los anteriores solo tienen piernas e importe: lo que falta se deja
+     * vacío en lugar de reconstruirlo con la configuración de hoy, que pudo cambiar.
+     */
+    public function winners(int $batch)
+    {
+        $corte = DB::table('binary_cut_runs as c')
+            ->leftJoin('users as u', 'u.id', '=', 'c.executed_by')
+            ->where('c.batch', $batch)
+            ->orderBy('c.id')
+            ->first(['c.*', 'u.username as ejecutado_por']);
+
+        $generacional = DB::table('wallet_movements')
+            ->join('wallet', 'wallet.id', '=', 'wallet_movements.wallet_id')
+            ->where('wallet_movements.batch', $batch)
+            ->where('wallet_movements.bonus_type_id', 5)
+            ->select('wallet.user_id', DB::raw('SUM(wallet_movements.amount) as total'))
+            ->groupBy('wallet.user_id')
+            ->pluck('total', 'user_id');
+
+        $filas = DB::table('binary_cut_histories as h')
+            ->leftJoin('users as u', 'u.id', '=', 'h.user_id')
+            ->leftJoin('account_type as a', function ($join) {
+                $join->on('a.id', '=', DB::raw('COALESCE(h.account_type_id, u.id_account_type)'));
+            })
+            ->leftJoin('rank_bonus as r', 'r.id', '=', 'h.rank_id')
+            ->where('h.batch', $batch)
+            ->orderByDesc('h.transferred_amount')
+            ->get([
+                'h.*', 'u.username', 'u.name', 'u.last_name', 'u.photo',
+                'a.account as membresia', 'r.name as rango', 'r.icon as rango_icono', 'r.max_pay',
+            ])
+            ->map(function ($f) use ($generacional) {
+                $izquierda = (float) $f->left_points;
+                $derecha = (float) $f->right_points;
+                $conDetalle = $f->pay_percentage !== null;
+
+                return [
+                    'user_id'        => (int) $f->user_id,
+                    'usuario'        => $f->username,
+                    'nombre'         => trim(($f->name ?? '') . ' ' . ($f->last_name ?? '')),
+                    'foto'           => $f->photo,
+                    'membresia'      => $f->membresia,
+                    'rango'          => $f->rango,
+                    'rango_icono'    => $f->rango_icono,
+                    'izquierda'      => $izquierda,
+                    'derecha'        => $derecha,
+                    'pierna_de_pago' => min($izquierda, $derecha),
+                    'porcentaje'     => $conDetalle ? (float) $f->pay_percentage : null,
+                    'calculado'      => $conDetalle ? (float) $f->calculated_amount : null,
+                    'tope'           => $f->max_pay !== null ? (float) $f->max_pay : null,
+                    'topado'         => $conDetalle ? (bool) $f->capped : null,
+                    'pagado'         => (float) $f->transferred_amount,
+                    'remanente'      => $f->carryover_points !== null ? (float) $f->carryover_points : abs($izquierda - $derecha),
+                    'lado_remanente' => $f->carryover_side === null ? null : ((int) $f->carryover_side === 0 ? 'izquierda' : 'derecha'),
+                    'generacional'   => round((float) ($generacional->get($f->user_id) ?? 0), 2),
+                    'con_detalle'    => $conDetalle,
+                ];
+            });
+
+        return response()->json([
+            'data' => [
+                'corte'              => $corte,
+                'lote'               => $batch,
+                'ganadores'          => $filas,
+                'total_binario'      => round($filas->sum('pagado'), 2),
+                'total_generacional' => round($filas->sum('generacional'), 2),
+            ],
+        ]);
+    }
+
+    /**
+     * Bono generacional de un lote, por separado del corte.
      */
     public function payGenerational(Request $request, BinaryCutService $corte)
     {
@@ -147,13 +245,12 @@ class BinaryCutScheduleController extends Controller
     }
 
     /**
-     * Bono mensual de rango del mes indicado. Con simular=true no paga nada y
-     * devuelve a quien le tocaria y por que.
+     * Bono mensual de rango del mes indicado. Con simular=true no paga nada.
      */
     public function payRankBonus(Request $request, RankMonthlyBonusService $servicio)
     {
         $request->validate([
-            'periodo' => 'sometimes|regex:/^\d{4}-\d{2}$/',
+            'periodo' => 'sometimes|nullable|regex:/^\d{4}-\d{2}$/',
             'simular' => 'sometimes|boolean',
         ]);
 
@@ -174,21 +271,19 @@ class BinaryCutScheduleController extends Controller
     }
 
     /**
-     * Configuracion del corte: frecuencia, dia, hora y zona horaria.
-     *
-     * El documento del plan dice "todos los dias 21 de cada mes a las 12:00 PM (hora
-     * Lima, Peru)", y el equipo quiere poder pasarlo a quincenal sin tocar codigo.
+     * Configuración del corte: frecuencia, día, hora, zona horaria, disparo automático
+     * y si el generacional va dentro del corte.
      */
     public function updateSettings(Request $request)
     {
         $request->validate([
-            'binary_cut_frequency' => 'sometimes|in:monthly,biweekly',
-            'binary_cut_day'       => 'sometimes|integer|min:1|max:28',
-            'binary_cut_time'      => 'sometimes|regex:/^\d{1,2}:\d{2}$/',
-            'binary_cut_timezone'  => 'sometimes|timezone',
-            'binary_cut_automatic' => 'sometimes|boolean',
-            'binary_cut_pay_generational_inline' => 'sometimes|boolean',
-            'generational_university_from'       => 'sometimes|integer|min:0|max:8',
+            PlanSettings::CORTE_FRECUENCIA              => 'sometimes|in:monthly,biweekly',
+            PlanSettings::CORTE_DIA                     => 'sometimes|integer|min:1|max:28',
+            PlanSettings::CORTE_HORA                    => 'sometimes|regex:/^\d{1,2}:\d{2}$/',
+            PlanSettings::CORTE_ZONA                    => 'sometimes|timezone',
+            PlanSettings::CORTE_AUTOMATICO              => 'sometimes|boolean',
+            PlanSettings::GENERACIONAL_EN_EL_CORTE      => 'sometimes|boolean',
+            PlanSettings::GENERACIONAL_NIVEL_ALTO_DESDE => 'sometimes|integer|min:0|max:30',
         ]);
 
         foreach ($request->only([
@@ -198,7 +293,7 @@ class BinaryCutScheduleController extends Controller
             PlanSettings::CORTE_ZONA,
             PlanSettings::CORTE_AUTOMATICO,
             PlanSettings::GENERACIONAL_EN_EL_CORTE,
-            PlanSettings::GENERACIONAL_UNIVERSITY_DESDE,
+            PlanSettings::GENERACIONAL_NIVEL_ALTO_DESDE,
         ]) as $clave => $valor) {
             if (is_bool($valor)) {
                 $valor = $valor ? '1' : '0';

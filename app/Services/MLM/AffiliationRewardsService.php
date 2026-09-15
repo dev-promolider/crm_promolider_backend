@@ -19,14 +19,12 @@ use Illuminate\Support\Facades\Log;
  * Antes esto vivia suelto dentro de UpdateNewUserRequestUseCase, asi que solo se
  * ejecutaba cuando un administrador aprobaba la solicitud a mano. El alta por pasarela
  * y el alta gratuita no pasaban por ahi y no generaban nada.
+ *
+ * Quien alimenta la red ya no es una lista de identificadores escrita aqui (eran el
+ * 5 y el 6): lo decide cada membresia desde el panel.
  */
 class AffiliationRewardsService
 {
-    /**
-     * Tipos de cuenta que no alimentan la red (invitados y socio fundador).
-     */
-    private const TIPOS_SIN_RED = [5, 6];
-
     private const MAX_NIVELES = 100;
 
     /**
@@ -41,7 +39,7 @@ class AffiliationRewardsService
             return ['puntos' => 0, 'bono_directo' => 0.0];
         }
 
-        if (in_array((int) $user->id_account_type, self::TIPOS_SIN_RED, true)) {
+        if (!$this->alimentaLaRed($user)) {
             return ['puntos' => 0, 'bono_directo' => 0.0];
         }
 
@@ -59,17 +57,35 @@ class AffiliationRewardsService
     {
         $user = User::find($userId);
 
-        if (!$user || $points <= 0) {
-            return 0;
-        }
-
-        if (in_array((int) $user->id_account_type, self::TIPOS_SIN_RED, true)) {
+        if (!$user || $points <= 0 || !$this->alimentaLaRed($user)) {
             return 0;
         }
 
         $nombre = trim($user->name . ' ' . $user->last_name);
 
         return $this->awardUpline($user, $points, 'OPC points, ' . $nombre);
+    }
+
+    /**
+     * PV de la compra de un curso. Suben por el arbol con la misma regla que los de
+     * una afiliacion; el motivo es el mismo que escribia el monolito.
+     */
+    public function distributeCoursePoints(int $userId, float $points): int
+    {
+        $user = User::find($userId);
+
+        if (!$user || $points <= 0 || !$this->alimentaLaRed($user)) {
+            return 0;
+        }
+
+        $nombre = trim($user->name . ' ' . $user->last_name);
+
+        return $this->awardUpline($user, $points, 'Course buy, ' . $nombre);
+    }
+
+    private function alimentaLaRed(User $user): bool
+    {
+        return app(MembershipRules::class)->alimentaLaRed((int) $user->id_account_type);
     }
 
     /**
@@ -169,9 +185,10 @@ class AffiliationRewardsService
             $ancestorId = $ancestorClassified->user_above;
         }
 
-        Log::info('[AFILIACION] Puntos repartidos', [
+        Log::info('[RED] Puntos repartidos', [
             'user_id' => $user->id,
             'puntos'  => $points,
+            'motivo'  => $reason,
             'filas'   => $created,
         ]);
 

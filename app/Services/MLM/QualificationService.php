@@ -19,11 +19,6 @@ use Illuminate\Support\Facades\DB;
 class QualificationService
 {
     /**
-     * Cuentas que no cuentan para calificar: Socio Fundador e invitados.
-     */
-    private const TIPOS_EXCLUIDOS = [5, 6];
-
-    /**
      * Calificacion de un usuario concreto.
      */
     public function isQualified(User $user): bool
@@ -110,7 +105,9 @@ class QualificationService
             return false;
         }
 
-        if (in_array((int) $user->id_account_type, self::TIPOS_EXCLUIDOS, true)) {
+        // Antes eran los tipos 5 y 6 escritos a mano. Ahora lo decide cada membresia
+        // con "alimenta la red", que se cambia desde el panel.
+        if (!app(MembershipRules::class)->alimentaLaRed((int) $user->id_account_type)) {
             return false;
         }
 

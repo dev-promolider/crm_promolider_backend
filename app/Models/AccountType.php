@@ -12,6 +12,14 @@ class AccountType extends Model
     protected $guarded = [];
     protected $table = "account_type";
 
+    protected $casts = [
+        'is_visible'         => 'boolean',
+        'is_permanent'       => 'boolean',
+        'requires_opc'       => 'boolean',
+        'feeds_network'      => 'boolean',
+        'counts_as_top_tier' => 'boolean',
+    ];
+
     /**
      * Get the user associated with the AccountType
      *
