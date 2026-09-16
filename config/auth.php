@@ -108,4 +108,28 @@ return [
 
     'password_timeout' => 10800,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Login Throttling
+    |--------------------------------------------------------------------------
+    |
+    | Limite especifico del endpoint de login, mas estricto que el 'throttle:api'
+    | global. Se aplica por clave compuesta de identificador + IP.
+    |
+    | max_attempts     Fallos que agotan el limite y disparan el bloqueo.
+    | lock_seconds     Duracion del PRIMER bloqueo.
+    | lock_multiplier  Cada bloqueo dura este factor por el anterior (backoff progresivo).
+    | max_lock_seconds Techo del bloqueo, para que no crezca sin control.
+    | memory_seconds   Cuanto se recuerda el nivel alcanzado desde el ultimo fallo.
+    |
+    */
+
+    'login_throttle' => [
+        'max_attempts'     => env('AUTH_LOGIN_MAX_ATTEMPTS', 5),
+        'lock_seconds'     => env('AUTH_LOGIN_LOCK_SECONDS', 60),
+        'lock_multiplier'  => env('AUTH_LOGIN_LOCK_MULTIPLIER', 2),
+        'max_lock_seconds' => env('AUTH_LOGIN_MAX_LOCK_SECONDS', 3600),
+        'memory_seconds'   => env('AUTH_LOGIN_MEMORY_SECONDS', 86400),
+    ],
+
 ];
