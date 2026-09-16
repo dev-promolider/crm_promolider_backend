@@ -17,21 +17,19 @@ use Illuminate\Support\Facades\Log;
  * El corte binario.
  *
  * Trabaja sobre la tabla 'points', que es exactamente la que el afiliado ve en
- * «Puntos Binarios Activos» y en el arbol. Antes el corte ignoraba esa tabla y
- * recalculaba el volumen recorriendo el arbol entero, con dos consecuencias: lo que
- * se pagaba no tenia relacion con lo que se mostraba, y como el recalculo era
- * acumulativo desde el origen, cada corte volvia a pagar sobre el mismo volumen.
+ * «Puntos Binarios Activos» y en el arbol. El volumen se consume: los puntos que
+ * entran en el corte quedan en status 0 y el sobrante de la pierna mayor se guarda
+ * como una unica fila de arrastre.
  *
- * Ahora el volumen se consume: los puntos que entran en el corte quedan en status 0
- * y el sobrante de la pierna mayor se guarda como una unica fila de arrastre.
+ * El corte pertenece a un periodo. La fila de binary_cut_runs se inserta dentro de
+ * la misma transaccion que los pagos, y su indice unico sobre period_key impide
+ * repetirlo aunque lleguen dos peticiones a la vez.
  *
- * Y ahora el corte pertenece a un periodo. Antes se podia lanzar tantas veces como
- * se pulsara el boton —y ademas hay un comando programado que lo dispara solo—, asi
- * que dos cortes en el mismo mes pagaban dos veces y asignaban el rango dos veces,
- * cuando el rango es mensual por definicion. La fila de binary_cut_runs se inserta
- * dentro de la misma transaccion que los pagos, y su indice unico sobre period_key
- * es lo que lo impide de verdad: una comprobacion en PHP no aguanta dos peticiones
- * a la vez, un indice unico si.
+ * Y ahora se puede simular: el corte se ejecuta entero dentro de una transaccion que
+ * se deshace al terminar, y devuelve a quien le pagaria, cuanto y por que, ademas de
+ * quien se queda fuera teniendo puntos en las dos piernas. El primer corte real se
+ * lanzo sin ningun paso previo y el ingeniero tuvo que preguntar despues que habia
+ * calculado; con la simulacion eso se ve antes de confirmar.
  */
 class BinaryCutService
 {
@@ -50,9 +48,25 @@ class BinaryCutService
     /** @var array<int, array<int>> descendientes activos ya calculados */
     private array $descendantsCache = [];
 
+    /** @var array<int, float> generacional cobrado en este corte, por usuario */
+    private array $generacionalPorUsuario = [];
+
+    /** @var array<string, array<int, int>> mes => [user_id => rank_id], meses ya cerrados */
+    private array $rangosPorMes = [];
+
+    /** @var string|null ultimo mes con corte anterior al mes de este corte */
+    private ?string $mesAnterior = null;
+
+    /** @var array<int, int> rank_id => su sitio en el orden de los rangos */
+    private array $posicionDelRango = [];
+
+    private string $etiqueta = '[CORTE BINARIO]';
+
     public function __construct(
         private PlanSettings $settings,
-        private BinaryCutPeriodService $periodos
+        private BinaryCutPeriodService $periodos,
+        private MembershipRules $membresias,
+        private RankHistoryService $historial
     ) {
     }
 
@@ -61,7 +75,7 @@ class BinaryCutService
      *                                  administrador, y queda marcado en el historial.
      * @param  int|null  $ejecutadoPor  Quien lo lanza; nulo si viene del programador.
      *
-     * @return array{lote: int, periodo: string, pagados: int, total_binario: float, total_generacional: float}
+     * @return array{lote: int, periodo: string, pagados: int, total_binario: float, total_generacional: float, detalle: array, excluidos: array}
      *
      * @throws BinaryCutAlreadyRunException
      */
@@ -74,6 +88,10 @@ class BinaryCutService
         $this->unilevelChildren = [];
         $this->usersById = [];
         $this->descendantsCache = [];
+        $this->generacionalPorUsuario = [];
+        $this->rangosPorMes = [];
+        $this->mesAnterior = null;
+        $this->posicionDelRango = [];
 
         $periodo = $this->periodos->clavePeriodo();
         $claveFila = $this->reservarPeriodo($periodo, $forzar, $ejecutadoPor);
@@ -81,7 +99,7 @@ class BinaryCutService
         $batchOption = Option::firstOrCreate(['description' => 'batch'], ['value' => '1']);
         $batch = (int) $batchOption->value;
 
-        Log::info('[CORTE BINARIO] Iniciando', ['lote' => $batch, 'periodo' => $claveFila]);
+        Log::info($this->etiqueta . ' Iniciando', ['lote' => $batch, 'periodo' => $claveFila]);
 
         // Solo rangos activos: al retirar uno desde el panel deja de asignarse, pero
         // no se borra, porque rank_binary y binary_cut_histories lo referencian.
@@ -97,26 +115,31 @@ class BinaryCutService
 
         $this->loadUsers();
         $this->loadVolumes();
+        $this->prepararAntiguedad($ranks);
 
         $paidAmounts = [];
         $ranksByUser = [];
+        $detalle = [];
+        $excluidos = [];
         $totalBinario = 0.0;
 
         foreach ($this->volumes as $userId => $volume) {
-            $user = $this->usersById[$userId] ?? null;
-
-            if (!$user) {
-                continue;
-            }
-
-            if (!$user->active || !$user->membershipActive || !$user->qualified) {
-                continue;
-            }
-
             $left = (float) $volume['left'];
             $right = (float) $volume['right'];
             $min = min($left, $right);
             $max = max($left, $right);
+
+            $user = $this->usersById[$userId] ?? null;
+            $motivo = $this->motivoDeExclusion($user);
+
+            if ($motivo !== null) {
+                // Solo interesa explicar a quien tenia algo que cobrar: puntos en las
+                // dos piernas. El resto no habria cobrado igualmente.
+                if ($min > 0) {
+                    $excluidos[] = $this->filaExcluido($userId, $user, $left, $right, $motivo);
+                }
+                continue;
+            }
 
             // Sin pierna menor no hay nada que pagar, y por tanto nada que consumir:
             // los puntos siguen activos para el corte siguiente.
@@ -124,7 +147,7 @@ class BinaryCutService
                 continue;
             }
 
-            $rank = $this->resolveRank($user, $min, $ranks);
+            ['rango' => $rank, 'antiguedad' => $notaAntiguedad] = $this->resolveRank($user, $min, $ranks);
             $ranksByUser[$userId] = $rank;
 
             DB::table('rank_binary')->insert([
@@ -138,21 +161,28 @@ class BinaryCutService
             $wallet = Wallet::where('user_id', $userId)->first();
 
             if (!$wallet) {
-                Log::warning('[CORTE BINARIO] Usuario sin billetera, se omite', ['user_id' => $userId]);
+                Log::warning($this->etiqueta . ' Usuario sin billetera, se omite', ['user_id' => $userId]);
+                $excluidos[] = $this->filaExcluido($userId, $user, $left, $right, 'No tiene billetera');
                 continue;
             }
 
             $payInBinary = (float) ($user->accountType->pay_in_binary ?? 0);
-            $amount = round($min * ($payInBinary / 100), 2);
+            $calculado = round($min * ($payInBinary / 100), 2);
+            $amount = $calculado;
+            $topado = false;
 
             if ($amount > (float) $rank->max_pay) {
-                Log::info('[CORTE BINARIO] Bono topado por rango', [
+                Log::info($this->etiqueta . ' Bono topado por rango', [
                     'user_id'   => $userId,
                     'calculado' => $amount,
                     'tope'      => $rank->max_pay,
                 ]);
                 $amount = (float) $rank->max_pay;
+                $topado = true;
             }
+
+            $remanente = round($max - $min, 2);
+            $ladoRemanente = $remanente > 0 ? ($left > $right ? 0 : 1) : null;
 
             $this->consumePoints($userId, $left, $right, $min, $max);
 
@@ -174,22 +204,53 @@ class BinaryCutService
             BinaryCutHistory::create([
                 'user_id'            => $userId,
                 'rank_id'            => $rank->id,
+                'account_type_id'    => $user->id_account_type,
                 'left_points'        => $left,
                 'right_points'       => $right,
+                'pay_percentage'     => $payInBinary,
+                'calculated_amount'  => $calculado,
+                'capped'             => $topado,
                 'transferred_amount' => $amount,
+                'carryover_points'   => $remanente,
+                'carryover_side'     => $ladoRemanente,
                 'batch'              => $batch,
             ]);
+
+            $detalle[$userId] = [
+                'user_id'        => $userId,
+                'usuario'        => $user->username,
+                'nombre'         => trim(($user->name ?? '') . ' ' . ($user->last_name ?? '')),
+                'membresia'      => $user->accountType->account ?? null,
+                'rango'          => $rank->name,
+                'rango_id'       => (int) $rank->id,
+                'izquierda'      => $left,
+                'derecha'        => $right,
+                'pierna_de_pago' => $min,
+                'porcentaje'     => $payInBinary,
+                'calculado'      => $calculado,
+                'tope'           => (float) $rank->max_pay,
+                'topado'         => $topado,
+                'pagado'         => $amount,
+                'remanente'      => $remanente,
+                'lado_remanente' => $ladoRemanente === null ? null : ($ladoRemanente === 0 ? 'izquierda' : 'derecha'),
+                'generacional'   => 0.0,
+                'antiguedad'     => $notaAntiguedad,
+            ];
         }
 
         $totalGeneracional = 0.0;
 
         // El generacional es un porcentaje de lo que se acaba de pagar de binario, asi
-        // que por defecto va en la misma transaccion: separarlo del todo abre la puerta
-        // a que se ejecute el corte y nadie lance el segundo paso. Aun asi se puede
-        // desacoplar desde el panel, y entonces se lanza aparte con
-        // "php artisan mlm:bono-generacional --lote=N".
+        // que por defecto va en la misma transaccion. Se puede desacoplar desde el
+        // panel, y entonces se lanza aparte con "php artisan mlm:bono-generacional".
         if ($this->settings->get(PlanSettings::GENERACIONAL_EN_EL_CORTE) !== '0') {
             $totalGeneracional = $this->payGenerationalBonuses($paidAmounts, $ranksByUser, $batch);
+        }
+
+        foreach ($this->generacionalPorUsuario as $userId => $monto) {
+            if (isset($detalle[$userId])) {
+                $detalle[$userId]['generacional'] = round($monto, 2);
+            }
         }
 
         $batchOption->value = (string) ($batch + 1);
@@ -204,6 +265,10 @@ class BinaryCutService
             'updated_at'         => now(),
         ]);
 
+        $detalle = array_values($detalle);
+        usort($detalle, fn ($a, $b) => $b['pagado'] <=> $a['pagado']);
+        usort($excluidos, fn ($a, $b) => $b['pierna_de_pago'] <=> $a['pierna_de_pago']);
+
         $resumen = [
             'lote'               => $batch,
             'periodo'            => $claveFila,
@@ -212,9 +277,78 @@ class BinaryCutService
             'total_generacional' => round($totalGeneracional, 2),
         ];
 
-        Log::info('[CORTE BINARIO] Terminado', $resumen);
+        Log::info($this->etiqueta . ' Terminado', $resumen);
 
-        return $resumen;
+        return $resumen + [
+            'detalle'   => $detalle,
+            'excluidos' => $excluidos,
+        ];
+    }
+
+    /**
+     * Ejecuta el corte del periodo en curso sin que quede nada: todo ocurre dentro de
+     * una transaccion que se deshace al terminar.
+     *
+     * Ignora la guarda del periodo a proposito, para poder ver tambien que pagaria
+     * una repeticion; si el periodo ya estaba cortado lo indica en la respuesta.
+     */
+    public function simular(): array
+    {
+        $yaCortado = $this->periodos->periodoEjecutado($this->periodos->clavePeriodo());
+        $this->etiqueta = '[SIMULACION DE CORTE]';
+
+        DB::beginTransaction();
+
+        try {
+            $resultado = $this->execute(true, null);
+        } finally {
+            DB::rollBack();
+            $this->etiqueta = '[CORTE BINARIO]';
+        }
+
+        $resultado['periodo'] = $this->periodos->clavePeriodo();
+        $resultado['periodo_ya_cortado'] = $yaCortado;
+        $resultado['simulacion'] = true;
+
+        return $resultado;
+    }
+
+    /**
+     * Por que alguien con volumen no entra en el corte, o null si entra.
+     */
+    private function motivoDeExclusion(?User $user): ?string
+    {
+        if (!$user) {
+            return 'El usuario ya no existe';
+        }
+
+        if (!$user->membershipActive) {
+            return 'Membresía vencida o sin aprobar';
+        }
+
+        if (!$user->active) {
+            return 'OPC vencido';
+        }
+
+        if (!$user->qualified) {
+            return 'No calificado: le falta un directo activo en alguna pierna';
+        }
+
+        return null;
+    }
+
+    private function filaExcluido(int $userId, ?User $user, float $left, float $right, string $motivo): array
+    {
+        return [
+            'user_id'        => $userId,
+            'usuario'        => $user->username ?? null,
+            'nombre'         => $user ? trim(($user->name ?? '') . ' ' . ($user->last_name ?? '')) : null,
+            'membresia'      => $user->accountType->account ?? null,
+            'izquierda'      => $left,
+            'derecha'        => $right,
+            'pierna_de_pago' => min($left, $right),
+            'motivo'         => $motivo,
+        ];
     }
 
     /**
@@ -244,7 +378,7 @@ class BinaryCutService
             $clave = $periodo . '#' . $repeticion;
             $forzado = true;
 
-            Log::warning('[CORTE BINARIO] Repeticion forzada de un periodo ya cortado', [
+            Log::warning($this->etiqueta . ' Repeticion forzada de un periodo ya cortado', [
                 'periodo'    => $periodo,
                 'repeticion' => $clave,
                 'usuario'    => $ejecutadoPor,
@@ -329,19 +463,106 @@ class BinaryCutService
     }
 
     /**
-     * Rango del corte. Ademas del volumen de la pierna menor exige descendientes
-     * activos y, en los rangos que lo piden, un numero de membresias University.
+     * Prepara lo que hace falta para la antiguedad por rango: el sitio de cada rango
+     * en el orden y el rango que tuvo cada afiliado en los meses ya cortados.
+     *
+     * Si ningun rango exige antiguedad no se consulta el historial: mientras el
+     * administrador no ponga meses, el corte trabaja exactamente como antes.
      */
-    private function resolveRank(User $user, float $minPoints, $ranks)
+    private function prepararAntiguedad($ranks): void
     {
-        $idUniversity = $this->settings->idMembresiaUniversity();
+        // El sitio sale de todos los rangos, no solo de los activos: en el historial
+        // puede figurar uno que se haya retirado despues.
+        foreach (RankBonus::orderBy('sort_order')->orderBy('vol_min')->orderBy('id')->pluck('id') as $sitio => $id) {
+            $this->posicionDelRango[(int) $id] = (int) $sitio;
+        }
 
-        // El documento habla de "miembros directos activos" para el conteo de
-        // directos y de "miembros en tu red" para las membresias University, pero el
-        // sistema lleva desde siempre contando la red entera en los dos casos. Cambiar
-        // el criterio mueve el rango de todo el mundo y con el su tope de cobro, asi
-        // que se deja como estaba y se pone un interruptor: es una decision de
-        // negocio, y esta anotada en el informe para que el equipo la tome.
+        $exigen = $ranks->contains(fn ($rank) => (int) ($rank->min_months_previous_rank ?? 0) > 0);
+
+        if (!$exigen) {
+            return;
+        }
+
+        // Solo meses cerrados: el mes en curso es justo el que se esta cortando ahora,
+        // asi que todavia no es un mes mantenido.
+        $mesDelCorte = $this->periodos->clavePeriodoMensual();
+
+        foreach ($this->historial->historial()['rangos'] as $mes => $rangos) {
+            if ($mes < $mesDelCorte) {
+                $this->rangosPorMes[$mes] = $rangos;
+            }
+        }
+
+        $this->mesAnterior = $this->historial->ultimoMes($this->rangosPorMes);
+    }
+
+    /**
+     * Los meses que le faltan a alguien en el rango anterior para poder subir a este,
+     * o null si no se le exige nada o ya los lleva.
+     *
+     * "Mantener el rango anterior" se cuenta igual que en el bono de estabilidad: un
+     * mes es un mes con corte, y el rango de ese mes es el que dejo su ultimo corte.
+     * Vale tambien haberlo tenido mejor, y quien ya tenia este rango el mes pasado no
+     * esta subiendo sino manteniendolo, asi que no se le vuelve a pedir.
+     *
+     * @return array{exigidos: int, lleva: int, faltan: int, anterior: string}|null
+     */
+    private function antiguedadPendiente(int $userId, $rank, $anterior): ?array
+    {
+        $exigidos = (int) ($rank->min_months_previous_rank ?? 0);
+
+        // Sin meses configurados, o en el primer rango (no hay anterior que mantener),
+        // no hay nada que comprobar.
+        if ($exigidos < 1 || !$anterior) {
+            return null;
+        }
+
+        $sitioDelRango = $this->posicionDelRango[(int) $rank->id] ?? 0;
+        $sitioAnterior = $this->posicionDelRango[(int) $anterior->id] ?? 0;
+
+        $ultimo = $this->mesAnterior === null
+            ? null
+            : ($this->rangosPorMes[$this->mesAnterior][$userId] ?? null);
+
+        if ($ultimo !== null && ($this->posicionDelRango[(int) $ultimo] ?? -1) >= $sitioDelRango) {
+            return null;
+        }
+
+        $lleva = $this->mesAnterior === null ? 0 : $this->historial->racha(
+            $this->rangosPorMes,
+            $this->mesAnterior,
+            $userId,
+            fn (int $rangoId) => ($this->posicionDelRango[$rangoId] ?? -1) >= $sitioAnterior
+        );
+
+        if ($lleva >= $exigidos) {
+            return null;
+        }
+
+        return [
+            'exigidos' => $exigidos,
+            'lleva'    => $lleva,
+            'faltan'   => $exigidos - $lleva,
+            'anterior' => (string) $anterior->name,
+        ];
+    }
+
+    /**
+     * Rango del corte. Ademas del volumen de la pierna de pago exige directos activos,
+     * en los rangos que lo piden un numero de membresias de nivel alto y, si esta
+     * configurada, la antiguedad: los meses que hay que llevar en el rango anterior
+     * para poder subir a este.
+     *
+     * Cuando la antiguedad frena a alguien se devuelve tambien la explicacion, que es
+     * lo que hay que poder leer en la simulacion antes de confirmar el corte.
+     *
+     * @return array{rango: mixed, antiguedad: string|null}
+     */
+    private function resolveRank(User $user, float $minPoints, $ranks): array
+    {
+        // El sistema lleva desde siempre contando la red entera para directos y para
+        // membresias de nivel alto. El interruptor permite pasar a solo directos; es
+        // una decision de negocio porque mueve el rango y el tope de todo el mundo.
         $enLaRed = $this->activeDescendants((int) $user->id);
         $directos = $this->activeDirects((int) $user->id);
 
@@ -349,29 +570,53 @@ class BinaryCutService
             $this->settings->alcanceDirectos() === 'directos' ? $directos : $enLaRed
         );
 
-        $paraUniversity = $this->settings->alcanceUniversity() === 'directos' ? $directos : $enLaRed;
+        $paraNivelAlto = $this->settings->alcanceNivelAlto() === 'directos' ? $directos : $enLaRed;
 
-        $universityCount = 0;
-        foreach ($paraUniversity as $descendantId) {
+        $nivelAltoCount = 0;
+        foreach ($paraNivelAlto as $descendantId) {
             $descendant = $this->usersById[$descendantId] ?? null;
-            if ($descendant && (int) $descendant->id_account_type === $idUniversity) {
-                $universityCount++;
+            if ($descendant && $this->membresias->cuentaComoNivelAlto((int) $descendant->id_account_type)) {
+                $nivelAltoCount++;
             }
         }
 
         $elegido = $ranks->first();
+        $anterior = null;
+        $frenado = null;
 
         foreach ($ranks as $rank) {
             $cumple = $minPoints >= (float) $rank->vol_min
                 && $activeCount >= (int) $rank->active_direct
-                && $universityCount >= (int) $rank->pack_max;
+                && $nivelAltoCount >= (int) $rank->pack_max;
 
             if ($cumple) {
-                $elegido = $rank;
+                $falta = $this->antiguedadPendiente((int) $user->id, $rank, $anterior);
+
+                if ($falta === null) {
+                    $elegido = $rank;
+                } else {
+                    $frenado = ['rango' => $rank, 'falta' => $falta];
+                }
             }
+
+            $anterior = $rank;
         }
 
-        return $elegido;
+        $nota = null;
+
+        // Solo se explica si la antiguedad le ha costado subir de verdad: si el rango
+        // frenado esta por debajo del que se lleva, no ha perdido nada.
+        if ($frenado
+            && ($this->posicionDelRango[(int) $frenado['rango']->id] ?? 0) > ($this->posicionDelRango[(int) $elegido->id] ?? 0)) {
+            $falta = $frenado['falta'];
+
+            $nota = 'Cumple los requisitos de ' . $frenado['rango']->name . ', pero le '
+                . ($falta['faltan'] === 1 ? 'falta 1 mes' : 'faltan ' . $falta['faltan'] . ' meses')
+                . ' en ' . $falta['anterior'] . ' o superior (lleva ' . $falta['lleva']
+                . ' de ' . $falta['exigidos'] . ').';
+        }
+
+        return ['rango' => $elegido, 'antiguedad' => $nota];
     }
 
     /**
@@ -438,9 +683,7 @@ class BinaryCutService
      * Bono generacional de un lote ya cortado, para poder lanzarlo por separado.
      *
      * Reconstruye lo que se pago de binario en ese lote a partir de wallet_movements
-     * y de rank_binary, asi que no depende de que el corte siga en memoria. Si el
-     * lote ya tiene generacional pagado no hace nada: la misma idea que la fila de
-     * binary_cut_runs, pero a nivel de lote.
+     * y de rank_binary. Si el lote ya tiene generacional pagado no hace nada.
      */
     public function payGenerationalForBatch(int $batch): float
     {
@@ -458,6 +701,7 @@ class BinaryCutService
 
         $this->usersById = [];
         $this->unilevelChildren = [];
+        $this->generacionalPorUsuario = [];
         $this->loadUsers();
 
         $pagos = DB::table('wallet_movements')
@@ -486,12 +730,9 @@ class BinaryCutService
     }
 
     /**
-     * Bono generacional (matching): un porcentaje de lo que han cobrado de bono binario
-     * los patrocinados, generacion a generacion, hasta donde llegue el rango.
-     *
-     * Se calcula sobre lo realmente pagado en este corte, no sobre lo que a cada uno
-     * le habria correspondido: es lo que describe el plan al afiliado y evita pagar
-     * matching sobre dinero que nadie llego a cobrar.
+     * Bono generacional (Leadership Legacy): un porcentaje de lo que han cobrado de
+     * bono binario los patrocinados, generacion a generacion, hasta donde llegue el
+     * rango. Se calcula sobre lo realmente pagado en este corte.
      *
      * @param array<int, float> $paidAmounts
      * @param array<int, mixed> $ranksByUser
@@ -503,8 +744,7 @@ class BinaryCutService
         }
 
         $porcentajes = $this->generationalPercentages();
-        $desdeUniversity = $this->settings->generacionalUniversityDesde();
-        $idUniversity = $this->settings->idMembresiaUniversity();
+        $desdeNivelAlto = $this->settings->generacionalNivelAltoDesde();
         $total = 0.0;
 
         foreach ($paidAmounts as $userId => $_) {
@@ -523,7 +763,7 @@ class BinaryCutService
             $tabla = $porcentajes[(int) $rank->id] ?? null;
 
             if ($tabla === null) {
-                Log::warning('[CORTE BINARIO] Sin porcentajes generacionales para el rango', [
+                Log::warning($this->etiqueta . ' Sin porcentajes generacionales para el rango', [
                     'rango_id' => $rank->id,
                     'rango'    => $rank->name,
                 ]);
@@ -537,15 +777,14 @@ class BinaryCutService
             }
 
             $cobrador = $this->usersById[$userId] ?? null;
-            $esUniversity = $cobrador && (int) $cobrador->id_account_type === $idUniversity;
+            $esNivelAlto = $cobrador && $this->membresias->cuentaComoNivelAlto((int) $cobrador->id_account_type);
 
             $generacion = $this->unilevelChildren[$userId] ?? [];
 
             for ($nivel = 1; $nivel <= $limite && $generacion; $nivel++) {
-                // El plan lo dice con estas palabras: "a partir de la tercera generacion
-                // en adelante, es necesario contar con la membresia University para
-                // recibir estas comisiones". El nivel es configurable por si cambia.
-                $bloqueado = $desdeUniversity > 0 && $nivel >= $desdeUniversity && !$esUniversity;
+                // "A partir de la 3.ª generacion en adelante, es un requisito obligatorio
+                // que el IEB cuente con una membresia CROWN o FOUNDERS LEGACY activa."
+                $bloqueado = $desdeNivelAlto > 0 && $nivel >= $desdeNivelAlto && !$esNivelAlto;
 
                 $porcentaje = (float) ($tabla[$nivel] ?? 0);
 
@@ -569,6 +808,7 @@ class BinaryCutService
                         $movement->save();
 
                         $total += $monto;
+                        $this->generacionalPorUsuario[$userId] = ($this->generacionalPorUsuario[$userId] ?? 0) + $monto;
                     }
                 }
 
@@ -586,28 +826,23 @@ class BinaryCutService
     }
 
     /**
-     * Porcentajes por rango y generacion, desde generational_bonuses.
-     *
-     * Se cruza por rank_bonus_id, que es una columna propia y no cambia nunca. Antes
-     * se cruzaba por id (los identificadores de las dos tablas no se corresponden) y
-     * despues por nombre, que se rompe en cuanto el administrador renombra un rango
-     * —y el equipo ya ha avisado de que los nombres cambian en el plan nuevo.
+     * Porcentajes por rango y generacion, desde rank_generation_percentages: una fila
+     * por rango y generacion, sin el tope de ocho columnas de generational_bonuses.
      *
      * @return array<int, array<int, float>>
      */
     private function generationalPercentages(): array
     {
-        $filas = DB::table('generational_bonuses')->whereNotNull('rank_bonus_id')->get();
         $mapa = [];
 
-        foreach ($filas as $fila) {
-            $porGeneracion = [];
+        foreach (DB::table('rank_generation_percentages')->get() as $fila) {
+            $mapa[(int) $fila->rank_bonus_id][(int) $fila->generation] = (float) $fila->percentage;
+        }
 
-            for ($i = 1; $i <= 8; $i++) {
-                $porGeneracion[$i] = (float) ($fila->{'g_' . $i} ?? 0);
-            }
-
-            $mapa[(int) $fila->rank_bonus_id] = $porGeneracion;
+        // Un rango sin ninguna fila sigue teniendo tabla (vacia): asi no se confunde
+        // "no tiene porcentajes" con "le faltan datos".
+        foreach (RankBonus::pluck('id') as $rankId) {
+            $mapa[(int) $rankId] = $mapa[(int) $rankId] ?? [];
         }
 
         return $mapa;

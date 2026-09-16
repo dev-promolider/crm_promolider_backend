@@ -29,9 +29,12 @@ class InitCourseOpenpayPaymentUseCase
             throw new Exception("Curso no encontrado", 404);
         }
 
-        $amount = (float) ($course->price > 0 ? $course->price : $course->price_base);
-        
-        if ($amount <= 0) {
+        // Smart Savings: el comprador con membresía vigente paga con el descuento de su
+        // membresía. Antes se cobraba siempre el precio completo.
+        $precios = app(\App\Services\MLM\CoursePurchaseRewardsService::class)->precioParaComprador($course, $user);
+        $amount = $precios['final'];
+
+        if ($precios['precio'] <= 0 || $amount <= 0) {
             throw new Exception("El curso no tiene precio o es gratuito.", 422);
         }
 

@@ -45,9 +45,14 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
         $user->expiration_date       = date('Y-m-d H:i:s', $userData->getExpirationTimestamp());
         $user->photo                 = $userData->photo;
 
+        // La duración sale de la membresía (meses de vigencia, o sin vencimiento si es
+        // de pago único). Antes eran 365 días fijos para todas, así que lo configurado
+        // en «meses de vigencia» no se aplicaba nunca.
         $membershipExp = $userData->getMembershipExpirationTimestamp();
         if ($membershipExp) {
-            $user->expiration_membership_date = date('Y-m-d H:i:s', $membershipExp);
+            $user->expiration_membership_date = app(\App\Services\MLM\MembershipRules::class)
+                ->vencimientoMembresia((int) $userData->idAccountType)
+                ->format('Y-m-d H:i:s');
         }
 
         $user->save();
@@ -202,14 +207,14 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 
         if ($configuredId) {
             $accountType = AccountType::where('id', $configuredId)->where('status', '1')->first();
-            if ($accountType) return ['id' => $accountType->id, 'price' => $accountType->price, 'iva' => $accountType->iva];
+            if ($accountType) return ['id' => $accountType->id, 'account' => $accountType->account, 'price' => $accountType->price, 'iva' => $accountType->iva];
         }
 
         $accountType = AccountType::where('status', '1')->where('price', 53.10)->first()
             ?? AccountType::where('status', '1')->where('account', 'Guest')->first()
             ?? AccountType::where('status', '1')->where('price', '>', 0)->orderBy('price')->firstOrFail();
 
-        return ['id' => $accountType->id, 'price' => $accountType->price, 'iva' => $accountType->iva];
+        return ['id' => $accountType->id, 'account' => $accountType->account, 'price' => $accountType->price, 'iva' => $accountType->iva];
     }
 
     public function resolveCountry(?string $countryName): array

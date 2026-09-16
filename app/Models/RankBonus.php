@@ -17,6 +17,7 @@ class RankBonus extends Model
         'vol_min',
         'pack_max',
         'active_direct',
+        'min_months_previous_rank',
         'max_pay',
         'monthly_bonus',
         'monthly_bonus_months',

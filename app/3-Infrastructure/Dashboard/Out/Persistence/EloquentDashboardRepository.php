@@ -51,11 +51,8 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
         
         return [
             'credits' => (float) ($user->credits ?? 0),
-            'rank' => [
-                'name' => $rank->name ?? 'Sin rango',
-                'icon' => $rank->icon ?? null,
-                'level' => $rank->id ?? 0,
-            ],
+            'rank' => $this->rangoParaBarra($userId, $rank),
+            'membership' => $this->membresiaParaBarra($user),
             'points' => [
                 'total' => $points,
                 'percentage' => $percentage
@@ -63,6 +60,68 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
             'notifications' => [
                 'unread' => $unreadNotifications
             ]
+        ];
+    }
+
+    /**
+     * El rango para la barra superior: el actual con sus requisitos, el anterior y si
+     * acaba de subir.
+     *
+     * El ingeniero pidió que el cambio de rango se note: la insignia es lo que el
+     * afiliado enseña a otros, y a 20 px no se distinguía un rango de otro.
+     */
+    private function rangoParaBarra(int $userId, $rank): array
+    {
+        $asignaciones = \Illuminate\Support\Facades\DB::table('rank_binary')
+            ->join('rank_bonus', 'rank_bonus.id', '=', 'rank_binary.rank_id')
+            ->where('rank_binary.user_id', $userId)
+            ->orderByDesc('rank_binary.batch')
+            ->orderByDesc('rank_binary.id')
+            ->limit(2)
+            ->get(['rank_bonus.id', 'rank_bonus.name', 'rank_bonus.icon', 'rank_bonus.sort_order', 'rank_binary.created_at']);
+
+        $actual = $asignaciones->get(0);
+        $anterior = $asignaciones->get(1);
+
+        return [
+            'name'         => $rank->name ?? 'Sin rango',
+            'icon'         => $rank->icon ?? null,
+            'level'        => $rank->id ?? 0,
+            'requirements' => $rank ? [
+                'vol_min'          => (float) $rank->vol_min,
+                'active_direct'    => (int) $rank->active_direct,
+                'pack_max'         => (int) $rank->pack_max,
+                'min_months_previous_rank' => (int) ($rank->min_months_previous_rank ?? 0),
+                'max_pay'          => (float) $rank->max_pay,
+                'limit_generation' => (int) $rank->limit_generation,
+                'monthly_bonus'    => (float) ($rank->monthly_bonus ?? 0),
+            ] : null,
+            'achieved_at'  => $actual->created_at ?? null,
+            'promoted'     => $actual && $anterior && (int) $actual->sort_order > (int) $anterior->sort_order,
+            'previous'     => $anterior ? ['name' => $anterior->name, 'icon' => $anterior->icon] : null,
+        ];
+    }
+
+    /**
+     * La membresía del afiliado y su distintivo, si la membresía lo tiene configurado
+     * (por ejemplo, FOUNDERS LEGACY o Socio Fundador).
+     */
+    private function membresiaParaBarra($user): ?array
+    {
+        if (!$user || !$user->id_account_type) {
+            return null;
+        }
+
+        $membresia = \App\Models\AccountType::find($user->id_account_type);
+
+        if (!$membresia) {
+            return null;
+        }
+
+        return [
+            'name'         => $membresia->account,
+            'highlight'    => app(\App\Services\MLM\MembershipRules::class)->distintivo((int) $membresia->id),
+            'is_permanent' => (bool) $membresia->is_permanent,
         ];
     }
 
@@ -81,37 +140,30 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
         $wallet = \Illuminate\Support\Facades\DB::table('wallet')->where('user_id', $userId)->first();
         $walletId = $wallet ? $wallet->id : 0;
 
-        $thisMonth = $timeframe === 'historical' ? null : now()->startOfMonth();
-
-        $monthlyQuery = function ($reasonQuery) use ($walletId, $thisMonth) {
+        // Los importes se agrupan por tipo de bono y no por el texto del motivo. Filtrar
+        // por texto fallaba en silencio: «Regalías de Autor» buscaba «Bono de productor»
+        // y los movimientos reales dicen «Bono por compra de curso de…», así que salía
+        // siempre en cero, y «Ventas de Afiliado» sumaba juntos creador y venta. Con los
+        // nombres nuevos del plan, filtrar por texto se habría roto del todo.
+        $sumaPorTipo = function (?\Carbon\Carbon $desde) use ($walletId) {
             $query = \Illuminate\Support\Facades\DB::table('wallet_movements')
                 ->where('wallet_id', $walletId)
-                ->where($reasonQuery);
-            if ($thisMonth) {
-                $query->where('created_at', '>=', $thisMonth);
+                ->whereNotNull('bonus_type_id')
+                ->where('amount', '>', 0);
+
+            if ($desde) {
+                $query->where('created_at', '>=', $desde);
             }
-            return $query;
+
+            return $query->select('bonus_type_id', \Illuminate\Support\Facades\DB::raw('SUM(amount) as total'))
+                ->groupBy('bonus_type_id')
+                ->pluck('total', 'bonus_type_id');
         };
 
-        $expansionMonthly = $monthlyQuery(function ($query) {
-            $query->where('reason', 'LIKE', '%Bono de expansión%');
-        })->sum('amount');
+        $importe = fn ($sumas, int $tipo) => round((float) ($sumas->get($tipo) ?? 0), 2);
 
-        // El bono de inicio rápido es este, no el de expansión. El panel enseñaba el de
-        // expansión bajo la etiqueta «Inicio Rápido», y como no se generaba nunca,
-        // marcaba siempre $0.00.
-        $fastCashMonthly = $monthlyQuery(function ($query) {
-            $query->where('reason', 'LIKE', '%Bono de efectivo rápido%')
-                  ->orWhere('reason', 'LIKE', '%Bono de efectivo rapido%');
-        })->sum('amount');
-
-        $binaryMonthly = $monthlyQuery(function ($query) {
-            $query->where('reason', 'LIKE', '%Bono binario%');
-        })->sum('amount');
-
-        $generationalMonthly = $monthlyQuery(function ($query) {
-            $query->where('reason', 'LIKE', 'Bono de % Generación%');
-        })->sum('amount');
+        // Vista normal: este mes. Vista histórica: desde el alta.
+        $delPeriodo = $sumaPorTipo($timeframe === 'historical' ? null : now()->startOfMonth());
 
         // Obtener la fecha del último corte binario para este usuario
         $lastCutDate = null;
@@ -121,29 +173,22 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 ->max('created_at');
         }
 
-        // Construir la consulta base para acumulativos
-        $cumulativeQuery = function ($reasonQuery) use ($walletId, $lastCutDate) {
-            $query = \Illuminate\Support\Facades\DB::table('wallet_movements')
-                ->where('wallet_id', $walletId)
-                ->where($reasonQuery);
-            if ($lastCutDate) {
-                $query->where('created_at', '>=', $lastCutDate);
-            }
-            return $query;
-        };
+        $acumulado = $sumaPorTipo($lastCutDate ? \Carbon\Carbon::parse($lastCutDate) : null);
 
-        $fastCashCumulative = $cumulativeQuery(function ($query) {
-            $query->where('reason', 'LIKE', '%Bono de efectivo rápido%')
-                  ->orWhere('reason', 'LIKE', '%Bono de efectivo rapido%');
-        })->sum('amount');
+        // 1 efectivo rápido · 2 venta de cursos · 3 creador · 4 binario · 5 generacional
+        // 6 expansión · 7 estabilidad de rango
+        $porTipo = fn ($sumas) => [
+            'fast_cash'      => $importe($sumas, 1),
+            'course_sale'    => $importe($sumas, 2),
+            'producer'       => $importe($sumas, 3),
+            'binary'         => $importe($sumas, 4),
+            'generational'   => $importe($sumas, 5),
+            'expansion'      => $importe($sumas, 6),
+            'rank_stability' => $importe($sumas, 7),
+        ];
 
-        $producerCumulative = $cumulativeQuery(function ($query) {
-            $query->where('reason', 'LIKE', '%Bono de productor%');
-        })->sum('amount');
-
-        $courseSaleCumulative = $cumulativeQuery(function ($query) {
-            $query->where('reason', 'LIKE', '%Bono por compra de curso%');
-        })->sum('amount');
+        $mensual = $porTipo($delPeriodo);
+        $acumulados = $porTipo($acumulado);
 
         return [
             'conditions' => [
@@ -152,17 +197,9 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 'qualified' => $isQualified
             ],
             'last_cut_date' => $lastCutDate ? \Carbon\Carbon::parse($lastCutDate)->format('d/m/Y, H:i') : null,
-            'monthly_bonuses' => [
-                'fast_cash' => round((float)$fastCashMonthly, 2),
-                'expansion' => round((float)$expansionMonthly, 2),
-                'binary' => round((float)$binaryMonthly, 2),
-                'generational' => round((float)$generationalMonthly, 2)
-            ],
-            'cumulative_bonuses' => [
-                'fast_cash' => round((float)$fastCashCumulative, 2),
-                'producer' => round((float)$producerCumulative, 2),
-                'course_sale' => round((float)$courseSaleCumulative, 2)
-            ]
+            'monthly_bonuses' => $mensual,
+            'cumulative_bonuses' => $acumulados,
+            'total' => round(array_sum($timeframe === 'historical' ? $acumulados : $mensual), 2),
         ];
     }
 

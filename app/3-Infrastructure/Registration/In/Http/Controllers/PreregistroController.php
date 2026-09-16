@@ -8,6 +8,7 @@ use Promolider\Application\Registration\UseCases\ValidatePreregistroTokenUseCase
 use Promolider\Application\Registration\UseCases\ProcessOpenpayRegistrationUseCase;
 use Promolider\Application\Registration\UseCases\CheckDuplicateUseCase;
 use Promolider\Application\Registration\UseCases\GetPreregistroConfigUseCase;
+use Promolider\Application\Registration\UseCases\GetPreregistroPriceUseCase;
 use Promolider\Application\Registration\UseCases\SendRadarEventUseCase;
 use Promolider\Application\Registration\UseCases\SavePreregistroConfigUseCase;
 use Promolider\Application\Registration\UseCases\GetPreregistroReferralsUseCase;
@@ -26,6 +27,7 @@ class PreregistroController extends Controller
         private ProcessOpenpayRegistrationUseCase $processOpenpayRegistrationUseCase,
         private CheckDuplicateUseCase $checkDuplicateUseCase,
         private GetPreregistroConfigUseCase $getPreregistroConfigUseCase,
+        private GetPreregistroPriceUseCase $getPreregistroPriceUseCase,
         private SendRadarEventUseCase $sendRadarEventUseCase,
         private SavePreregistroConfigUseCase $savePreregistroConfigUseCase,
         private GetPreregistroReferralsUseCase $getPreregistroReferralsUseCase,
@@ -244,6 +246,30 @@ class PreregistroController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
+        }
+    }
+
+    /**
+     * GET /registration/preregistro/precio
+     *
+     * El precio del pre-registro, su IGV y el total. La pantalla de pago los llevaba
+     * escritos a mano mientras el cobro salía de la base: en cuanto cambie el precio
+     * tienen que seguir diciendo lo mismo.
+     */
+    public function precio()
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $this->getPreregistroPriceUseCase->execute(),
+            ]);
+        } catch (Exception $e) {
+            Log::error('No se pudo resolver el precio del pre-registro: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo obtener el precio del pre-registro.',
+            ], 500);
         }
     }
 

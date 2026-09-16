@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Log;
  * promete con estas palabras: "manteniendote en este rango por 3 meses consecutivos
  * se activa una bonificacion mensual de 2,000 dolares hasta que cambies de rango".
  *
+ * Que rango tuvo cada quien en cada mes lo dice RankHistoryService, que es tambien
+ * quien se lo dice al corte para la antiguedad por rango: la misma pregunta, una
+ * sola respuesta.
+ *
  * Va por su cuenta, con su propio periodo mensual, y no dentro del corte binario.
  * Esa es justo la separacion que hacia falta: el rango es mensual aunque el corte
  * llegue a ser quincenal, asi que aunque en un mes haya dos cortes este bono se
@@ -33,7 +37,8 @@ class RankMonthlyBonusService
 
     public function __construct(
         private PlanSettings $settings,
-        private BinaryCutPeriodService $periodos
+        private BinaryCutPeriodService $periodos,
+        private RankHistoryService $historial
     ) {
     }
 
@@ -45,7 +50,9 @@ class RankMonthlyBonusService
      */
     public function execute(?string $periodo = null, bool $simular = false): array
     {
-        $rangosPorMes = $this->rangosPorMes();
+        $historial = $this->historial->historial();
+        $rangosPorMes = $historial['rangos'];
+        $this->ultimoLotePorMes = $historial['lotes'];
 
         // Sin mes indicado se premia el ultimo mes que llego a cortarse. Asi el
         // proceso del dia 1 premia el mes que acaba de cerrar sin tener que calcular
@@ -66,9 +73,6 @@ class RankMonthlyBonusService
             return ['periodo' => $periodo, 'pagados' => 0, 'total' => 0.0, 'detalle' => []];
         }
 
-        $meses = array_keys($rangosPorMes);
-        sort($meses);
-
         $rangos = RankBonus::all()->keyBy('id');
         $detalle = [];
         $total = 0.0;
@@ -86,7 +90,12 @@ class RankMonthlyBonusService
                 continue;
             }
 
-            $racha = $this->racha($rangosPorMes, $meses, $periodo, (int) $userId, (int) $rankId);
+            $racha = $this->historial->racha(
+                $rangosPorMes,
+                $periodo,
+                (int) $userId,
+                fn (int $rangoId) => $rangoId === (int) $rankId
+            );
             $exigidos = max(1, (int) $rango->monthly_bonus_months);
 
             if ($racha < $exigidos) {
@@ -131,88 +140,6 @@ class RankMonthlyBonusService
         ]);
 
         return $resumen;
-    }
-
-    /**
-     * Rango de cada usuario en cada mes, a partir de los cortes ya ejecutados.
-     *
-     * Solo cuentan los cortes registrados en binary_cut_runs: los lotes historicos
-     * del monolito no tienen fila ahi, asi que no arrastran una racha inventada
-     * desde diciembre de 2025.
-     *
-     * @return array<string, array<int, int>> mes => [user_id => rank_id]
-     */
-    private function rangosPorMes(): array
-    {
-        $lotesPorMes = [];
-
-        foreach (DB::table('binary_cut_runs')->whereNotNull('executed_at')->get() as $run) {
-            // 2026-09-Q2 y 2026-09 caen los dos en el mes 2026-09: el rango es mensual.
-            $mes = substr($run->period_key, 0, 7);
-            $lotesPorMes[$mes][] = (int) $run->batch;
-        }
-
-        if (!$lotesPorMes) {
-            return [];
-        }
-
-        $todos = array_merge(...array_values($lotesPorMes));
-
-        $filas = DB::table('rank_binary')
-            ->whereIn('batch', $todos)
-            ->orderBy('batch')
-            ->get(['user_id', 'rank_id', 'batch']);
-
-        $porLote = [];
-
-        foreach ($filas as $fila) {
-            // Si el mes tuvo dos cortes, manda el ultimo: es el rango con el que el
-            // afiliado termina el mes, que es lo que promete el plan.
-            $porLote[(int) $fila->batch][(int) $fila->user_id] = (int) $fila->rank_id;
-        }
-
-        $resultado = [];
-
-        foreach ($lotesPorMes as $mes => $lotes) {
-            sort($lotes);
-            $resultado[$mes] = [];
-            $this->ultimoLotePorMes[$mes] = (int) end($lotes);
-
-            foreach ($lotes as $lote) {
-                foreach ($porLote[$lote] ?? [] as $userId => $rankId) {
-                    $resultado[$mes][$userId] = $rankId;
-                }
-            }
-        }
-
-        return $resultado;
-    }
-
-    /**
-     * Meses seguidos, hasta el mes dado incluido, con el mismo rango.
-     *
-     * @param array<string, array<int, int>> $rangosPorMes
-     * @param array<int, string>             $meses         todos los meses con corte, ordenados
-     */
-    private function racha(array $rangosPorMes, array $meses, string $periodo, int $userId, int $rankId): int
-    {
-        $indice = array_search($periodo, $meses, true);
-
-        if ($indice === false) {
-            return 0;
-        }
-
-        $racha = 0;
-
-        for ($i = $indice; $i >= 0; $i--) {
-            if (($rangosPorMes[$meses[$i]][$userId] ?? null) !== $rankId) {
-                break;
-            }
-
-            $racha++;
-        }
-
-        return $racha;
     }
 
     /**

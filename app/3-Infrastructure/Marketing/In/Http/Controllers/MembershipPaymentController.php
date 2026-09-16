@@ -81,7 +81,9 @@ class MembershipPaymentController extends Controller
 
             // Create membership history
             $purchaseDate = now();
-            $expirationDate = (clone $purchaseDate)->addDays(365); // Default 1 year
+            // Vigencia según la membresía: sus meses, o sin vencimiento si es de pago único.
+            $expirationDate = app(\App\Services\MLM\MembershipRules::class)
+                ->vencimientoMembresia((int) $newPlan->id, $purchaseDate);
 
             $detailId = DB::table("account_type_details")->insertGetId([
                 "user_id" => $user->id,
