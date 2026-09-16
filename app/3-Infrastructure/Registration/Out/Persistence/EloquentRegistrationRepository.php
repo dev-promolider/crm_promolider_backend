@@ -207,14 +207,14 @@ class EloquentRegistrationRepository implements RegistrationRepositoryInterface
 
         if ($configuredId) {
             $accountType = AccountType::where('id', $configuredId)->where('status', '1')->first();
-            if ($accountType) return ['id' => $accountType->id, 'price' => $accountType->price, 'iva' => $accountType->iva];
+            if ($accountType) return ['id' => $accountType->id, 'account' => $accountType->account, 'price' => $accountType->price, 'iva' => $accountType->iva];
         }
 
         $accountType = AccountType::where('status', '1')->where('price', 53.10)->first()
             ?? AccountType::where('status', '1')->where('account', 'Guest')->first()
             ?? AccountType::where('status', '1')->where('price', '>', 0)->orderBy('price')->firstOrFail();
 
-        return ['id' => $accountType->id, 'price' => $accountType->price, 'iva' => $accountType->iva];
+        return ['id' => $accountType->id, 'account' => $accountType->account, 'price' => $accountType->price, 'iva' => $accountType->iva];
     }
 
     public function resolveCountry(?string $countryName): array

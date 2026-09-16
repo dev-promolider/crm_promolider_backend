@@ -774,6 +774,7 @@ Route::group(['prefix' => 'registration'], function () {
 
     Route::get('preregistro/check-duplicate', [\Promolider\Infrastructure\Registration\In\Http\Controllers\PreregistroController::class, 'checkDuplicate'])->name('registration.preregistro.check_duplicate');
     Route::get('preregistro/config/{username}', [\Promolider\Infrastructure\Registration\In\Http\Controllers\PreregistroController::class, 'config'])->name('registration.preregistro.config');
+    Route::get('preregistro/precio', [\Promolider\Infrastructure\Registration\In\Http\Controllers\PreregistroController::class, 'precio'])->name('registration.preregistro.precio');
     Route::post('preregistro/radar', [\Promolider\Infrastructure\Registration\In\Http\Controllers\PreregistroController::class, 'radar'])->name('registration.preregistro.radar');
 
     // Rutas publicas de integracion n8n

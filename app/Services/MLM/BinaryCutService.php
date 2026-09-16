@@ -51,12 +51,22 @@ class BinaryCutService
     /** @var array<int, float> generacional cobrado en este corte, por usuario */
     private array $generacionalPorUsuario = [];
 
+    /** @var array<string, array<int, int>> mes => [user_id => rank_id], meses ya cerrados */
+    private array $rangosPorMes = [];
+
+    /** @var string|null ultimo mes con corte anterior al mes de este corte */
+    private ?string $mesAnterior = null;
+
+    /** @var array<int, int> rank_id => su sitio en el orden de los rangos */
+    private array $posicionDelRango = [];
+
     private string $etiqueta = '[CORTE BINARIO]';
 
     public function __construct(
         private PlanSettings $settings,
         private BinaryCutPeriodService $periodos,
-        private MembershipRules $membresias
+        private MembershipRules $membresias,
+        private RankHistoryService $historial
     ) {
     }
 
@@ -79,6 +89,9 @@ class BinaryCutService
         $this->usersById = [];
         $this->descendantsCache = [];
         $this->generacionalPorUsuario = [];
+        $this->rangosPorMes = [];
+        $this->mesAnterior = null;
+        $this->posicionDelRango = [];
 
         $periodo = $this->periodos->clavePeriodo();
         $claveFila = $this->reservarPeriodo($periodo, $forzar, $ejecutadoPor);
@@ -102,6 +115,7 @@ class BinaryCutService
 
         $this->loadUsers();
         $this->loadVolumes();
+        $this->prepararAntiguedad($ranks);
 
         $paidAmounts = [];
         $ranksByUser = [];
@@ -133,7 +147,7 @@ class BinaryCutService
                 continue;
             }
 
-            $rank = $this->resolveRank($user, $min, $ranks);
+            ['rango' => $rank, 'antiguedad' => $notaAntiguedad] = $this->resolveRank($user, $min, $ranks);
             $ranksByUser[$userId] = $rank;
 
             DB::table('rank_binary')->insert([
@@ -220,6 +234,7 @@ class BinaryCutService
                 'remanente'      => $remanente,
                 'lado_remanente' => $ladoRemanente === null ? null : ($ladoRemanente === 0 ? 'izquierda' : 'derecha'),
                 'generacional'   => 0.0,
+                'antiguedad'     => $notaAntiguedad,
             ];
         }
 
@@ -448,10 +463,102 @@ class BinaryCutService
     }
 
     /**
-     * Rango del corte. Ademas del volumen de la pierna de pago exige directos activos
-     * y, en los rangos que lo piden, un numero de membresias de nivel alto.
+     * Prepara lo que hace falta para la antiguedad por rango: el sitio de cada rango
+     * en el orden y el rango que tuvo cada afiliado en los meses ya cortados.
+     *
+     * Si ningun rango exige antiguedad no se consulta el historial: mientras el
+     * administrador no ponga meses, el corte trabaja exactamente como antes.
      */
-    private function resolveRank(User $user, float $minPoints, $ranks)
+    private function prepararAntiguedad($ranks): void
+    {
+        // El sitio sale de todos los rangos, no solo de los activos: en el historial
+        // puede figurar uno que se haya retirado despues.
+        foreach (RankBonus::orderBy('sort_order')->orderBy('vol_min')->orderBy('id')->pluck('id') as $sitio => $id) {
+            $this->posicionDelRango[(int) $id] = (int) $sitio;
+        }
+
+        $exigen = $ranks->contains(fn ($rank) => (int) ($rank->min_months_previous_rank ?? 0) > 0);
+
+        if (!$exigen) {
+            return;
+        }
+
+        // Solo meses cerrados: el mes en curso es justo el que se esta cortando ahora,
+        // asi que todavia no es un mes mantenido.
+        $mesDelCorte = $this->periodos->clavePeriodoMensual();
+
+        foreach ($this->historial->historial()['rangos'] as $mes => $rangos) {
+            if ($mes < $mesDelCorte) {
+                $this->rangosPorMes[$mes] = $rangos;
+            }
+        }
+
+        $this->mesAnterior = $this->historial->ultimoMes($this->rangosPorMes);
+    }
+
+    /**
+     * Los meses que le faltan a alguien en el rango anterior para poder subir a este,
+     * o null si no se le exige nada o ya los lleva.
+     *
+     * "Mantener el rango anterior" se cuenta igual que en el bono de estabilidad: un
+     * mes es un mes con corte, y el rango de ese mes es el que dejo su ultimo corte.
+     * Vale tambien haberlo tenido mejor, y quien ya tenia este rango el mes pasado no
+     * esta subiendo sino manteniendolo, asi que no se le vuelve a pedir.
+     *
+     * @return array{exigidos: int, lleva: int, faltan: int, anterior: string}|null
+     */
+    private function antiguedadPendiente(int $userId, $rank, $anterior): ?array
+    {
+        $exigidos = (int) ($rank->min_months_previous_rank ?? 0);
+
+        // Sin meses configurados, o en el primer rango (no hay anterior que mantener),
+        // no hay nada que comprobar.
+        if ($exigidos < 1 || !$anterior) {
+            return null;
+        }
+
+        $sitioDelRango = $this->posicionDelRango[(int) $rank->id] ?? 0;
+        $sitioAnterior = $this->posicionDelRango[(int) $anterior->id] ?? 0;
+
+        $ultimo = $this->mesAnterior === null
+            ? null
+            : ($this->rangosPorMes[$this->mesAnterior][$userId] ?? null);
+
+        if ($ultimo !== null && ($this->posicionDelRango[(int) $ultimo] ?? -1) >= $sitioDelRango) {
+            return null;
+        }
+
+        $lleva = $this->mesAnterior === null ? 0 : $this->historial->racha(
+            $this->rangosPorMes,
+            $this->mesAnterior,
+            $userId,
+            fn (int $rangoId) => ($this->posicionDelRango[$rangoId] ?? -1) >= $sitioAnterior
+        );
+
+        if ($lleva >= $exigidos) {
+            return null;
+        }
+
+        return [
+            'exigidos' => $exigidos,
+            'lleva'    => $lleva,
+            'faltan'   => $exigidos - $lleva,
+            'anterior' => (string) $anterior->name,
+        ];
+    }
+
+    /**
+     * Rango del corte. Ademas del volumen de la pierna de pago exige directos activos,
+     * en los rangos que lo piden un numero de membresias de nivel alto y, si esta
+     * configurada, la antiguedad: los meses que hay que llevar en el rango anterior
+     * para poder subir a este.
+     *
+     * Cuando la antiguedad frena a alguien se devuelve tambien la explicacion, que es
+     * lo que hay que poder leer en la simulacion antes de confirmar el corte.
+     *
+     * @return array{rango: mixed, antiguedad: string|null}
+     */
+    private function resolveRank(User $user, float $minPoints, $ranks): array
     {
         // El sistema lleva desde siempre contando la red entera para directos y para
         // membresias de nivel alto. El interruptor permite pasar a solo directos; es
@@ -474,6 +581,8 @@ class BinaryCutService
         }
 
         $elegido = $ranks->first();
+        $anterior = null;
+        $frenado = null;
 
         foreach ($ranks as $rank) {
             $cumple = $minPoints >= (float) $rank->vol_min
@@ -481,11 +590,33 @@ class BinaryCutService
                 && $nivelAltoCount >= (int) $rank->pack_max;
 
             if ($cumple) {
-                $elegido = $rank;
+                $falta = $this->antiguedadPendiente((int) $user->id, $rank, $anterior);
+
+                if ($falta === null) {
+                    $elegido = $rank;
+                } else {
+                    $frenado = ['rango' => $rank, 'falta' => $falta];
+                }
             }
+
+            $anterior = $rank;
         }
 
-        return $elegido;
+        $nota = null;
+
+        // Solo se explica si la antiguedad le ha costado subir de verdad: si el rango
+        // frenado esta por debajo del que se lleva, no ha perdido nada.
+        if ($frenado
+            && ($this->posicionDelRango[(int) $frenado['rango']->id] ?? 0) > ($this->posicionDelRango[(int) $elegido->id] ?? 0)) {
+            $falta = $frenado['falta'];
+
+            $nota = 'Cumple los requisitos de ' . $frenado['rango']->name . ', pero le '
+                . ($falta['faltan'] === 1 ? 'falta 1 mes' : 'faltan ' . $falta['faltan'] . ' meses')
+                . ' en ' . $falta['anterior'] . ' o superior (lleva ' . $falta['lleva']
+                . ' de ' . $falta['exigidos'] . ').';
+        }
+
+        return ['rango' => $elegido, 'antiguedad' => $nota];
     }
 
     /**

@@ -18,17 +18,24 @@ use Illuminate\Support\Facades\DB;
  * cambiaría. Con --aplicar guarda antes una versión del plan, así que se puede
  * deshacer desde el panel.
  *
+ * Lo que el ingeniero respondió el 15/09, y que ya está recogido aquí:
+ *   - START es el pre-registro. No se crea una membresía aparte: la del pre-registro
+ *     pasa a valer lo que dice START ($50, 15 PV, 10% de efectivo rápido y sin OPC).
+ *   - Los precios del plan no llevan IGV, así que se guarda el precio tal cual lo da
+ *     el plan y el IGV aparte, el de la opción iva_rate. Sus ejemplos cuadran: el
+ *     efectivo rápido de $387.50 es el 25% de los $1,550 de CROWN.
+ *   - La antigüedad para subir de rango la decide el administrador rango a rango, así
+ *     que se carga en cero: el plan no da ninguna cifra.
+ *
  * Supuestos, a confirmar con el equipo antes de aplicarlo:
  *   - Los rangos existentes se renombran por su orden: el segundo pasa a Builder, el
  *     tercero a Elite Builder y así hasta Crown Legacy. El primero (Aprendiz) se deja
  *     como rango de partida. Founder Legend se crea desactivado: el plan lo reserva y
  *     no tiene requisitos numéricos.
- *   - Las membresías del plan se crean nuevas y ocultas. Nadie cambia de membresía:
- *     pasar a los usuarios actuales es otra decisión.
- *   - Precios tal cual los da el plan y con IGV 0, porque sus ejemplos calculan los
- *     porcentajes sobre el precio completo ($387.50 = 25% de $1,550).
- *   - START y FOUNDERS LEGACY no llevan OPC; FOUNDERS LEGACY es de pago único, con 100
- *     plazas y distintivo propio.
+ *   - Las membresías nuevas se crean ocultas y nadie cambia de membresía: a cuál pasa
+ *     cada usuario actual sigue preguntado y sin respuesta.
+ *   - FOUNDERS LEGACY no lleva OPC, es de pago único, con 100 plazas y distintivo
+ *     propio.
  */
 class LoadEcosystemBuilderPlanCommand extends Command
 {
@@ -54,8 +61,21 @@ class LoadEcosystemBuilderPlanCommand extends Command
         ['name' => 'Crown Legacy',        'vol_min' => 1000000, 'active_direct' => 40, 'pack_max' => 1500, 'max_pay' => 200000, 'monthly_bonus' => 15000, 'freq' => 'quarterly', 'gen' => 8],
     ];
 
+    /**
+     * START es el pre-registro. Estos valores se le ponen a la membresía fija del
+     * sistema; no se crea ninguna aparte.
+     */
+    private const START = [
+        'price'       => 50,
+        'pv'          => 15,
+        'fast'        => 10,
+        'disc'        => 0,
+        'venta'       => 0,
+        'binario'     => 0,
+        'descripcion' => 'START (Founding Member). Reserva tu posición estratégica.',
+    ];
+
     private const MEMBRESIAS = [
-        ['account' => 'START',           'price' => 50,   'pv' => 15,  'fast' => 10, 'disc' => 0,  'venta' => 0,  'binario' => 0,  'opc' => false, 'permanente' => false, 'alto' => false, 'plazas' => null, 'distintivo' => null,              'descripcion' => 'Founding Member. Reserva tu posición estratégica.'],
         ['account' => 'PRO',             'price' => 290,  'pv' => 85,  'fast' => 15, 'disc' => 15, 'venta' => 15, 'binario' => 15, 'opc' => true,  'permanente' => false, 'alto' => false, 'plazas' => null, 'distintivo' => null,              'descripcion' => 'Independent Ecosystem Builder. Activa tu ecosistema.'],
         ['account' => 'ELITE',           'price' => 890,  'pv' => 258, 'fast' => 20, 'disc' => 20, 'venta' => 20, 'binario' => 20, 'opc' => true,  'permanente' => false, 'alto' => false, 'plazas' => null, 'distintivo' => null,              'descripcion' => 'Escala tu crecimiento e impacto.'],
         ['account' => 'CROWN',           'price' => 1550, 'pv' => 450, 'fast' => 25, 'disc' => 25, 'venta' => 25, 'binario' => 25, 'opc' => true,  'permanente' => false, 'alto' => true,  'plazas' => null, 'distintivo' => null,              'descripcion' => 'Liderazgo y expansión global.'],
@@ -80,7 +100,7 @@ class LoadEcosystemBuilderPlanCommand extends Command
     public function handle(PlanVersionService $versiones, PlanSettings $settings)
     {
         $this->planificarRangos();
-        $this->planificarMembresias();
+        $this->planificarMembresias($settings);
         $this->planificarAjustes($settings);
 
         $this->line('');
@@ -129,6 +149,11 @@ class LoadEcosystemBuilderPlanCommand extends Command
 
             if ($actual) {
                 $this->cambios[] = "Rango «{$actual->name}» → «{$plan['name']}» ({$plan['vol_min']} PV, {$plan['active_direct']} directos, {$plan['pack_max']} de nivel alto, tope \${$plan['max_pay']})";
+
+                if ((int) $actual->min_months_previous_rank > 0) {
+                    $this->cambios[] = "    y deja de exigir antigüedad (tenía {$actual->min_months_previous_rank} meses): el plan no da cifras, se pone desde el panel";
+                }
+
                 $this->acciones[] = fn () => $this->escribirRango($actual->id, $plan);
             } else {
                 $this->cambios[] = "Rango nuevo «{$plan['name']}»";
@@ -167,6 +192,7 @@ class LoadEcosystemBuilderPlanCommand extends Command
             'vol_min'                 => $plan['vol_min'],
             'active_direct'           => $plan['active_direct'],
             'pack_max'                => $plan['pack_max'],
+            'min_months_previous_rank' => 0,
             'max_pay'                 => $plan['max_pay'],
             'monthly_bonus'           => $plan['monthly_bonus'],
             'monthly_bonus_months'    => 3,
@@ -209,8 +235,11 @@ class LoadEcosystemBuilderPlanCommand extends Command
         return (int) $id;
     }
 
-    private function planificarMembresias(): void
+    private function planificarMembresias(PlanSettings $settings): void
     {
+        $this->planificarStart($settings);
+
+        $iva = $settings->iva();
         $constructor = DB::table('membership_categories')->where('slug', 'constructor')->value('id');
 
         foreach (self::MEMBRESIAS as $plan) {
@@ -221,18 +250,18 @@ class LoadEcosystemBuilderPlanCommand extends Command
                 continue;
             }
 
-            $this->cambios[] = "Membresía nueva «{$plan['account']}» \${$plan['price']}, {$plan['pv']} PV, oculta hasta decidir"
+            $this->cambios[] = "Membresía nueva «{$plan['account']}» \${$plan['price']} + IGV {$iva}%, {$plan['pv']} PV, oculta hasta decidir"
                 . ($plan['opc'] ? ', con OPC $60 / 15 PV' : ', sin OPC')
                 . ($plan['permanente'] ? ', pago único' : '');
 
-            $this->acciones[] = function () use ($plan, $constructor) {
+            $this->acciones[] = function () use ($plan, $constructor, $iva) {
                 $membresia = AccountType::create([
                     'account'                     => $plan['account'],
                     'category_id'                 => $constructor,
                     'description'                 => $plan['descripcion'],
                     'sort_order'                  => (int) AccountType::max('sort_order') + 10,
                     'price'                       => $plan['price'],
-                    'iva'                         => 0,
+                    'iva'                         => $iva,
                     'fast_cash_bonus'             => $plan['fast'],
                     'disc_purchases_course'       => $plan['disc'],
                     'course_selling_bonus'        => $plan['venta'],
@@ -276,6 +305,97 @@ class LoadEcosystemBuilderPlanCommand extends Command
                 }
             };
         }
+    }
+
+    /**
+     * El pre-registro pasa a ser START.
+     *
+     * Es la única membresía fija del sistema, así que no se renombra ni se duplica:
+     * se le ponen los valores del plan. Lo que sí cambia de verdad es que START no
+     * lleva OPC, y eso mueve a sus usuarios: sin OPC, estar activo es tener la
+     * membresía vigente. Por eso el comando lo dice antes de aplicarlo.
+     */
+    private function planificarStart(PlanSettings $settings): void
+    {
+        $pre = AccountType::where('system_key', 'preregistro')->first();
+
+        if (!$pre) {
+            $this->cambios[] = 'AVISO: no hay ninguna membresía de pre-registro (system_key «preregistro»), así que START se queda sin cargar. Revisar antes de aplicar.';
+
+            return;
+        }
+
+        $suelta = AccountType::whereRaw('LOWER(account) = ?', ['start'])->where('id', '!=', $pre->id)->first();
+
+        if ($suelta) {
+            $this->cambios[] = "AVISO: existe una membresía «{$suelta->account}» aparte del pre-registro. El plan dice que START es el pre-registro, así que esa otra no se toca: revisarla a mano.";
+        }
+
+        $iva = $settings->iva();
+        $puntos = (float) (DB::table('account_type_points_money')->where('account_type_id', $pre->id)->value('points') ?? 0);
+
+        $this->cambios[] = "El pre-registro «{$pre->account}» pasa a START: \$" . self::START['price']
+            . " + IGV {$iva}% (antes \${$pre->price}), " . self::START['pv'] . " PV (antes {$puntos}), "
+            . self::START['fast'] . '% de efectivo rápido y 0% de descuento, venta y binario'
+            . ($pre->requires_opc ? ', y deja de exigir OPC' : '');
+
+        if ($pre->requires_opc) {
+            $seActivan = $this->usuariosQueSeActivan((int) $pre->id);
+
+            if ($seActivan > 0) {
+                $this->cambios[] = "OJO: al dejar de exigir OPC, {$seActivan} usuario(s) del pre-registro pasan de inactivos a activos. Cuentan como directo activo para su patrocinador y vuelven a entrar en el corte.";
+            }
+        }
+
+        $this->acciones[] = function () use ($pre, $iva) {
+            AccountType::where('id', $pre->id)->update([
+                'price'                 => self::START['price'],
+                'iva'                   => $iva,
+                'fast_cash_bonus'       => self::START['fast'],
+                'disc_purchases_course' => self::START['disc'],
+                'course_selling_bonus'  => self::START['venta'],
+                'pay_in_binary'         => self::START['binario'],
+                'productor_bonus'       => 30,
+                'requires_opc'          => false,
+                'description'           => $pre->description ?: self::START['descripcion'],
+            ]);
+
+            $fila = DB::table('account_type_points_money')->where('account_type_id', $pre->id)->first();
+
+            if ($fila) {
+                DB::table('account_type_points_money')->where('id', $fila->id)
+                    ->update(['points' => self::START['pv'], 'updated_at' => now()]);
+            } else {
+                DB::table('account_type_points_money')->insert([
+                    'account_type_id' => $pre->id,
+                    'points'          => self::START['pv'],
+                    'money'           => 0,
+                    'created_at'      => now(),
+                    'updated_at'      => now(),
+                ]);
+            }
+
+            // Si alguna vez se le creó producto de OPC, se desactiva: la membresía deja
+            // de llevarlo. No se borra, porque es donde miran los cobros ya hechos.
+            DB::table('product')->where('name', 'opc')->where('account_type_id', $pre->id)
+                ->update(['status' => '0', 'updated_at' => now()]);
+        };
+    }
+
+    /**
+     * Cuántos usuarios de una membresía pasarían de inactivos a activos si dejara de
+     * exigir OPC: los que tienen la membresía vigente y el OPC vencido.
+     */
+    private function usuariosQueSeActivan(int $membresiaId): int
+    {
+        return (int) DB::table('users')
+            ->where('id_account_type', $membresiaId)
+            ->where('request', '2')
+            ->whereNotNull('expiration_membership_date')
+            ->where('expiration_membership_date', '>', now())
+            ->whereNotNull('expiration_date')
+            ->where('expiration_date', '<=', now())
+            ->count();
     }
 
     private function planificarAjustes(PlanSettings $settings): void

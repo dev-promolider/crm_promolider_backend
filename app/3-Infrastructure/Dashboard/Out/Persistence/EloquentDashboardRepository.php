@@ -91,6 +91,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 'vol_min'          => (float) $rank->vol_min,
                 'active_direct'    => (int) $rank->active_direct,
                 'pack_max'         => (int) $rank->pack_max,
+                'min_months_previous_rank' => (int) ($rank->min_months_previous_rank ?? 0),
                 'max_pay'          => (float) $rank->max_pay,
                 'limit_generation' => (int) $rank->limit_generation,
                 'monthly_bonus'    => (float) ($rank->monthly_bonus ?? 0),

@@ -335,7 +335,7 @@ class CompensationPlanController extends Controller
     {
         $ranks = RankBonus::orderBy('sort_order')->orderBy('id')->get([
             'id', 'name', 'sort_order', 'vol_min', 'active_direct', 'pack_max',
-            'max_pay', 'monthly_bonus', 'monthly_bonus_months', 'monthly_bonus_frequency',
+            'min_months_previous_rank', 'max_pay', 'monthly_bonus', 'monthly_bonus_months', 'monthly_bonus_frequency',
             'extra_bonus', 'limit_generation', 'icon', 'status'
         ]);
 
@@ -380,7 +380,8 @@ class CompensationPlanController extends Controller
 
         DB::transaction(function () use ($rank, $request) {
             $datos = $request->only([
-                'name', 'sort_order', 'vol_min', 'active_direct', 'pack_max', 'max_pay',
+                'name', 'sort_order', 'vol_min', 'active_direct', 'pack_max',
+                'min_months_previous_rank', 'max_pay',
                 'monthly_bonus', 'monthly_bonus_months', 'monthly_bonus_frequency',
                 'limit_generation', 'icon',
             ]);
@@ -424,6 +425,7 @@ class CompensationPlanController extends Controller
                 'vol_min'                 => $request->input('vol_min'),
                 'active_direct'           => $request->input('active_direct'),
                 'pack_max'                => $request->input('pack_max', 0),
+                'min_months_previous_rank' => $request->input('min_months_previous_rank', 0),
                 'max_pay'                 => $request->input('max_pay'),
                 'monthly_bonus'           => $request->input('monthly_bonus', 0),
                 'monthly_bonus_months'    => $request->input('monthly_bonus_months', 3),
@@ -973,6 +975,10 @@ class CompensationPlanController extends Controller
             'vol_min'                 => $requerido . '|numeric|min:0',
             'active_direct'           => $requerido . '|integer|min:0',
             'pack_max'                => 'nullable|integer|min:0',
+            // Los meses en el rango anterior para poder subir a este. 0 es "no se
+            // exige", que es como entra todo el mundo; el techo solo evita un numero
+            // absurdo que desactivaria el rango sin querer.
+            'min_months_previous_rank' => 'nullable|integer|min:0|max:600',
             'max_pay'                 => $requerido . '|numeric|min:0',
             'monthly_bonus'           => 'nullable|numeric|min:0',
             'monthly_bonus_months'    => 'nullable|integer|min:1|max:36',

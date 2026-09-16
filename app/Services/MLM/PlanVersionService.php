@@ -26,7 +26,8 @@ class PlanVersionService
     ];
 
     private const CAMPOS_RANGO = [
-        'name', 'sort_order', 'vol_min', 'active_direct', 'pack_max', 'max_pay',
+        'name', 'sort_order', 'vol_min', 'active_direct', 'pack_max',
+        'min_months_previous_rank', 'max_pay',
         'monthly_bonus', 'monthly_bonus_months', 'monthly_bonus_frequency',
         'limit_generation', 'icon', 'status',
     ];
@@ -318,6 +319,13 @@ class PlanVersionService
             }
 
             foreach ($campos as $campo) {
+                // Un campo que no existia cuando se guardo la version no es una
+                // diferencia, es una columna nueva: compararlo sacaria una fila por
+                // cada rango cada vez que el plan gana un campo.
+                if (!array_key_exists($campo, $fila)) {
+                    continue;
+                }
+
                 $a = $fila[$campo] ?? null;
                 $b = $porClaveAhora[$id][$campo] ?? null;
 
