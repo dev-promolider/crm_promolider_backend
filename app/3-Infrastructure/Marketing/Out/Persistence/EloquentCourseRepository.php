@@ -127,11 +127,21 @@ class EloquentCourseRepository implements CourseRepositoryInterface
             $q->orderBy('order')->with(['classes' => function ($q2) {
                 $q2->orderBy('order');
             }]);
-        }])->find($id);
+        }, 'instructor'])->find($id);
 
         if (!$course) return null;
 
         $data = $course->toArray();
+        if ($course->instructor) {
+            $data['author_name'] = trim($course->instructor->name . ' ' . ($course->instructor->last_name ?? ''));
+            $data['instructor_name'] = $data['author_name'];
+            $data['instructor_photo'] = $course->instructor->photo ?? null;
+        }
+        if (!empty($data['modules'])) {
+            foreach ($data['modules'] as &$module) {
+                $module['lessons'] = $module['classes'] ?? [];
+            }
+        }
         $data['modules_count'] = $course->modules->count();
         $data['classes_count'] = $course->modules->sum(fn($m) => $m->classes->count());
         return $data;

@@ -38,6 +38,27 @@ use Illuminate\Support\Facades\Route;
     });
     Route::get('public/membership-plans', [\App\Http\Controllers\Admin\CompensationPlanController::class, 'publicMembershipPlans'])->name('public.membership_plans');
 
+    // Compatibilidad: obtención de rol para Navbar y Dashboard de Aula Virtual
+    Route::get('user/get-rolename', function (\Illuminate\Http\Request $request) {
+        $user = auth('sanctum')->user();
+        if (!$user) {
+            return response()->json([
+                'status' => 200,
+                'message' => 'success',
+                'data' => 'Guest'
+            ]);
+        }
+        $roleName = \Illuminate\Support\Facades\DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_id', $user->id)
+            ->value('roles.name');
+        return response()->json([
+            'status' => 200,
+            'message' => 'success',
+            'data' => $roleName ?? 'Student'
+        ]);
+    });
+
     // ==========================================
     // Plan de Compensación (Lectura para todos los usuarios autenticados)
     // ==========================================
@@ -111,6 +132,58 @@ use Illuminate\Support\Facades\Route;
     });
 
     // ==========================================
+    // Rutas Públicas de Marketplace (No requieren Token)
+    // ==========================================
+    Route::group(['prefix' => 'category'], function () {
+        Route::get('list', function () {
+            if (\Illuminate\Support\Facades\Schema::hasTable('categories')) {
+                $categories = \Illuminate\Support\Facades\DB::table('categories')->get();
+                return response()->json(['data' => $categories]);
+            }
+            return response()->json(['data' => []]);
+        });
+    });
+
+    Route::group(['prefix' => 'course'], function () {
+        Route::get('last-courses-rep', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'lastPlayed']);
+        Route::get('released-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'released']);
+        Route::get('related-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'recommendedCourses']);
+        Route::get('interesting-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'interestingCourses']);
+        Route::get('list-available-books', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'listAvailableBooks']);
+
+        // VCR: Ficha, temario y búsqueda abiertos para invitados
+        Route::get('details/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getCourseDetails'])->name('vcr.course.details');
+        Route::get('temary/get-all-class/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getCourseTemary'])->name('vcr.course.temary');
+        Route::get('search-courses/{query}', function (\Illuminate\Http\Request $request, $query) {
+            $request->merge(['q' => $query]);
+            return app(\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class)->search($request);
+        });
+    });
+
+    // VCR: Reproductor / Clase activa (público para vista previa)
+    Route::get('class/show-class/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'showClass'])->name('class.show');
+
+    // VCR: Perfil público del instructor / productor para ficha de venta
+    Route::get('user/show', function (\Illuminate\Http\Request $request) {
+        $id = $request->query('id');
+        if (!$id) {
+            return response()->json(['message' => 'ID requerido'], 400);
+        }
+        $user = \App\Models\User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'Usuario no encontrado'], 404);
+        }
+        return response()->json([
+            'id' => $user->id,
+            'fullName' => trim($user->name . ' ' . ($user->last_name ?? '')),
+            'name' => $user->name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'photo' => $user->photo ?? null,
+        ]);
+    });
+
+    // ==========================================
     // Rutas Protegidas (Requieren Token)
     // ==========================================
     Route::middleware('auth:sanctum')->group(function () {
@@ -138,11 +211,6 @@ use Illuminate\Support\Facades\Route;
         // VCR Backward Compatibility Routes
         // ==========================================
         Route::group(['prefix' => 'course'], function () {
-            Route::get('last-courses-rep', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'lastPlayed']);
-            Route::get('released-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'released']);
-            Route::get('related-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'recommendedCourses']);
-            Route::get('interesting-courses', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'interestingCourses']);
-            Route::get('list-available-books', [\Promolider\Infrastructure\Marketing\In\Http\Controllers\CoursesController::class, 'listAvailableBooks']);
             // VCR backward compat: lista de cursos comprados por el usuario
             Route::get('purchased-courses', function (\Illuminate\Http\Request $request) {
                 $userId = $request->user()->id;
@@ -172,15 +240,33 @@ use Illuminate\Support\Facades\Route;
             return response()->json([]);
         });
 
-        Route::group(['prefix' => 'category'], function () {
-            Route::get('list', function () {
-                if (\Illuminate\Support\Facades\Schema::hasTable('categories')) {
-                    $categories = \Illuminate\Support\Facades\DB::table('categories')->get();
-                    return response()->json(['data' => $categories]);
-                }
-                return response()->json(['data' => []]);
-            });
+        // Compatibilidad: detalle de usuario (usado por el modal del árbol en el Dashboard)
+        Route::get('user/{id}/detail', function ($id) {
+            $targetUser = \App\Models\User::with('accountType')->find($id);
+            if (!$targetUser) {
+                return response()->json(['message' => 'Usuario no encontrado'], 404);
+            }
+            return response()->json([
+                'id' => $targetUser->id,
+                'username' => $targetUser->username,
+                'name' => $targetUser->name,
+                'last_name' => $targetUser->last_name,
+                'email' => $targetUser->email,
+                'phone' => $targetUser->phone,
+                'date_birth' => $targetUser->date_birth,
+                'created_at' => $targetUser->created_at,
+                'photo' => $targetUser->photo,
+                'active' => $targetUser->active,
+                'membershipActive' => $targetUser->membershipActive,
+                'account_type' => $targetUser->accountType ? [
+                    'id' => $targetUser->accountType->id,
+                    'account' => $targetUser->accountType->account,
+                    'name' => $targetUser->accountType->account
+                ] : null
+            ]);
         });
+
+
 
         // ==========================================
         // Módulo: Notificaciones
@@ -290,20 +376,6 @@ use Illuminate\Support\Facades\Route;
         });
     });
 
-    // ==========================================
-    // VCR: Endpoint para reproducir clase (legacy)
-    // ==========================================
-    Route::get('class/show-class/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'showClass'])
-        ->name('class.show')
-        ->middleware('auth:sanctum');
-
-    Route::get('course/details/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getCourseDetails'])
-        ->name('vcr.course.details')
-        ->middleware('auth:sanctum');
-
-    Route::get('course/temary/get-all-class/{courseId}', [\Promolider\Infrastructure\Infoproducts\In\Http\Controllers\Course\ModuleClassController::class, 'getCourseTemary'])
-        ->name('vcr.course.temary')
-        ->middleware('auth:sanctum');
 
     // ==========================================
     // Módulo: Billetera y Pagos (Wallet)

@@ -87,16 +87,38 @@ class ModuleClassController extends Controller
 
     /**
      * GET course/details/{courseId}
-     * Devuelve los detalles bA!sicos del curso para el estudiante en el VCR.
+     * Devuelve los detalles del curso para el estudiante o invitado en el VCR.
      */
     public function getCourseDetails(Request $request, int $courseId)
     {
         try {
-            $course = \App\Models\Course::with('instructor')->find($courseId);
+            $course = \App\Models\Course::with([
+                'instructor',
+                'modules' => function ($q) {
+                    $q->orderBy('order', 'asc')->with(['classes' => function ($q2) {
+                        $q2->orderBy('order', 'asc');
+                    }]);
+                }
+            ])->find($courseId);
+
             if (!$course) {
                 return response()->json(['message' => 'Curso no encontrado'], 404);
             }
-            return response()->json(['data' => $course], 200);
+
+            $courseData = $course->toArray();
+            if ($course->instructor) {
+                $courseData['author_name'] = trim($course->instructor->name . ' ' . ($course->instructor->last_name ?? ''));
+                $courseData['instructor_name'] = $courseData['author_name'];
+                $courseData['instructor_photo'] = $course->instructor->photo ?? null;
+            }
+
+            if (!empty($courseData['modules'])) {
+                foreach ($courseData['modules'] as &$module) {
+                    $module['lessons'] = $module['classes'] ?? [];
+                }
+            }
+
+            return response()->json(['data' => $courseData], 200);
         } catch (\Throwable $th) {
             Log::error('getCourseDetails error: ' . $th->getMessage());
             return response()->json(['message' => 'Error al obtener los detalles del curso'], 500);
@@ -105,24 +127,35 @@ class ModuleClassController extends Controller
 
     /**
      * GET course/temary/get-all-class/{courseId}
-     * Devuelve el temario completo del curso para el estudiante en el VCR.
+     * Devuelve el temario completo del curso para el estudiante o invitado en el VCR.
      */
     public function getCourseTemary(Request $request, int $courseId)
     {
         try {
-            $course = \App\Models\Course::with(['modules.classes' => function ($query) {
-                $query->orderBy('order', 'asc');
-            }])->find($courseId);
+            $course = \App\Models\Course::with([
+                'instructor',
+                'modules' => function ($q) {
+                    $q->orderBy('order', 'asc')->with(['classes' => function ($q2) {
+                        $q2->orderBy('order', 'asc');
+                    }]);
+                }
+            ])->find($courseId);
 
             if (!$course) {
                 return response()->json(['message' => 'Curso no encontrado'], 404);
             }
 
-            // Mapear "classes" a "lessons" porque asA- lo espera el frontend (VCR)
             $courseData = $course->toArray();
-            foreach ($courseData['modules'] as &$module) {
-                $module['lessons'] = $module['classes'];
-                unset($module['classes']);
+            if ($course->instructor) {
+                $courseData['author_name'] = trim($course->instructor->name . ' ' . ($course->instructor->last_name ?? ''));
+                $courseData['instructor_name'] = $courseData['author_name'];
+                $courseData['instructor_photo'] = $course->instructor->photo ?? null;
+            }
+
+            if (!empty($courseData['modules'])) {
+                foreach ($courseData['modules'] as &$module) {
+                    $module['lessons'] = $module['classes'] ?? [];
+                }
             }
 
             return response()->json(['data' => $courseData], 200);
