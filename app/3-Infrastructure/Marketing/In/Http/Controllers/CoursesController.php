@@ -140,7 +140,7 @@ class CoursesController extends Controller
     public function expiration(int $courseId, Request $request): JsonResponse
     {
         try {
-            $result = $this->getCourseExpirationUseCase->execute($courseId, $request->user()->id);
+            $result = $this->getCourseExpirationUseCase->execute($courseId, $request->user()?->id ?? 0);
             if (!$result) {
                 return response()->json(['success' => false, 'message' => 'No se encontró información de expiración'], 404);
             }
@@ -168,7 +168,8 @@ class CoursesController extends Controller
     {
         try {
             $limit = (int) $request->input('limit', 10);
-            $result = $this->getReleasedCoursesUseCase->execute($request->user()->id, $limit);
+            $userId = $request->user() ? $request->user()->id : 0;
+            $result = $this->getReleasedCoursesUseCase->execute($userId, $limit);
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\Exception $e) {
             Log::error('Error getting released courses: ' . $e->getMessage());
@@ -180,7 +181,8 @@ class CoursesController extends Controller
     {
         try {
             $limit = (int) $request->input('limit', 5);
-            $result = $this->getLastPlayedCoursesUseCase->execute($request->user()->id, $limit);
+            $userId = $request->user() ? $request->user()->id : 0;
+            $result = $this->getLastPlayedCoursesUseCase->execute($userId, $limit);
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\Exception $e) {
             Log::error('Error getting last played courses: ' . $e->getMessage());
@@ -191,7 +193,7 @@ class CoursesController extends Controller
     public function gamesTop(int $courseId, Request $request): JsonResponse
     {
         try {
-            $result = $this->getGamesTopUseCase->execute($courseId, $request->user()->id);
+            $result = $this->getGamesTopUseCase->execute($courseId, $request->user()?->id ?? 0);
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\Exception $e) {
             Log::error('Error getting games top: ' . $e->getMessage());
@@ -349,7 +351,7 @@ class CoursesController extends Controller
     public function getProgress(int $courseId, Request $request): JsonResponse
     {
         try {
-            $result = $this->courseUseCase->getProgress($request->user()->id, $courseId);
+            $result = $this->courseUseCase->getProgress($request->user()?->id ?? 0, $courseId);
             return response()->json(['success' => true, 'data' => $result]);
         } catch (\Exception $e) {
             Log::error('Error getting progress: ' . $e->getMessage());
@@ -360,7 +362,7 @@ class CoursesController extends Controller
     public function completeLesson(Request $request, int $courseId, int $lessonId): JsonResponse
     {
         try {
-            $completed = $this->courseUseCase->completeLesson($request->user()->id, $courseId, $lessonId);
+            $completed = $this->courseUseCase->completeLesson($request->user()?->id ?? 0, $courseId, $lessonId);
             return response()->json(['success' => $completed]);
         } catch (\Exception $e) {
             Log::error('Error completing lesson: ' . $e->getMessage());
@@ -372,7 +374,7 @@ class CoursesController extends Controller
     {
         try {
             $validated = $request->validate(['progress' => 'required|numeric|min:0|max:100']);
-            $updated = $this->courseUseCase->updateProgress($request->user()->id, $courseId, $validated['progress']);
+            $updated = $this->courseUseCase->updateProgress($request->user()?->id ?? 0, $courseId, $validated['progress']);
             return response()->json(['success' => $updated]);
         } catch (\Exception $e) {
             Log::error('Error updating progress: ' . $e->getMessage());
@@ -401,7 +403,7 @@ class CoursesController extends Controller
                 'commentary' => 'nullable|string|max:500',
             ]);
 
-            $result = $this->courseUseCase->createRating($request->user()->id, $courseId, $validated['points'], $validated['commentary'] ?? null);
+            $result = $this->courseUseCase->createRating($request->user()?->id ?? 0, $courseId, $validated['points'], $validated['commentary'] ?? null);
             return response()->json(['success' => true, 'data' => $result], 201);
         } catch (\Exception $e) {
             Log::error('Error creating rating: ' . $e->getMessage());
@@ -421,8 +423,8 @@ class CoursesController extends Controller
             ]);
 
             $data = array_merge($validated, [
-                'id_analyst' => $request->user()->id,
-                'id_productor' => $request->input('id_productor', $request->user()->id),
+                'id_analyst' => $request->user()?->id ?? 0,
+                'id_productor' => $request->input('id_productor', $request->user()?->id ?? 0),
                 'status' => 0,
             ]);
 
@@ -613,7 +615,7 @@ class CoursesController extends Controller
                 'id_type' => 'required|integer',
             ]);
 
-            $userId = $request->user()->id;
+            $userId = $request->user()?->id ?? 0;
             $gameFor = $request->input('game_for');
             $idType = (int) $request->input('id_type');
 
@@ -670,7 +672,7 @@ class CoursesController extends Controller
         try {
             $request->validate(['id_course' => 'required|integer|exists:courses,id']);
 
-            $userId = $request->user()->id;
+            $userId = $request->user()?->id ?? 0;
             $courseId = (int) $request->input('id_course');
 
             // Juego a nivel curso
@@ -757,7 +759,7 @@ class CoursesController extends Controller
                 'achieved_points' => 'nullable|integer',
             ]);
 
-            $userId = $request->user()->id;
+            $userId = $request->user()?->id ?? 0;
             $courseGameId = (int) $request->input('course_game_id');
 
             // Si no hay data, es desaprobado
@@ -1062,8 +1064,8 @@ class CoursesController extends Controller
     public function recommendedCourses(Request $request): JsonResponse
     {
         try {
-            $userId = $request->user()->id;
-            $userType = $request->user()->id_account_type;
+            $userId = $request->user()?->id ?? 0;
+            $userType = $request->user()?->id_account_type ?? 0;
             $permittedLevels = $userType == 5 ? [1, 2] : [1, 2, 3];
 
             // IDs de cursos ya comprados
@@ -1173,7 +1175,7 @@ class CoursesController extends Controller
                 return response()->json(['success' => true, 'data' => []]);
             }
 
-            $userId = $request->user()->id;
+            $userId = $request->user()?->id ?? 0;
 
             $data = Course::join('categories', 'courses.id_categories', '=', 'categories.id')
                 ->join('purchased_courses', 'courses.id', '=', 'purchased_courses.course_id')

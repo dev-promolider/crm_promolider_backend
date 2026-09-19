@@ -2,7 +2,9 @@
 
 namespace App\Exceptions\MLM;
 
+use DateTimeInterface;
 use RuntimeException;
+use Throwable;
 
 /**
  * El periodo pedido ya tiene corte. Se lanza antes de tocar nada, para que el
@@ -10,15 +12,27 @@ use RuntimeException;
  */
 class BinaryCutAlreadyRunException extends RuntimeException
 {
+    public string $periodo;
+    public ?string $ejecutadoEl;
+
     public function __construct(
-        public readonly string $periodo,
-        public readonly ?string $ejecutadoEl = null
+        string $periodo,
+        string|DateTimeInterface|null $ejecutadoEl = null,
+        int $code = 409,
+        ?Throwable $previous = null
     ) {
-        $cuando = $ejecutadoEl ? " (se ejecuto el {$ejecutadoEl})" : '';
+        $this->periodo = $periodo;
+        $this->ejecutadoEl = $ejecutadoEl instanceof DateTimeInterface
+            ? $ejecutadoEl->format('Y-m-d H:i:s')
+            : $ejecutadoEl;
+
+        $cuando = $this->ejecutadoEl ? " (se ejecuto el {$this->ejecutadoEl})" : '';
 
         parent::__construct(
             "El corte binario del periodo {$periodo} ya se ejecuto{$cuando}. " .
-            'Los rangos son mensuales y el volumen ya se consumio, asi que repetirlo pagaria dos veces.'
+            'Los rangos son mensuales y el volumen ya se consumio, asi que repetirlo pagaria dos veces.',
+            $code,
+            $previous
         );
     }
 }

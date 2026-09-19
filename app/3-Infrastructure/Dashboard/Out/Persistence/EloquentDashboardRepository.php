@@ -227,15 +227,30 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
 
         $classifications = \Illuminate\Support\Facades\DB::table('classified')->get()->keyBy('user_id')->toArray();
 
-        $buildTree = function($currentUser, $depth = 1) use (&$buildTree, &$childrenMap, $classifications, $userId) {
+        $visitedUsers = [];
+        $buildTree = function($currentUser, $depth = 1) use (&$buildTree, &$childrenMap, $classifications, $userId, &$visitedUsers) {
+            if ($depth > 20 || isset($visitedUsers[$currentUser->id])) {
+                return [];
+            }
+            $visitedUsers[$currentUser->id] = true;
+
             $children = $childrenMap[$currentUser->id] ?? [];
             $formattedDirects = [];
             
             foreach ($children as $child) {
+                if (isset($visitedUsers[$child->id])) {
+                    continue;
+                }
                 $leg = 'none';
                 $currentId = $child->id;
+                $visitedAncestors = [];
                 
                 while (isset($classifications[$currentId]) && $classifications[$currentId]->user_above !== 'top') {
+                    if (isset($visitedAncestors[$currentId])) {
+                        break;
+                    }
+                    $visitedAncestors[$currentId] = true;
+
                     $parentId = (int) $classifications[$currentId]->user_above;
                     $position = (int) $classifications[$currentId]->position;
                     
@@ -342,7 +357,7 @@ class EloquentDashboardRepository implements DashboardRepositoryInterface
                 SELECT c.id, c.user_id, c.user_above, c.id_user_sponsor, c.position, cte.depth + 1
                 FROM classified c
                 INNER JOIN cte ON c.user_above = CAST(cte.user_id AS CHAR)
-                WHERE c.position = ?
+                WHERE c.position = ? AND cte.depth < 50
             )
             SELECT user_id FROM cte WHERE id_user_sponsor = ? ORDER BY depth ASC LIMIT 1
         ";
